@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 2 · The anomaly lab - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 2 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 2 of 10</div>
+    <h1>The <span class="accent">anomaly lab</span></h1>
+    <p class="sub">Normalization is usually taught as three definitions to memorise. This session teaches it as three failures to eliminate. You get one wide table and four levers; each lever changes the schema, and the lab re-runs real UPDATE, INSERT and DELETE statements to show you which anomalies are still there. Turn all four on and the count reaches zero - and you will have derived third normal form instead of reciting it.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Builder track</span>
+      <span class="chip audience">Analysts · analytics engineers · DE · DS</span>
+      <span class="chip audience">Signature lab · real SQLite</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:3">3-14 · The three anomalies</span>
+      <span class="a3" style="flex:6">14-40 · The lab: normalize until the anomalies die</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Why normalization is worth 45 minutes</h2>
+    </div>
+    <p class="lede">Session b1 ended with a flat export and a redundancy count. That redundancy is not an aesthetic problem - it is three specific, nameable failures waiting to happen, and every one of them will happen to a table that stores the same fact twice. Normalization is the process of removing them. The definitions (1NF, 2NF, 3NF) are just labels for how far along you are.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live lab - real SQL, real anomalies</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      The ability to look at any table and say which of the three anomalies it is exposed to, a working definition of 1NF through 3NF you derived rather than memorised, and the one case where storing a fact twice is correct.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: THE THREE ANOMALIES ============ -->
+  <section class="section" id="anomalies">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Codd / relational theory, the anomaly classes</span>
+      <h2>The three anomalies <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">All three come from the same root cause: a fact stored in more than one place, or a fact that has nowhere of its own to live. Learn the shapes and you can spot them in a schema in seconds.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The three normalization anomalies: update, insert and delete, each shown as a failure on a wide table">
+        <style>
+          .anT { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .anH { font: 700 12.5px Inter, sans-serif; fill: #1B2637; }
+          .anC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .anB { font: 600 11.5px Inter, sans-serif; fill: #991B1B; }
+          .anN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <rect x="26" y="34" width="262" height="46" rx="9" fill="#991B1B"/>
+        <text class="anT" x="44" y="63">1 · Update anomaly</text>
+        <text class="anH" x="44" y="106">The price changes.</text>
+        <text class="anC" x="44" y="126">Studio Headphones is stored on</text>
+        <text class="anC" x="44" y="145">5 rows. You update 1. Now the</text>
+        <text class="anC" x="44" y="164">database holds two prices for</text>
+        <text class="anC" x="44" y="183">one product, and both look real.</text>
+        <text class="anB" x="44" y="212">Cost: nobody knows which is true</text>
+
+        <rect x="308" y="34" width="262" height="46" rx="9" fill="#991B1B"/>
+        <text class="anT" x="326" y="63">2 · Insert anomaly</text>
+        <text class="anH" x="326" y="106">A new product arrives.</text>
+        <text class="anC" x="326" y="126">The only table is orders_wide,</text>
+        <text class="anC" x="326" y="145">so a product cannot be recorded</text>
+        <text class="anC" x="326" y="164">until somebody buys it. You</text>
+        <text class="anC" x="326" y="183">invent a fake order, or you wait.</text>
+        <text class="anB" x="326" y="212">Cost: the catalogue is a guess</text>
+
+        <rect x="590" y="34" width="262" height="46" rx="9" fill="#991B1B"/>
+        <text class="anT" x="608" y="63">3 · Delete anomaly</text>
+        <text class="anH" x="608" y="106">An order is cancelled.</text>
+        <text class="anC" x="608" y="126">You delete its rows. That was</text>
+        <text class="anC" x="608" y="145">the only place Yoga Mat was</text>
+        <text class="anC" x="608" y="164">stored, so the product is gone</text>
+        <text class="anC" x="608" y="183">from the database entirely.</text>
+        <text class="anB" x="608" y="212">Cost: silent data loss</text>
+
+        <rect x="26" y="242" width="826" height="76" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="anN" x="46" y="268">One root cause, three symptoms: a fact stored in more than one place, or a fact with no place</text>
+        <text class="anN" x="46" y="288">of its own. Normalization gives every fact exactly one home - which is why all three</text>
+        <text class="anN" x="46" y="308">anomalies disappear together rather than one at a time.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the three failures normalization exists to remove</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>1NF, 2NF, 3NF - what each one actually forbids<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Each normal form removes one class of dependency. The plain-English version is short enough to hold in your head:</p>
+        <ul>
+          <li><strong>1NF - one value per cell.</strong> No comma-separated lists, no repeating groups (<code>product_1</code>, <code>product_2</code>, <code>product_3</code>), no arrays pretending to be strings. If you have to <code>split()</code> a column to query it, you are not in 1NF.</li>
+          <li><strong>2NF - no partial dependency on a composite key.</strong> If the key is (order_id, product_id), then anything that depends on only <em>part</em> of that key belongs elsewhere. Order date depends on order_id alone, so it belongs on the order, not the line.</li>
+          <li><strong>3NF - no transitive dependency.</strong> A non-key column must not depend on another non-key column. Product category depends on product name, not on the order line - so it belongs in a products table.</li>
+        </ul>
+        <p>The shorthand every practitioner ends up with: <strong>every fact depends on the key, the whole key, and nothing but the key.</strong> The lab below is the same idea with the definitions removed and the failures left in.</p>
+        <div class="callout tip">
+          <strong>Beyond 3NF</strong>
+          BCNF, 4NF and 5NF exist and are real, and you will almost never design for them on purpose. The overwhelming majority of production OLTP schemas are 3NF plus judgement. If you are in a domain where BCNF matters, you already know it.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>When storing a fact twice is correct<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Bazaar's <code>order_items</code> table stores <code>unit_price</code> even though <code>products</code> already has <code>list_price</code>, and it stores <code>merchant_id</code> even though <code>products</code> already knows which merchant owns each product. Both look like textbook 3NF violations. Neither is a mistake.</p>
+        <ul>
+          <li><strong>Point-in-time capture, not redundancy.</strong> <code>unit_price</code> is the price actually charged on that line, on that day. The product's list price will change; what you charged in April must not. These are two different facts that share a word - exactly the case session b1 flagged.</li>
+          <li><strong>The same logic covers merchant_id:</strong> a product can be transferred between merchants, and the sale still belongs to whoever sold it at the time.</li>
+          <li><strong>How to tell the difference:</strong> ask whether the two copies are ever <em>allowed</em> to differ. If they must always agree, it is redundancy - normalize it. If they can legitimately differ over time, they are different facts - store both, and name them so the difference is visible (<code>list_price</code> vs <code>unit_price</code>, not <code>price</code> and <code>price</code>).</li>
+        </ul>
+        <p>This is why the lab below does not flag those two columns. Normalization is a tool for removing accidental duplication, not a rule that forbids deliberate history.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ THE LAB ============ -->
+  <section class="section" id="lab">
+    <div class="section-kicker">
+      <span class="klabel">Signature lab · 18 min · everyone builds</span>
+      <h2>Normalize until the anomalies die <span class="tag demo">★ real SQL, measured</span></h2>
+    </div>
+    <p class="lede">One wide table of 12 order lines - the flat export from session b1, shrunk so you can read it. Four levers. Each lever rebuilds the schema in real SQLite, and the lab then runs the actual failing statements against it: an UPDATE that changes one product's price, an INSERT of a product nobody has ordered, a DELETE of an order, and an INSERT with a bogus product id. The scorecard is measured, not scripted.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Start with everything off.</strong> Read the scorecard: five red cards. Note the redundancy count - that is how many repeated strings are stored right now.</p></div>
+      <div class="step"><p><strong>Turn on one lever at a time.</strong> Watch which specific card goes green. Extract products and the update anomaly dies; extract customers and the redundancy count drops.</p></div>
+      <div class="step"><p><strong>Open "Show the schema"</strong> after each change. That SQL is what your lever choices just built - the DDL is the lesson, not a by-product.</p></div>
+      <div class="step"><p><strong>Finish with keys.</strong> The last lever is the one that makes the database refuse bad data instead of storing it. Watch the integrity card flip to "rejected".</p></div>
+    </div>
+
+    <div id="model-lab"></div>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Why the last lever matters most.</strong> Teams routinely split their tables and then never declare the foreign keys, because "the application handles it". The application handles it until a backfill script, a manual fix, or a second application writes to the same database. A constraint you declared but never enabled is a comment; SQLite in particular only enforces foreign keys after <code>PRAGMA foreign_keys = ON</code>, which is why the lab sets it explicitly. Session b4 makes this its main event.</p>
+    </div>
+  </section>
+
+  <!-- ============ DEMO: DO IT IN SQL YOURSELF ============ -->
+  <section class="section" id="demo-2">
+    <div class="section-kicker">
+      <span class="klabel">Demo 2 of 2</span>
+      <h2>Your turn: run the anomaly by hand <span class="tag demo">★ 8 min · build your own</span></h2>
+    </div>
+    <p class="lede">The lab measures for you. Now cause the failure yourself, on Bazaar's real source tables, so the mechanism is unmistakable.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Q1 · Cause an update anomaly, then detect it<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Bazaar's real schema is already normalized, so we recreate the flat shape first, then break it. Each run starts from a fresh database, so this is safe.</p>
+        <div class="sqlbox" data-seed="oltp" data-caption="Flatten, update one row, then count the rows that now disagree. The disagreement is the anomaly.">
+          <pre class="sql-src">CREATE TABLE wide AS
+SELECT oi.order_id, oi.line_no, p.product_name, p.category, oi.unit_price
+FROM order_items oi JOIN products p ON p.product_id = oi.product_id;
+
+-- a well-meaning price correction that only finds one row
+UPDATE wide SET unit_price = 149.00
+WHERE product_name = 'Studio Headphones' AND order_id = (
+  SELECT MIN(order_id) FROM wide WHERE product_name = 'Studio Headphones');
+
+SELECT product_name,
+       COUNT(DISTINCT unit_price) AS distinct_prices_stored,
+       COUNT(*)                   AS rows_storing_a_price
+FROM wide
+WHERE product_name = 'Studio Headphones'
+GROUP BY product_name;</pre>
+        </div>
+        <p>Two distinct prices for one product, and nothing in the database says which is correct. In the normalized schema this update touches exactly one row in <code>products</code> and the question cannot arise.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Q2 · Prove the normalized schema cannot have the problem<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <div class="sqlbox" data-seed="oltp" data-caption="One row per product means one price per product. Try to make it disagree - you cannot without inserting a second product.">
+          <pre class="sql-src">UPDATE products SET list_price = 149.00 WHERE product_name = 'Studio Headphones';
+
+SELECT product_name, COUNT(*) AS rows_storing_a_price,
+       COUNT(DISTINCT list_price) AS distinct_prices_stored
+FROM products
+WHERE product_name = 'Studio Headphones'
+GROUP BY product_name;</pre>
+        </div>
+        <p>One row, one price. That is the entire benefit of normalization stated as a query result.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Q3 · Find a 1NF violation in the wild<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>No SQL. Bazaar's source schema has no comma-separated columns, because it was designed rather than accreted. Almost every real schema has at least one: a <code>tags</code> column holding <code>"sale,clearance,final"</code>, a <code>sizes</code> column holding <code>"S/M/L"</code>, an <code>address</code> column holding a whole postal address.</p>
+        <p>Find one in a schema you work with. Then write the query someone would need to answer "how many products are tagged clearance" against it, and notice that it involves <code>LIKE '%clearance%'</code> - which also matches <code>"not-clearance"</code>. That is what a 1NF violation costs: every query about that column becomes a string-matching guess.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 20-30 min total</span></h2>
+    </div>
+    <ul>
+      <li>Run the lab once with every lever off and once with all four on. Screenshot both scorecards side by side - that pair is the most persuasive normalization argument you will ever show a stakeholder.</li>
+      <li>Take one wide table you own. For each of the three anomalies, write the exact statement that would cause it. If you can write all three, the table needs splitting.</li>
+      <li>Find a column in your own schema that stores a fact you could look up somewhere else. Decide, in writing, whether it is redundancy or point-in-time capture. Both answers are fine; not knowing is not.</li>
+      <li>Check whether the foreign keys in your database are declared, enabled, and actually enforced. In SQLite, run <code>PRAGMA foreign_keys;</code> - if it returns 0, none of them are doing anything.</li>
+      <li>Bring one many-to-many relationship from your work to session b3 - resolving those is what b3 is about.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Codd / relational theory - functional dependency, 1NF, 2NF, 3NF, the three anomaly classes</span><span class="note">Part 1 + the lab · derived from failures rather than defined</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">SQLite / PostgreSQL documentation - constraint semantics, <code>PRAGMA foreign_keys</code></span><span class="note">Lab lever 4 · declared vs enforced constraints</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Higher normal forms (BCNF, 4NF, 5NF)</span><span class="note">Part 1 · named with an honest reason they are out of scope</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Kimball - deliberate denormalization</span><span class="note">Self-study · point-in-time capture vs redundancy; the full argument is b6 and b8</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · A wide table stores a product's category on every order line. Which anomaly does that expose you to?</p>
+      <button class="qopt" type="button">A · Only the insert anomaly</button>
+      <button class="qopt" type="button">B · None - the category is just denormalized for speed</button>
+      <button class="qopt" type="button">C · All three: an update can leave copies disagreeing, a new product cannot be recorded without an order, and deleting the last order erases the product</button>
+      <p class="qwhy">The three anomalies share one root cause - a fact stored in more than one place, with nowhere of its own to live. That is why extracting products into its own table kills all three at once rather than one at a time.</p>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">2 · What does 3NF forbid that 2NF allows?</p>
+      <button class="qopt" type="button">A · Composite primary keys</button>
+      <button class="qopt" type="button">B · A non-key column depending on another non-key column (a transitive dependency)</button>
+      <button class="qopt" type="button">C · NULL values in any column</button>
+      <p class="qwhy">2NF removes partial dependencies on part of a composite key; 3NF removes transitive dependencies between non-key columns - category depending on product name rather than on the row's key. Composite keys are fine in both, and neither has anything to say about NULLs.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Bazaar's <code>order_items</code> stores <code>unit_price</code> even though <code>products</code> has <code>list_price</code>. Why is that not a normalization error?</p>
+      <button class="qopt" type="button">A · They are different facts: what you charged on that line that day, versus what the product lists for today. They are allowed to differ</button>
+      <button class="qopt" type="button">B · It is an error, but an acceptable one for performance</button>
+      <button class="qopt" type="button">C · Because prices never change in practice</button>
+      <p class="qwhy">The test is whether the two copies are ever legitimately allowed to differ. Must always agree means redundancy - normalize it. Can differ over time means two distinct facts - store both, and name them so the difference is visible.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 2 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Three anomalies</b><span>Update (copies disagree), insert (cannot record without a parent), delete (losing a row loses a fact).</span></div>
+      <div class="cheat-item"><b>One root cause</b><span>A fact stored twice, or a fact with no home of its own. Fix the cause, all three die.</span></div>
+      <div class="cheat-item"><b>1NF</b><span>One value per cell. No lists, no repeating groups, no split() to query.</span></div>
+      <div class="cheat-item"><b>2NF</b><span>Nothing depends on only part of a composite key.</span></div>
+      <div class="cheat-item"><b>3NF</b><span>No non-key column depends on another non-key column.</span></div>
+      <div class="cheat-item"><b>The shorthand</b><span>The key, the whole key, and nothing but the key.</span></div>
+      <div class="cheat-item"><b>Deliberate duplication</b><span>If two copies may legitimately differ over time, they are different facts. Name them differently.</span></div>
+      <div class="cheat-item"><b>Declared ≠ enforced</b><span>SQLite needs PRAGMA foreign_keys = ON. Check yours. Next: b3, ER and keys.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 2 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b1-source-reality.html">← Previous: Source reality</a> &nbsp;·&nbsp; <a href="b3-er-and-keys.html">Next: ER, cardinality and keys →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/model-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

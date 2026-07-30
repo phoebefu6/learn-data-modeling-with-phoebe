@@ -1,0 +1,13 @@
+merchant_id,merchant_name,category,country,tier,commission_pct,joined_date
+M01,Kettle & Co,Home,SG,gold,0.12,2024-08-20
+M02,Verdant Skincare,Beauty,SG,gold,0.15,2024-03-06
+M03,Northlight Books,Media,MY,silver,0.1,2024-05-05
+M04,Pace Athletics,Sport,SG,gold,0.13,2025-08-22
+M05,Tiny Fern,Home,ID,bronze,0.18,2025-09-18
+M06,Copper Kitchen,Home,SG,silver,0.12,2024-05-31
+M07,Nimbus Audio,Electronics,SG,platinum,0.09,2025-04-28
+M08,Loom & Thread,Apparel,VN,silver,0.14,2024-07-02
+M09,Harbour Pet,Pet,SG,bronze,0.17,2025-03-06
+M10,Sable Stationery,Office,MY,bronze,0.16,2025-07-20
+M11,Orchid Grocer,Grocery,SG,silver,0.11,2024-12-10
+M12,Fable Toys,Toys,SG,bronze,0.16,2025-09-23

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 8 · Answering the four questions - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 8 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 8 of 10</div>
+    <h1>Answering the <span class="accent">four questions</span></h1>
+    <p class="sub">This is the payoff session. Seven sessions of design exist so that four questions a marketplace leadership team asks on a Monday can be answered in a few lines of SQL each, with no argument about definitions. You will build the four marts, walk the four questions in order, and watch one plausible hypothesis die on the evidence while another survives. The honest lesson at the end is not about SQL: a rate without its denominator is not evidence, and a model's real job is to make a hypothesis refutable.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Builder track</span>
+      <span class="chip audience">Analysts · analytics engineers · DE · DS</span>
+      <span class="chip audience">Hands-on · real SQLite</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:2">3-13 · What a mart actually is</span>
+      <span class="a3" style="flex:6">13-42 · The four questions, answered live</span>
+      <span class="a4" style="flex:1">42-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>The four questions, and why they are the exam</h2>
+    </div>
+    <p class="lede">A model is not good because it is normalized, or star-shaped, or documented. It is good because the questions the business actually asks are cheap and unambiguous to answer with it. So this session is the exam, and these are the four questions Bazaar's leadership team asks: <strong>which merchant's performance dropped, why sales dropped, why one specific day collapsed, and when the peak transaction hours are.</strong></p>
+    <p class="lede">Three files ship today: <code>sql/20_marts.sql</code> builds the four marts, <code>sql/30_business_questions.sql</code> answers the four questions with the verified numbers written in beside them, and <code>python/answer_questions.py</code> runs the same analyses against <code>bazaar.db</code>, prints readable answers and saves every chart as a 300 DPI PNG plus an SVG for slides.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live SQL - editable &amp; runnable</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      Four marts you built, four business answers you can defend, the carts x conversion x AOV decomposition as a reusable habit, and the experience of killing your own hypothesis on a sample size - which is the skill that separates an analyst from a dashboard.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: WHAT A MART IS ============ -->
+  <section class="section" id="marts">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Kimball marts, dbt layering, model contracts</span>
+      <h2>A mart is not a smaller star <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">The most common thing built and called a mart is a subset: fewer columns, fewer rows, same shape. That is a copy, and copies rot. A mart is <strong>the star pre-aggregated to the grain a specific set of questions is asked at, with the metric definitions baked in</strong> so that two people asking the same question get the same number. The grain is the whole point, which is why Bazaar has four of them and not one.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 344" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bazaar's four marts, each with its grain, row count and the business question it serves, plus the two rules every mart follows">
+        <style>
+          .mtT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .mtH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .mtC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .mtK { font: 700 12.5px Inter, sans-serif; fill: #22395C; }
+          .mtN { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+        </style>
+
+        <rect x="26" y="30" width="196" height="42" rx="8" fill="#22395C"/>
+        <text class="mtT" x="42" y="56">merchant_daily</text>
+        <text class="mtC" x="42" y="96">GRAIN: merchant x day</text>
+        <text class="mtK" x="42" y="120">600 rows</text>
+        <text class="mtH" x="42" y="146">Serves: which merchant</text>
+        <text class="mtC" x="42" y="166">dropped (Q1)</text>
+
+        <rect x="242" y="30" width="196" height="42" rx="8" fill="#3B5B8C"/>
+        <text class="mtT" x="258" y="56">funnel_daily</text>
+        <text class="mtC" x="258" y="96">GRAIN: one day</text>
+        <text class="mtK" x="258" y="120">90 rows</text>
+        <text class="mtH" x="258" y="146">Serves: why sales</text>
+        <text class="mtC" x="258" y="166">dropped (Q2, Q3)</text>
+
+        <rect x="458" y="30" width="196" height="42" rx="8" fill="#3B5B8C"/>
+        <text class="mtT" x="474" y="56">payment_health</text>
+        <text class="mtC" x="474" y="96">GRAIN: day x method</text>
+        <text class="mtK" x="474" y="120">388 rows</text>
+        <text class="mtH" x="474" y="146">Serves: decline</text>
+        <text class="mtC" x="474" y="166">triage (Q2, Q3)</text>
+
+        <rect x="674" y="30" width="178" height="42" rx="8" fill="#6C8CBC"/>
+        <text class="mtT" x="690" y="56">hourly_txns</text>
+        <text class="mtC" x="690" y="96">GRAIN: day x hour</text>
+        <text class="mtK" x="690" y="120">753 rows</text>
+        <text class="mtH" x="690" y="146">Serves: peak hours</text>
+        <text class="mtC" x="690" y="166">and staffing (Q4)</text>
+
+        <rect x="26" y="196" width="826" height="60" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="mtN" x="46" y="220">Four marts because four grains. Merging them would force a grain that fits none of them and re-introduce exactly</text>
+        <text class="mtN" x="46" y="240">the fan-out that separating the facts in b7 existed to prevent. When two marts must be read together, join them on</text>
+
+        <rect x="26" y="272" width="826" height="60" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="mtN" x="46" y="296">their shared conformed keys. No mart stores a ratio: every rate ships as numerator and denominator and the division</text>
+        <text class="mtN" x="46" y="316">happens at read time. That one discipline is what stops an average of averages from ever being available.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four marts, four grains, and the two rules all of them follow</figcaption>
+    </figure>
+
+    <table class="clean">
+      <thead><tr><th>Mart</th><th>One row is</th><th>Rows</th><th>Built from</th><th>Serves</th></tr></thead>
+      <tbody>
+        <tr><td><code>mart_merchant_daily</code></td><td>one merchant on one day</td><td>600</td><td><code>fact_order_item</code> where <code>is_paid = 1</code></td><td>Q1 · merchant performance, GMV, margin, commission</td></tr>
+        <tr><td><code>mart_funnel_daily</code></td><td>one day</td><td>90</td><td>all three facts, each aggregated to day first</td><td>Q2 and Q3 · the decomposition mart</td></tr>
+        <tr><td><code>mart_payment_health_daily</code></td><td>one day, one payment method</td><td>388</td><td><code>fact_transaction</code></td><td>Q2 and Q3 · decline triage and reason codes</td></tr>
+        <tr><td><code>mart_hourly_transactions</code></td><td>one day, one hour</td><td>753</td><td><code>fact_transaction</code></td><td>Q4 · peak hours, staffing, deploy windows</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What "with the definitions baked in" actually buys you<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Look at what <code>mart_merchant_daily</code> decided once, so that nobody downstream has to decide it again:</p>
+        <ul>
+          <li><strong><code>WHERE is_paid = 1</code>.</strong> Revenue in this mart is money that settled. That is one line of SQL and it ends a recurring argument, because the alternative is every analyst applying that filter, or not, from memory.</li>
+          <li><strong><code>COUNT(DISTINCT order_id) AS orders</code>.</strong> Not <code>COUNT(*)</code>. The grain error from b7 is impossible here because the mart already counted correctly.</li>
+          <li><strong><code>aov_numerator</code> and <code>aov_denominator</code>, not <code>aov</code>.</strong> The AOV of a week is then computable from the days, which is exactly what a stored AOV would have made impossible.</li>
+          <li><strong>The dimension attributes come along</strong> - <code>merchant_name</code>, <code>merchant_category</code>, <code>merchant_tier</code>. A mart that only carries ids is a mart people have to join their way out of.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The test for whether you built a mart or a copy</strong>
+          Ask what would break if you deleted it and rebuilt it from the star tomorrow. If the answer is "nothing, it is the same query", it is a cache and that is fine. If the answer includes "we would have to re-decide what revenue means", it was never a copy - the decisions were the deliverable.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The layer stack, and where a mart sits in it<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Bazaar's files are the standard modern layering with nothing hidden, and each layer has exactly one job:</p>
+        <ul>
+          <li><strong>Source</strong> (<code>sql/01</code>, <code>sql/02</code>) - the OLTP tables, normalized, owned by the application. You do not query these for analytics, which was the whole argument of b5.</li>
+          <li><strong>Star</strong> (<code>sql/10</code>, <code>sql/11</code>, <code>sql/12</code>) - dimensions and facts at their natural grains. Everything reconciles here, and this is the layer you defend.</li>
+          <li><strong>Marts</strong> (<code>sql/20</code>) - pre-aggregated to question grains, definitions baked in. Cheap to read, safe to hand to a BI tool.</li>
+          <li><strong>Access</strong> (<code>sql/40</code>, session b9) - flat, self-describing views plus the metric table, which is what an AI agent or a new analyst is allowed to see.</li>
+        </ul>
+        <p>The rule that keeps this honest is one-directional dependency: marts read the star, the star reads the source, and nothing ever reads back up the stack. When a definition changes you change it in exactly one layer, and you can say out loud which reports move.</p>
+        <p>The other thing worth naming is what a mart is <em>not</em> allowed to be: the only place a number exists. Every number in every mart here reconciles to the star, and Demo 1 makes you check that rather than trust it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Two other ways to model this, honestly compared<span class="mini">4 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Dimensional marts are the default recommendation of this course, not the only pattern that works. The two you will be asked about deserve a straight answer:</p>
+        <ul>
+          <li><strong>Data Vault (Linstedt).</strong> Hubs for business keys, links for relationships, satellites for descriptive attributes and their history. It is genuinely excellent at one thing: absorbing many source systems that change shape and ownership independently, while keeping full auditability of what arrived when. The cost is that nobody queries it directly - you still build dimensional marts on top - so you are maintaining two models. It earns its complexity in a regulated enterprise integrating a dozen upstream systems with real audit requirements. For Bazaar, one source system and one team, it would be pure overhead.</li>
+          <li><strong>One Big Table.</strong> Flatten everything into a single wide table per subject area and let a columnar engine handle it. This is a serious pattern on modern warehouses and it is not the same mistake as b1's flat export, because the OBT is a derived, rebuilt artifact rather than a system of record. Its real cost is the one b7 spent a whole session on: an OBT has exactly one grain, so the moment your subject area has two - sold and paid - you are back to choosing which question the table cannot answer.</li>
+        </ul>
+        <p>Graph and document models are a further step away and each is its own topic. The judgement to carry out of here: pick the pattern that makes the questions you are actually asked cheap, and be able to say in one sentence what your choice makes expensive. Any pattern presented as having no downside is being sold to you.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: THE DECOMPOSITION ============ -->
+  <section class="section" id="decomposition">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · the reusable habit</span>
+      <h2>Never answer "why did sales drop" with one number <span class="tag concept">5 min live</span></h2>
+    </div>
+    <p class="lede">"Sales dropped 30%" is not an answer, it is the question restated with more precision. Revenue is an identity: <strong>revenue = carts x conversion x AOV</strong>. So a drop is always one of those three moving, usually one much more than the others, and each of the three sends you to a different team. Compute all three side by side and the cause stops being something people argue about in a meeting.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 352" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Revenue decomposed as carts times conversion times average order value, with Bazaar's prior and recent fourteen day windows for each factor and the resulting revenue change">
+        <style>
+          .dcT { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .dcV { font: 400 11.5px Inter, sans-serif; fill: #B9CBE4; }
+          .dcD { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .dcX { font: 700 19px Inter, sans-serif; fill: #22395C; }
+          .dcN { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+        </style>
+
+        <rect x="26" y="44" width="186" height="104" rx="10" fill="#3B5B8C"/>
+        <text class="dcT" x="44" y="70">carts</text>
+        <text class="dcV" x="44" y="94">prior 14d: 398</text>
+        <text class="dcV" x="44" y="114">recent 14d: 312</text>
+        <text class="dcD" x="44" y="138">-21.6%</text>
+
+        <text class="dcX" x="224" y="104">x</text>
+
+        <rect x="246" y="44" width="186" height="104" rx="10" fill="#6C8CBC"/>
+        <text class="dcT" x="264" y="70">conversion</text>
+        <text class="dcV" x="264" y="94">prior 14d: 47.2%</text>
+        <text class="dcV" x="264" y="114">recent 14d: 44.9%</text>
+        <text class="dcD" x="264" y="138">-2.3pp</text>
+
+        <text class="dcX" x="444" y="104">x</text>
+
+        <rect x="466" y="44" width="186" height="104" rx="10" fill="#3B5B8C"/>
+        <text class="dcT" x="484" y="70">AOV</text>
+        <text class="dcV" x="484" y="94">prior 14d: 128.68</text>
+        <text class="dcV" x="484" y="114">recent 14d: 118.25</text>
+        <text class="dcD" x="484" y="138">-8.1%</text>
+
+        <text class="dcX" x="664" y="104">=</text>
+
+        <rect x="686" y="44" width="168" height="104" rx="10" fill="#991B1B"/>
+        <text class="dcT" x="704" y="70">net revenue</text>
+        <text class="dcV" x="704" y="94">prior 14d: 22,906</text>
+        <text class="dcV" x="704" y="114">recent 14d: 15,963</text>
+        <text class="dcD" x="704" y="138">-30.3%</text>
+
+        <rect x="26" y="172" width="826" height="80" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="dcN" x="46" y="198">Carts fell 21.6% and AOV fell 8.1%, while conversion barely moved. So roughly three quarters of the loss is demand</text>
+        <text class="dcN" x="46" y="218">that never arrived and the rest is smaller orders. Checkout did not break - the decline rate actually IMPROVED, from</text>
+        <text class="dcN" x="46" y="238">10.3% to 4.1%, because the earlier window is the one containing the 2026-06-10 incident that Q3 is about.</text>
+
+        <rect x="26" y="268" width="826" height="60" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="dcN" x="46" y="292">"Sales dropped 30%" sends the whole room to the checkout team. The decomposition sends marketing to a paid-search</text>
+        <text class="dcN" x="46" y="312">pullback and one category manager to one merchant's stockout. Same starting number, two very different weeks.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the identity that turns one alarming number into three checkable ones</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Why the identity has to be computed, not estimated<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The three factors are not independent, so you cannot reason about them one at a time in your head:</p>
+        <ul>
+          <li><strong>Carts</strong> is top of funnel. It moves with traffic, marketing spend, seasonality and price perception. A drop here means fewer people showed up wanting to buy, and the owner is marketing or merchandising.</li>
+          <li><strong>Conversion</strong> is the middle. It moves with checkout friction, payment failures, stock availability and shipping cost surprises. A drop here means people wanted to buy and something stopped them, and the owner is engineering or ops.</li>
+          <li><strong>AOV</strong> is the value per completed order. It moves with mix, discounting and the loss of a high-priced hero product. A drop here means the same number of people bought cheaper things, and the owner is category management.</li>
+        </ul>
+        <p>Three factors, three owners, three completely different weeks of work. Which is why guessing is expensive: send the checkout team after a marketing problem and you lose a fortnight and their goodwill, and the revenue keeps falling while they look.</p>
+        <div class="callout tip">
+          <strong>The mart is what makes the identity checkable</strong>
+          <code>mart_funnel_daily</code> holds carts, conversions, paid orders, revenue, attempts and declines <em>at one grain</em>, all built from the three separate facts. That is the only reason the three factors can be compared over the same two windows without anybody re-deriving one of them differently.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The two-window comparison, and how to pick the windows<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Every question today compares the last 14 days to the 14 before them. That choice is not arbitrary and it is worth defending out loud, because the window is where a lot of quiet dishonesty lives in analytics:</p>
+        <ul>
+          <li><strong>Equal lengths.</strong> 14 against 14. Comparing a fortnight to a month is the oldest way to make a number say what you want.</li>
+          <li><strong>A multiple of seven.</strong> Bazaar's weekday and weekend behaviour differs a lot, as Q4 proves. Any window that is not a whole number of weeks bakes a day-of-week effect into the result.</li>
+          <li><strong>Adjacent, not year-over-year.</strong> Ninety days of data cannot support a seasonal comparison, so this course does not pretend otherwise. Say what your window can and cannot see.</li>
+          <li><strong>Chosen before you look.</strong> Pick the window from the question ("what changed this fortnight"), never from the chart. Sliding the boundary until the story appears is the most common analysis failure there is, and it is undetectable in the output.</li>
+        </ul>
+        <p>The windows in <code>sql/30</code> are literals - <code>'2026-06-16'</code> and <code>'2026-06-02'</code> - precisely so that anybody can see them and object to them. A window buried in a date function nobody reads is a window nobody can challenge.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DEMO 1: BUILD AND RECONCILE ============ -->
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Demo 1 of 2 · build the layer</span>
+      <h2>The four marts, and the check you never skip <span class="tag demo">★ 6 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">The marts are already built in every editor on this page, from the same <code>sql/20_marts.sql</code> you can run on your laptop. Before trusting a single answer, read their grains and reconcile them to the star. A mart that does not tie back is not a mart, it is a second opinion.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Read the four grains and row counts.</strong> 600, 90, 388 and 753 rows - four different shapes because four different questions.</p></div>
+      <div class="step"><p><strong>Reconcile.</strong> Sum the mart, sum the star, and confirm both say 111,906.48 across 957 settled orders. Do this every single time you build a mart.</p></div>
+      <div class="step"><p><strong>Then start asking questions.</strong> The four sections below are the four questions, in the order the diagnosis actually runs.</p></div>
+    </div>
+
+    <div class="sqlbox" data-caption="The mart layer in one query: four grains, four row counts, plus the thirteen metric definitions session b9 hands to an agent.">
+      <pre class="sql-src">SELECT 'mart_merchant_daily' AS mart, 'merchant x day' AS grain,
+       COUNT(*) AS rows FROM mart_merchant_daily
+UNION ALL SELECT 'mart_funnel_daily',         'one day',
+       COUNT(*) FROM mart_funnel_daily
+UNION ALL SELECT 'mart_payment_health_daily', 'day x payment method',
+       COUNT(*) FROM mart_payment_health_daily
+UNION ALL SELECT 'mart_hourly_transactions',  'day x hour',
+       COUNT(*) FROM mart_hourly_transactions
+UNION ALL SELECT 'v_metric_definitions',      'one metric',
+       COUNT(*) FROM v_metric_definitions;</pre>
+    </div>
+
+    <div class="sqlbox" data-caption="The reconciliation. Both rows must agree to the cent, and the AOV must be recomputed from the two sums rather than averaged.">
+      <pre class="sql-src">SELECT 'star: v_sales_line (is_paid = 1)' AS source,
+       ROUND(SUM(net_revenue), 2)         AS net_revenue,
+       COUNT(DISTINCT order_id)           AS orders,
+       ROUND(SUM(net_revenue) / COUNT(DISTINCT order_id), 2) AS aov
+FROM v_sales_line
+WHERE is_paid = 1
+UNION ALL
+SELECT 'mart_merchant_daily',
+       ROUND(SUM(net_revenue), 2),
+       SUM(orders),
+       ROUND(SUM(aov_numerator) / SUM(aov_denominator), 2)
+FROM mart_merchant_daily;</pre>
+    </div>
+
+    <div class="callout tip">
+      <strong>Why <code>SUM(orders)</code> is legal here and usually is not</strong>
+      Summing a distinct count across rows is normally wrong, because the same order would be counted in two cells. It is correct in this mart only because every Bazaar order belongs to exactly one merchant on exactly one day, so no order can appear twice. That is a real property of the model, not a coincidence - and it is exactly the kind of assumption that belongs in <code>semantic/contract.yaml</code> rather than in somebody's head.
+    </div>
+  </section>
+
+  <!-- ============ Q1 ============ -->
+  <section class="section" id="q1">
+    <div class="section-kicker">
+      <span class="klabel">Question 1 of 4</span>
+      <h2>Which merchant's performance dropped? <span class="tag demo">★ 6 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">Rank the merchants two ways at once, because neither ranking is sufficient alone: <strong>absolute dollars</strong> is what the business feels, and <strong>percent</strong> is how bad it is for that merchant. Rank by percent only and you promote tiny merchants; rank by dollars only and you hide a small merchant in freefall. Then split the drop into volume versus order value, because those have different fixes.</p>
+
+    <div class="sqlbox" data-caption="Two windows, both rankings, and the volume-versus-order-value split. Then a count of how many merchants are down at all - read that second result first.">
+      <pre class="sql-src">WITH windows AS (
+  SELECT merchant_id, merchant_name,
+    SUM(CASE WHEN activity_date &gt;= '2026-06-16' THEN net_revenue ELSE 0 END) AS rev_recent,
+    SUM(CASE WHEN activity_date &gt;= '2026-06-02'
+              AND activity_date &lt;  '2026-06-16' THEN net_revenue ELSE 0 END) AS rev_prior,
+    SUM(CASE WHEN activity_date &gt;= '2026-06-16' THEN orders ELSE 0 END)      AS ord_recent,
+    SUM(CASE WHEN activity_date &gt;= '2026-06-02'
+              AND activity_date &lt;  '2026-06-16' THEN orders ELSE 0 END)      AS ord_prior
+  FROM mart_merchant_daily
+  GROUP BY merchant_id, merchant_name
+)
+SELECT merchant_id, merchant_name,
+       ROUND(rev_prior,  0)             AS revenue_prior_14d,
+       ROUND(rev_recent, 0)             AS revenue_recent_14d,
+       ROUND(rev_recent - rev_prior, 0) AS dollars_change,
+       ROUND(100.0 * (rev_recent - rev_prior) / rev_prior, 1) AS pct_change,
+       ROUND(100.0 * (ord_recent - ord_prior) / ord_prior, 1) AS pct_change_orders,
+       CASE WHEN rev_recent &gt;= rev_prior THEN 'no drop'
+            WHEN ord_recent * 1.0 / ord_prior &lt; 0.85 THEN 'volume driven'
+            ELSE 'order-value driven' END AS drop_shape
+FROM windows
+ORDER BY dollars_change ASC
+LIMIT 5;
+
+-- the number the ranking above does not show you
+SELECT COUNT(*) AS merchants_down FROM (
+  SELECT merchant_id,
+         SUM(CASE WHEN activity_date &gt;= '2026-06-16' THEN net_revenue ELSE 0 END)
+       - SUM(CASE WHEN activity_date &gt;= '2026-06-02'
+                   AND activity_date &lt; '2026-06-16' THEN net_revenue ELSE 0 END) AS delta
+  FROM mart_merchant_daily GROUP BY merchant_id) WHERE delta &lt; 0;</pre>
+    </div>
+
+    <table class="clean">
+      <thead><tr><th>Merchant</th><th>Prior 14d</th><th>Recent 14d</th><th>Dollars</th><th>Percent</th><th>Shape</th></tr></thead>
+      <tbody>
+        <tr><td><strong>M07 Nimbus Audio</strong></td><td>3,063</td><td>455</td><td>-2,609</td><td>-85.2%</td><td>volume driven</td></tr>
+        <tr><td>M02 Verdant Skincare</td><td>2,655</td><td>1,166</td><td>-1,489</td><td>-56.1%</td><td>volume driven</td></tr>
+        <tr><td>M04 Pace Athletics</td><td>3,418</td><td>2,115</td><td>-1,303</td><td>-38.1%</td><td>volume driven</td></tr>
+        <tr><td>M12 Fable Toys</td><td>1,555</td><td>404</td><td>-1,151</td><td>-74.0%</td><td>volume driven</td></tr>
+        <tr><td>M11 Orchid Grocer</td><td>3,110</td><td>2,104</td><td>-1,006</td><td>-32.3%</td><td>volume driven</td></tr>
+      </tbody>
+    </table>
+
+    <p class="lede"><strong>The answer, and the trap.</strong> M07 Nimbus Audio lost the most in both rankings: 2,609 in dollars and 85.2% in percent, and the split says volume driven, so it sold far fewer orders rather than cheaper ones. But read the second result set: <strong>8 of 12 merchants are down.</strong> Stop at "M07 dropped 85%" and you will go and manage M07 while the whole marketplace falls around you. A merchant ranking has no denominator - it cannot tell you whether the cause is one merchant or the platform, because every merchant is measured against itself. M07 is still special, since it falls almost twice as hard as the next one, but it is one of two causes rather than the cause. Finding out which is Q2's job.</p>
+  </section>
+
+  <!-- ============ Q2 ============ -->
+  <section class="section" id="q2">
+    <div class="section-kicker">
+      <span class="klabel">Question 2 of 4</span>
+      <h2>Why did sales drop? <span class="tag demo">★ 9 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">The decomposition from Part 2, run for real. One query, one grain, all three factors, both windows. The ratios are computed here at read time from the numerator and denominator columns the mart stores, which is the only reason the two windows are comparable at all.</p>
+
+    <div class="sqlbox" data-caption="Revenue = carts x conversion x AOV, across the two 14-day windows. Every rate is divided at read time; not one of them is stored.">
+      <pre class="sql-src">WITH w AS (
+  SELECT CASE WHEN activity_date &gt;= '2026-06-16' THEN 'recent_14d'
+              ELSE 'prior_14d' END      AS window_label,
+         SUM(carts_created)              AS carts,
+         SUM(carts_converted)            AS conversions,
+         SUM(paid_orders)                AS paid_orders,
+         SUM(net_revenue)                AS net_revenue,
+         SUM(payment_attempts)           AS attempts,
+         SUM(declines)                   AS declines,
+         SUM(abandoned_value)            AS abandoned_value
+  FROM mart_funnel_daily
+  WHERE activity_date &gt;= '2026-06-02'
+  GROUP BY window_label
+)
+SELECT window_label,
+       carts,
+       ROUND(100.0 * conversions / carts, 1)            AS conversion_rate_pct,
+       paid_orders,
+       ROUND(net_revenue, 0)                            AS net_revenue,
+       ROUND(net_revenue / NULLIF(paid_orders, 0), 2)   AS aov,
+       ROUND(100.0 * declines / NULLIF(attempts, 0), 1) AS decline_rate_pct,
+       ROUND(abandoned_value, 0)                        AS abandoned_value
+FROM w
+ORDER BY window_label DESC;</pre>
+    </div>
+
+    <table class="clean">
+      <thead><tr><th>Window</th><th>Carts</th><th>Conversion</th><th>Paid orders</th><th>Revenue</th><th>AOV</th><th>Decline rate</th><th>Abandoned</th></tr></thead>
+      <tbody>
+        <tr><td>recent 14d</td><td>312</td><td>44.9%</td><td>135</td><td>15,963</td><td>118.25</td><td>4.1%</td><td>19,010</td></tr>
+        <tr><td>prior 14d</td><td>398</td><td>47.2%</td><td>178</td><td>22,906</td><td>128.68</td><td>10.3%</td><td>23,983</td></tr>
+      </tbody>
+    </table>
+
+    <p class="lede"><strong>The decomposition.</strong> Revenue is down 30.3%. Carts are down 21.6%, conversion moved 2.3 percentage points, AOV is down 8.1%. So most of the loss is <strong>fewer carts</strong> - demand that never arrived - and the remainder is smaller orders. Conversion did not break, and the decline rate actually improved from 10.3% to 4.1%, because the earlier window contains the incident Q3 investigates. That is the whole reason to decompose: the raw headline sends everyone to checkout, and the model says go to marketing and to one merchant.</p>
+
+    <p class="lede">Two hypotheses survive that far, so test both. One query each, and each one either lives or dies.</p>
+
+    <div class="sqlbox" data-caption="Hypothesis 1: M07 has a payments problem. Hypothesis 2: a product went out of stock. Note that the first query prints its denominator - that is what makes it refutable.">
+      <pre class="sql-src">-- H1 · declines by merchant, recent 14 days
+SELECT m.merchant_id, m.merchant_name,
+       COUNT(*)                                        AS attempts,
+       SUM(f.is_declined)                              AS declines,
+       ROUND(100.0 * SUM(f.is_declined) / COUNT(*), 1) AS decline_rate_pct
+FROM fact_transaction f
+JOIN dim_date d          ON d.date_key = f.date_key
+JOIN fact_order_item foi ON foi.order_id = f.order_id AND foi.line_no = 1
+JOIN dim_merchant m      ON m.merchant_sk = foi.merchant_sk
+WHERE d.full_date &gt;= '2026-06-16'
+GROUP BY m.merchant_id, m.merchant_name
+ORDER BY decline_rate_pct DESC
+LIMIT 5;
+
+-- H2 · did a product stop selling entirely?
+SELECT p.merchant_id, p.product_name, p.status,
+       ROUND(SUM(CASE WHEN d.full_date &lt;  '2026-06-15'
+                      THEN f.net_amount ELSE 0 END), 0) AS revenue_before,
+       ROUND(SUM(CASE WHEN d.full_date &gt;= '2026-06-15'
+                      THEN f.net_amount ELSE 0 END), 0) AS revenue_after
+FROM fact_order_item f
+JOIN dim_product p ON p.product_sk = f.product_sk
+JOIN dim_date d    ON d.date_key = f.date_key
+WHERE p.status = 'out_of_stock'
+GROUP BY p.merchant_id, p.product_name, p.status
+ORDER BY revenue_before DESC;</pre>
+    </div>
+
+    <p class="lede"><strong>H1 dies.</strong> The decline ranking puts M10 first at 18.2% and M07 second at 10.0%, with M03 and M08 next at 8.3%. Now read the denominators: those rates sit on 11, 10, 12 and 12 attempts. At eleven attempts a single decline moves the rate by about nine points, so the ranking is noise wearing a percentage sign, and nothing in it can distinguish one merchant from another. The payments hypothesis is not disproved so much as shown to be untestable at this volume - which is the correct verdict, and one you can only reach because the query printed its denominator next to its rate.</p>
+
+    <p class="lede"><strong>H2 survives.</strong> M07's hero product, Studio Headphones, earned 3,646 before 2026-06-15 and <strong>exactly 0</strong> after it. Not less. Zero. A revenue series that goes to exactly zero on a date is almost never demand and almost always supply or a switch somebody flipped, and here the product status says <code>out_of_stock</code>. That is a supply failure, and on its own it explains the bulk of one merchant's collapse.</p>
+
+    <p class="lede"><strong>Final diagnosis: two independent causes.</strong> A platform-wide demand drop - carts down 21.6%, traced to a paid-search pullback from 2026-06-18 - plus M07 losing its hero SKU to a stockout. Neither is a checkout problem, which is exactly where a room without a model would have started guessing.</p>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The percentage that cost a quarter.</strong> A subscription business ran a weekly churn-by-plan report. One plan showed 40% churn and became the subject of a company-wide project: pricing review, save offers, an exec sponsor, two engineers reassigned. The plan had five customers, and two had left. The denominator was in the underlying table the whole time and simply was not on the slide. Everything that followed was a rational response to a number that was not evidence.</p>
+      <p>Two habits prevent it, and both are modeling decisions rather than analyst discipline. <strong>Never store a rate</strong> - store its numerator and denominator so the count travels wherever the rate goes. And <strong>put the sample-size caveat in the model itself</strong>: Bazaar's <code>v_metric_definitions</code> carries "always report the attempt count beside it, below about 30 attempts it is noise" as a column value on the <code>decline_rate</code> row, so it arrives with the metric rather than depending on who is reading.</p>
+    </div>
+  </section>
+
+  <!-- ============ Q3 ============ -->
+  <section class="section" id="q3">
+    <div class="section-kicker">
+      <span class="klabel">Question 3 of 4</span>
+      <h2>Why did 2026-06-10 collapse? <span class="tag demo">★ 5 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">Day-level attribution, and the shape of the answer is the lesson. Look at the day with its neighbours, and watch which parts of the funnel are normal and which are not.</p>
+
+    <div class="sqlbox" data-caption="One week around the incident, then the reason code for the day itself. The second result set names the cause in one word.">
+      <pre class="sql-src">SELECT activity_date,
+       carts_created,
+       carts_converted,
+       paid_orders,
+       ROUND(net_revenue, 0)                                    AS net_revenue,
+       payment_attempts,
+       declines,
+       ROUND(100.0 * declines / NULLIF(payment_attempts, 0), 1) AS decline_rate_pct,
+       ROUND(declined_amount, 0)                                AS money_that_failed
+FROM mart_funnel_daily
+WHERE activity_date BETWEEN '2026-06-07' AND '2026-06-13'
+ORDER BY activity_date;
+
+-- and the reason code, from the payment-health mart
+SELECT top_decline_reason,
+       SUM(declines)                      AS declines,
+       ROUND(SUM(declined_amount), 0)     AS value
+FROM mart_payment_health_daily
+WHERE activity_date = '2026-06-10'
+  AND declines &gt; 0
+GROUP BY top_decline_reason
+ORDER BY declines DESC;</pre>
+    </div>
+
+    <table class="clean">
+      <thead><tr><th>Date</th><th>Carts</th><th>Converted</th><th>Paid orders</th><th>Revenue</th><th>Attempts</th><th>Declines</th><th>Decline rate</th></tr></thead>
+      <tbody>
+        <tr><td>2026-06-09</td><td>29</td><td>13</td><td>12</td><td>1,338</td><td>15</td><td>2</td><td>13.3%</td></tr>
+        <tr><td><strong>2026-06-10</strong></td><td>24</td><td>13</td><td>8</td><td><strong>484</strong></td><td>17</td><td>9</td><td><strong>52.9%</strong></td></tr>
+        <tr><td>2026-06-11</td><td>31</td><td>14</td><td>14</td><td>1,967</td><td>16</td><td>1</td><td>6.3%</td></tr>
+      </tbody>
+    </table>
+
+    <p class="lede"><strong>The answer.</strong> Carts were normal at 24, conversions were normal at 13, and orders were placed. Revenue still collapsed to 484 against neighbours of 1,338 and 1,967, because 9 of 17 payment attempts failed - a 52.9% decline rate against 13.3% the day before and 6.3% the day after - taking 740 SGD of money with them. The reason code is <code>gateway_timeout</code> on all nine. So demand was fine and checkout broke: an infrastructure incident, not a market event, and the fix is an on-call ticket rather than a pricing review.</p>
+
+    <p class="lede"><strong>Why this question is answerable at all.</strong> The whole diagnosis rests on one sentence: <em>people wanted to buy, they tried to buy, and the money did not settle.</em> That sentence needs three different grains to be true at once - carts (what was wanted), orders (what was placed) and payment attempts (what was paid) - and Bazaar keeps them as three separate facts. Flatten them into one table, or keep a <code>paid</code> boolean on the order instead of an attempt table, and this sentence has nowhere to live. The day would show up as "revenue down 75%" with no way to tell it apart from a bad market, which is the version of this incident most companies actually get.</p>
+  </section>
+
+  <!-- ============ Q4 ============ -->
+  <section class="section" id="q4">
+    <div class="section-kicker">
+      <span class="klabel">Question 4 of 4</span>
+      <h2>What are our peak transaction hours? <span class="tag demo">★ 5 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">The question behind every staffing roster, on-call rotation and deploy-freeze window. Answered across all 90 days at once, which is only cheap because hour is a dimension rather than something parsed out of a timestamp on every read. Then split weekday from weekend, because a single blended peak would staff the wrong hour.</p>
+
+    <div class="sqlbox" data-caption="Top hours across all 90 days, then the same hours split weekday versus weekend. The two peaks are not the same hour.">
+      <pre class="sql-src">SELECT hour_label,
+       daypart,
+       SUM(attempts)                                   AS attempts,
+       SUM(approvals)                                  AS approvals,
+       ROUND(100.0 * SUM(declines) / SUM(attempts), 1) AS decline_rate_pct,
+       ROUND(100.0 * SUM(attempts) /
+             (SELECT SUM(attempts) FROM mart_hourly_transactions), 1) AS pct_of_all_attempts
+FROM mart_hourly_transactions
+GROUP BY hour_label, daypart
+ORDER BY attempts DESC
+LIMIT 6;
+
+-- weekday vs weekend, because one blended peak would mislead a roster
+SELECT hour_label,
+       SUM(CASE WHEN is_weekend = 0 THEN attempts ELSE 0 END) AS weekday_attempts,
+       SUM(CASE WHEN is_weekend = 1 THEN attempts ELSE 0 END) AS weekend_attempts,
+       SUM(attempts)                                         AS all_attempts
+FROM mart_hourly_transactions
+GROUP BY hour_label
+ORDER BY all_attempts DESC
+LIMIT 8;</pre>
+    </div>
+
+    <table class="clean">
+      <thead><tr><th>Hour</th><th>Daypart</th><th>Attempts</th><th>Share of all attempts</th></tr></thead>
+      <tbody>
+        <tr><td><strong>21:00-21:59</strong></td><td>evening</td><td>96</td><td>9.1%</td></tr>
+        <tr><td>19:00-19:59</td><td>evening</td><td>94</td><td>8.9%</td></tr>
+        <tr><td>13:00-13:59</td><td>lunch</td><td>89</td><td>8.4%</td></tr>
+        <tr><td>20:00-20:59</td><td>evening</td><td>89</td><td>8.4%</td></tr>
+        <tr><td>22:00-22:59</td><td>evening</td><td>77</td><td>7.3%</td></tr>
+        <tr><td>12:00-12:59</td><td>lunch</td><td>75</td><td>7.1%</td></tr>
+      </tbody>
+    </table>
+
+    <p class="lede"><strong>The answer.</strong> A broad evening peak from 19:00 to 22:59 carrying about a third of all payment attempts, with a secondary lunch shoulder at 12:00 to 13:59 and a nearly dead overnight. So on-call cover belongs in the evening and deploy windows belong before dawn.</p>
+
+    <p class="lede"><strong>And the split matters.</strong> Weekday attempts peak at 20:00 with 64, weekend attempts peak at 21:00 with 41. A single blended answer would have named one hour and staffed the wrong one on two days out of every seven. This is the small, unglamorous version of the same lesson Q1 taught: an aggregate hides the thing you were about to act on, and the fix is always to keep the dimension that separates the cases - here <code>is_weekend</code>, sitting in <code>dim_date</code> since session b6 precisely so that nobody has to compute it.</p>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 25-35 min total</span></h2>
+    </div>
+    <ul>
+      <li>Write down the four questions your own leadership actually asks, in their words. Then try to answer each one against your model and time yourself. Anything that takes more than ten minutes is a modeling gap, not a SQL gap.</li>
+      <li>Decompose one metric you own into an identity the way revenue decomposes into carts x conversion x AOV. Then check whether all the factors exist at one grain anywhere in your warehouse. Usually one is missing, and that absence is your next mart.</li>
+      <li>Find a rate in a dashboard you use and hunt for its denominator. If the denominator is not on the same screen, add it, and see whether anybody's mind changes.</li>
+      <li>Take a drop somebody is already investigating and write two hypotheses that could explain it. Write the query that would kill each one <em>before</em> you run either. If a hypothesis has no killing query, it is an opinion.</li>
+      <li>Run <code>python python/answer_questions.py</code> locally and keep the four 300 DPI charts. Bring the Q2 decomposition chart to b9, where the same model gets handed to an AI analyst.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - marts, aggregate design, drilling across conformed dimensions</span><span class="note">Part 1 + Demo 1 · four marts at four grains, reconciled to the star</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">dbt documentation - staging / intermediate / marts layering, one-directional dependency, model contracts</span><span class="note">Part 1 · where a mart sits in the stack and what it is allowed to decide</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Linstedt &amp; Olschimke, <em>Data Vault 2.0</em> - hubs, links, satellites</span><span class="note">Self-study · compared honestly, with the case where the complexity is earned; building one is out of scope</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Inmon - normalized core versus dimensional mart</span><span class="note">Part 1 · the layer stack as the practical settlement of that argument; the full case is b5 and a3</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">One Big Table, graph and document modeling</span><span class="note">Self-study · named with the grain problem each one inherits; each is its own topic</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · The merchant ranking shows M07 down 85.2%, and 8 of 12 merchants down. Why is the ranking alone not an answer?</p>
+      <button class="qopt" type="button">A · Because percentages are unreliable when revenue is small</button>
+      <button class="qopt" type="button">B · Because it has no denominator: every merchant is measured against itself, so it cannot tell you whether the cause is one merchant or the whole platform</button>
+      <button class="qopt" type="button">C · Because the two windows are different lengths</button>
+      <p class="qwhy">A ranking sorts merchants against their own past, which is useful and insufficient. With 8 of 12 down there is clearly a platform-level cause as well, and no amount of re-sorting the same table will reveal it. That is why Q2 decomposes the platform total instead of ranking merchants again.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · The decline ranking puts M10 top at 18.2%. Why does the payments hypothesis die rather than survive?</p>
+      <button class="qopt" type="button">A · The rate sits on 11 attempts, where one decline moves it about nine points, so the ranking cannot distinguish one merchant from another</button>
+      <button class="qopt" type="button">B · Because M10 is not the merchant that lost the most revenue</button>
+      <button class="qopt" type="button">C · Because decline rates are non-additive and cannot be compared at all</button>
+      <p class="qwhy">The number is true and useless. At that sample size the ordering is noise, so the hypothesis is untestable at this volume rather than confirmed or refuted, and acting on it would be acting on nothing. The only reason you can reach that verdict is that the query printed its denominator beside its rate.</p>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">3 · Why is "people wanted to buy, they tried to buy, and the money did not settle" answerable for 2026-06-10?</p>
+      <button class="qopt" type="button">A · Because the funnel mart stores a stored conversion rate per day</button>
+      <button class="qopt" type="button">B · Because the order table has a <code>paid</code> flag that turned false that day</button>
+      <button class="qopt" type="button">C · Because carts, orders and payment attempts are three separate facts at three grains, so all three parts of the sentence can be true at once</button>
+      <p class="qwhy">The diagnosis needs demand, intent and settlement measured independently. A single flattened table has one grain, and a <code>paid</code> boolean collapses nine gateway timeouts into one false value. Three facts is what makes the day distinguishable from a bad market.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 8 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>What a mart is</b><span>The star pre-aggregated to a question grain, definitions baked in. Not a smaller copy of the star.</span></div>
+      <div class="cheat-item"><b>Four marts, four grains</b><span>merchant x day (600) · day (90) · day x method (388) · day x hour (753).</span></div>
+      <div class="cheat-item"><b>Always reconcile</b><span>Mart total must tie to the star: 111,906.48 across 957 settled orders, to the cent.</span></div>
+      <div class="cheat-item"><b>The identity</b><span>Revenue = carts x conversion x AOV. Three factors, three owners, three different weeks of work.</span></div>
+      <div class="cheat-item"><b>Q1 trap</b><span>8 of 12 merchants down. A ranking has no denominator, so it cannot separate one merchant from the platform.</span></div>
+      <div class="cheat-item"><b>Q2 verdict</b><span>Carts -21.6%, AOV -8.1%, conversion flat. Payments hypothesis dies on 11 attempts; stockout survives on revenue of exactly 0.</span></div>
+      <div class="cheat-item"><b>Q3 and Q4</b><span>Three facts make "wanted, tried, did not settle" sayable. Weekday peaks 20:00, weekend 21:00 - never blend them.</span></div>
+      <div class="cheat-item"><b>The honest lesson</b><span>A rate without its denominator is not evidence. A model's job is to make a hypothesis refutable. Next: b9, agent-ready.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 8 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b7-fact-design.html">← Previous: Fact design</a> &nbsp;·&nbsp; <a href="b9-agent-ready.html">Next: Agent-ready modeling →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

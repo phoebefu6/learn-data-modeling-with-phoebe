@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 7 · Fact design - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 7 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 7 of 10</div>
+    <h1>Fact <span class="accent">design</span></h1>
+    <p class="sub">Session b6 built the dimensions that answer "by what". This session builds the tables that answer "how much" - and the whole discipline comes down to one sentence you have to write before you write any DDL. Bazaar gets three facts at three grains: what was sold, what was paid, what was wanted. You will see, in real SQL, what happens when someone joins two of them, and why the resulting number is worse than an error.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Builder track</span>
+      <span class="chip audience">Analysts · analytics engineers · DE · DS</span>
+      <span class="chip audience">Hands-on · real SQLite</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:3">3-16 · Grain first, then three facts</span>
+      <span class="a3" style="flex:6">16-42 · Build-along: the double count, and the fix</span>
+      <span class="a4" style="flex:1">42-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>One sentence decides the whole table</h2>
+    </div>
+    <p class="lede">A fact table is where the numbers live, so it is the table people fight about. Almost every one of those fights traces back to the same missing artifact: nobody wrote down what one row means. This session makes that sentence the first deliverable, not a comment somebody adds later, and then builds Bazaar's three facts around it.</p>
+    <p class="lede">Two files ship today, and they are the spine of the whole star: <code>sql/11_fact_ddl.sql</code> is the DDL for the three facts, and <code>sql/12_oltp_to_star.sql</code> is the load that fills them from the source tables you designed in b4. Read the comment block at the top of <code>sql/11</code> before class if you want a head start - it is this session in 30 lines.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live SQL - editable &amp; runnable</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      The habit of writing the grain sentence before the DDL, Bazaar's three fact tables and the reason there are three, a working test for whether a measure can be summed, and a query you have run yourself that inflates revenue by joining two facts - so you never write it again by accident.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: GRAIN FIRST ============ -->
+  <section class="section" id="grain">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Kimball ch.3 - grain and fact table types</span>
+      <h2>Write the grain sentence first <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">The grain of a fact table is what one row means, stated as one sentence, in business words, before any column exists. It is not documentation. It is the design decision every other decision hangs off: which dimensions can attach, which measures are legal, and what <code>COUNT(*)</code> is allowed to be called. Bazaar's three facts each get one sentence, and none of the three sentences needs the word "and".</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 356" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bazaar's three fact tables side by side, each with its grain sentence, row count, the question it answers, its measures and its degenerate dimensions">
+        <style>
+          .g3T { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .g3H { font: 700 12.5px Inter, sans-serif; fill: #1B2637; }
+          .g3C { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .g3K { font: 700 13px Inter, sans-serif; fill: #22395C; }
+          .g3N { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+        </style>
+
+        <rect x="26" y="34" width="262" height="46" rx="9" fill="#22395C"/>
+        <text class="g3T" x="44" y="63">fact_order_item</text>
+        <text class="g3H" x="44" y="106">GRAIN: one product line</text>
+        <text class="g3H" x="44" y="126">on one order.</text>
+        <text class="g3K" x="44" y="152">1,434 rows</text>
+        <text class="g3C" x="44" y="176">Answers: what was SOLD</text>
+        <text class="g3C" x="44" y="200">Measures: net_amount,</text>
+        <text class="g3C" x="44" y="220">margin_amount, quantity</text>
+        <text class="g3C" x="44" y="244">Degenerate: order_id, line_no</text>
+
+        <rect x="308" y="34" width="262" height="46" rx="9" fill="#3B5B8C"/>
+        <text class="g3T" x="326" y="63">fact_transaction</text>
+        <text class="g3H" x="326" y="106">GRAIN: one payment</text>
+        <text class="g3H" x="326" y="126">attempt.</text>
+        <text class="g3K" x="326" y="152">1,060 rows</text>
+        <text class="g3C" x="326" y="176">Answers: what was PAID</text>
+        <text class="g3C" x="326" y="200">Measures: approved_amount,</text>
+        <text class="g3C" x="326" y="220">declined_amount, is_declined</text>
+        <text class="g3C" x="326" y="244">Degenerate: txn_id, order_id</text>
+
+        <rect x="590" y="34" width="262" height="46" rx="9" fill="#6C8CBC"/>
+        <text class="g3T" x="608" y="63">fact_cart</text>
+        <text class="g3H" x="608" y="106">GRAIN: one cart.</text>
+        <text class="g3K" x="608" y="152">2,229 rows</text>
+        <text class="g3C" x="608" y="176">Answers: what was WANTED</text>
+        <text class="g3C" x="608" y="200">Measures: cart_value,</text>
+        <text class="g3C" x="608" y="220">abandoned_value, converted_flag</text>
+        <text class="g3C" x="608" y="244">Degenerate: cart_id, order_id</text>
+
+        <rect x="26" y="266" width="826" height="76" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="g3N" x="46" y="292">Three sentences, so three tables. One order can carry 3 product lines and 2 payment attempts, and those two</text>
+        <text class="g3N" x="46" y="312">numbers do not divide into each other. Force all three facts into one table and you get 6 rows per order, revenue</text>
+        <text class="g3N" x="46" y="332">counted twice, and no honest answer to "what is one row". If the sentence needs "and", you have two facts.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - three grains, three tables, three different questions</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What it means if you cannot write the sentence<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Try it out loud on any table you are about to create. "One row is one..." If you get stuck, you have learned something important, and it is always one of three things:</p>
+        <ul>
+          <li><strong>You need the word "and".</strong> "One row is one order and its payment" is two grains wearing one name. That table will double-count the moment an order gets a second attempt, which happens on the first day in production.</li>
+          <li><strong>You need the word "sometimes".</strong> "One row is one order, or sometimes a refund line" means the table's meaning depends on the row, so no measure on it is safe to sum. Split it.</li>
+          <li><strong>You can only describe the query.</strong> "One row is what the weekly revenue report needs" is not a grain, it is a screenshot. You do not have a fact table - <strong>you have a query result you are about to freeze</strong>, and it will be wrong the first time somebody asks a slightly different question. This is the most common way a warehouse fills up with tables nobody can reuse.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The sentence is a contract, so put it where it cannot be lost</strong>
+          In <code>sql/11_fact_ddl.sql</code> every table opens with <code>-- GRAIN: ...</code>, and the sentence is then <em>enforced</em>: <code>UNIQUE (order_id, line_no)</code> on <code>fact_order_item</code> is the grain written as a constraint. A grain in a wiki drifts. A grain in a UNIQUE index gets defended by the database.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why Bazaar has three facts and not one<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The pressure to build one big table is real and it always sounds reasonable: "analysts want one place to go". Here is the arithmetic that settles it. Take a single Bazaar order with 3 product lines and 2 payment attempts, and put both facts in one table:</p>
+        <ul>
+          <li><strong>fact_order_item</strong> would contribute 3 rows, one per line. That is what was sold.</li>
+          <li><strong>fact_transaction</strong> would contribute 2 rows, one per attempt. That is what was paid.</li>
+          <li><strong>Together, at one grain,</strong> you get 3 x 2 = 6 rows, because there is no rule that pairs line 2 with attempt 1. Every line's revenue now appears twice, so revenue for that order is exactly 2x the truth.</li>
+        </ul>
+        <p>Change the order to 4 lines and 3 attempts and the multiplier becomes 3x. The error is not a constant you could correct for; it varies row by row with how many times a customer's card was retried. That is why the answer is never "divide by the number of attempts".</p>
+        <p>And the third fact earns its place for a different reason. <code>fact_cart</code> holds demand that never became revenue - 2,229 carts against 1,434 sold lines. Delete it and "sales dropped" and "fewer people wanted to buy" become the same sentence, which is exactly the distinction session b8 needs to make.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The three fact types, and the one with no measures at all<span class="mini">4 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Kimball's three fact types are really three different answers to "when does a row appear":</p>
+        <ul>
+          <li><strong>Transaction fact</strong> - a row appears when something happens, and never changes again. All three of Bazaar's facts are this type, which is the type you should default to. Insert-only tables are the easiest thing in a warehouse to load, test and trust.</li>
+          <li><strong>Periodic snapshot</strong> - a row appears per entity per period whether anything happened or not: inventory on hand each night, account balance each month-end. The measures are usually semi-additive, and the table grows on a schedule rather than with the business.</li>
+          <li><strong>Accumulating snapshot</strong> - one row per thing that moves through a pipeline, updated in place as it hits each milestone. An order with <code>placed_date</code>, <code>packed_date</code>, <code>shipped_date</code>, <code>delivered_date</code> is the classic. It is the only fact type you routinely UPDATE, which is why it is also the one that needs the most care.</li>
+        </ul>
+        <p><strong>Factless facts</strong> are the fourth shape, and the one people are slowest to reach for: a fact table with dimension keys and no measures, recording that a combination of things occurred. A row per product viewed by a user, a row per promotion a merchant was eligible for. You count rows and you count absences - "which products were eligible for the sale and never sold" is a question only a factless fact can answer.</p>
+        <p>Bazaar has a near-miss worth noticing. <code>fact_cart</code> has measures, so it is a normal transaction fact, but a <code>fact_cart_item</code> at the grain "one product in one cart" would be almost factless: quantity, and nothing else. The capstone in b10 asks you to decide whether returns need one.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: MEASURES AND HOW FACTS MEET ============ -->
+  <section class="section" id="measures">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers Kimball - additivity, degenerate dimensions, conformance</span>
+      <h2>Measures, degenerates, and how facts meet <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">Once the grain is fixed, two questions remain: which of these columns is safe to add up, and what happens when a question spans two facts. The first has a three-way answer you can test mechanically. The second has exactly one legal answer, and the diagram below is what happens when someone finds an illegal one.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 392" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Joining two fact tables on order id fans out three sales lines against two payment attempts into six rows, doubling revenue, with the correct alternative stated below">
+        <style>
+          .fxT { font: 700 12px Inter, sans-serif; fill: #FFFFFF; }
+          .fxH { font: 700 12.5px Inter, sans-serif; fill: #1B2637; }
+          .fxX { font: 700 19px Inter, sans-serif; fill: #22395C; }
+          .fxB { font: 600 11.5px Inter, sans-serif; fill: #991B1B; }
+          .fxG { font: 600 11.5px Inter, sans-serif; fill: #22395C; }
+        </style>
+
+        <text class="fxH" x="26" y="30">fact_order_item · 3 lines</text>
+        <rect x="26" y="42" width="228" height="42" rx="8" fill="#3B5B8C"/>
+        <text class="fxT" x="44" y="68">line_no = 1</text>
+        <rect x="26" y="92" width="228" height="42" rx="8" fill="#3B5B8C"/>
+        <text class="fxT" x="44" y="118">line_no = 2</text>
+        <rect x="26" y="142" width="228" height="42" rx="8" fill="#3B5B8C"/>
+        <text class="fxT" x="44" y="168">line_no = 3</text>
+
+        <text class="fxX" x="268" y="120">x</text>
+
+        <text class="fxH" x="298" y="30">fact_transaction · 2 attempts</text>
+        <rect x="298" y="42" width="212" height="42" rx="8" fill="#C08A2E"/>
+        <text class="fxT" x="316" y="68">attempt 1</text>
+        <rect x="298" y="92" width="212" height="42" rx="8" fill="#C08A2E"/>
+        <text class="fxT" x="316" y="118">attempt 2</text>
+
+        <text class="fxX" x="524" y="120">=</text>
+
+        <text class="fxH" x="556" y="30">JOIN ON order_id · 6 rows</text>
+        <rect x="556" y="42" width="140" height="42" rx="8" fill="#991B1B"/>
+        <text class="fxT" x="574" y="68">line 1 x att 1</text>
+        <rect x="708" y="42" width="140" height="42" rx="8" fill="#991B1B"/>
+        <text class="fxT" x="726" y="68">line 1 x att 2</text>
+        <rect x="556" y="92" width="140" height="42" rx="8" fill="#991B1B"/>
+        <text class="fxT" x="574" y="118">line 2 x att 1</text>
+        <rect x="708" y="92" width="140" height="42" rx="8" fill="#991B1B"/>
+        <text class="fxT" x="726" y="118">line 2 x att 2</text>
+        <rect x="556" y="142" width="140" height="42" rx="8" fill="#991B1B"/>
+        <text class="fxT" x="574" y="168">line 3 x att 1</text>
+        <rect x="708" y="142" width="140" height="42" rx="8" fill="#991B1B"/>
+        <text class="fxT" x="726" y="168">line 3 x att 2</text>
+
+        <rect x="26" y="206" width="826" height="80" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="fxB" x="46" y="232">Every line is now paired with every attempt, so every line's revenue is summed twice. Across all of Bazaar this join</text>
+        <text class="fxB" x="46" y="252">turns 111,906.48 of settled revenue into 121,003 - about 8% too high, produced by a query that ran with no error, no</text>
+        <text class="fxB" x="46" y="272">warning and no NULL. Silently missing or silently inflated money is the worst failure mode in this course.</text>
+
+        <rect x="26" y="302" width="826" height="62" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="fxG" x="46" y="328">The fix is never a cleverer join. Facts meet each other in exactly two legal ways: through a conformed dimension both</text>
+        <text class="fxG" x="46" y="348">of them share, or by aggregating each one to a common grain FIRST and joining those results. Never fact to fact.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the fan-out, and the only two legal ways two facts can meet</figcaption>
+    </figure>
+
+    <table class="clean">
+      <thead><tr><th>Column on a fact</th><th>Class</th><th>The rule</th></tr></thead>
+      <tbody>
+        <tr><td><code>net_amount</code>, <code>margin_amount</code>, <code>quantity</code></td><td><strong>additive</strong></td><td>Safe to SUM across every dimension. This is what a fact table is for, and most columns should be here.</td></tr>
+        <tr><td><code>approved_amount</code>, <code>declined_amount</code></td><td><strong>additive</strong></td><td>Deliberately pre-split from one signed amount so that both halves are summable without a CASE expression.</td></tr>
+        <tr><td><code>abandoned_value</code>, <code>converted_flag</code></td><td><strong>additive</strong></td><td>A flag stored as 0/1 is a numerator. SUM it to count, and it stays additive across every dimension.</td></tr>
+        <tr><td>stock on hand, account balance <em>(not in Bazaar)</em></td><td><strong>semi-additive</strong></td><td>Sum across products or accounts, never across time. Ten units on Monday plus ten on Tuesday is not twenty.</td></tr>
+        <tr><td><code>unit_price</code></td><td><strong>non-additive</strong></td><td>A rate, kept for reference only. Never SUM it. Recompute from <code>gross_amount / quantity</code> if you need it.</td></tr>
+        <tr><td>AOV, decline rate, conversion rate, margin %</td><td><strong>non-additive</strong></td><td>Not stored at all. A ratio lives as its <strong>numerator and denominator</strong>, and the division happens at read time.</td></tr>
+        <tr><td><code>order_id</code>, <code>txn_id</code>, <code>cart_id</code>, <code>line_no</code></td><td><strong>degenerate</strong></td><td>Not a measure and not a dimension - an identifier with no attributes worth a table of its own. Kept on the fact for <code>COUNT(DISTINCT)</code> and for drill-down to the source row.</td></tr>
+        <tr><td><code>decline_reason</code></td><td><strong>judgement call</strong></td><td>Low-cardinality text left on the fact rather than given a dimension. Defensible while it has no attributes; the moment somebody wants "is this reason retryable", it earns a table.</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The additivity test, and why a stored ratio is a trap<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The test is mechanical: <strong>can I SUM this column across every dimension on the table and get a number a business person would accept?</strong> Run it column by column. Anything that fails is a ratio, a rate or a snapshot in disguise.</p>
+        <ul>
+          <li><strong>Additive</strong> passes everywhere. <code>SUM(net_amount)</code> by merchant, by day, by product, by hour, all at once - all valid, all reconcilable to the same total.</li>
+          <li><strong>Semi-additive</strong> passes across some dimensions and fails across time. There is no semi-additive measure in Bazaar, which is lucky, because they are the ones that produce plausible nonsense: a year-end inventory figure that is twelve months of stock added together.</li>
+          <li><strong>Non-additive</strong> fails immediately, and the giveaway is always division. If a column was computed with a <code>/</code>, storing it lets someone average it later, and an average of averages is wrong by an amount nobody can predict.</li>
+        </ul>
+        <p>So the rule in <code>sql/11</code> is absolute: <strong>a ratio is stored as its numerator and its denominator, never as the ratio.</strong> The marts in b8 follow it too - <code>mart_merchant_daily</code> ships <code>aov_numerator</code> and <code>aov_denominator</code> rather than <code>aov</code>, precisely so that the AOV of a week is computable from the AOV of its days.</p>
+        <div class="callout tip">
+          <strong>The number that proves it</strong>
+          Bazaar's AOV is 116.93: settled revenue divided by settled orders. Average the line values instead and you get 80.68. Both are one line of SQL, both run, and only one is AOV. Storing the ratio is what makes the wrong one available.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>LEFT JOIN plus COALESCE, and never an inner join<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Every dimension key in <code>sql/12_oltp_to_star.sql</code> is resolved the same way, and it looks needlessly defensive until the first time it saves you:</p>
+        <ul>
+          <li><strong><code>LEFT JOIN</code> the dimension</strong>, so a lookup that misses returns NULL instead of removing the row.</li>
+          <li><strong><code>COALESCE(dim.key, -1)</code></strong>, so that NULL becomes the unknown member session b6 put in every dimension.</li>
+          <li><strong>Never <code>JOIN</code>.</strong> An inner join drops the fact row when the lookup misses. The load succeeds, the row counts look plausible, and the money on that row is simply gone.</li>
+        </ul>
+        <p>Think about which failure you would rather debug. With the unknown member, a merchant that failed to load shows up as an "unknown" row on every report, and somebody asks about it within a day. With an inner join, revenue is quietly lower than it should be, everybody assumes the market softened, and the reconciliation happens at quarter end if it happens at all.</p>
+        <p>This is also why <code>validate_model.py</code> asserts an unknown-member rate of 0.0% on all three facts as one of its 27 checks. A rate of zero is not the point - a rate you are <em>measuring</em> is the point.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Conformed dimensions: how facts are supposed to meet<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A dimension is <strong>conformed</strong> when two or more facts use the identical dimension table, with the same keys and the same attribute meanings. Bazaar's <code>dim_date</code>, <code>dim_time_of_day</code> and <code>dim_user</code> are shared by all three facts; <code>dim_merchant</code> is shared by sales and carts.</p>
+        <p>Conformance is what makes "drilling across" possible, and drilling across is the legal way to answer a question that spans facts:</p>
+        <ul>
+          <li><strong>Aggregate each fact separately</strong> to the shared grain. Revenue by date from <code>fact_order_item</code>, attempts by date from <code>fact_transaction</code>, carts by date from <code>fact_cart</code>.</li>
+          <li><strong>Then join the results</strong> on the conformed key. Three separate aggregations, one join, no fan-out possible, because each side already has exactly one row per date.</li>
+        </ul>
+        <p><code>mart_funnel_daily</code> in session b8 is that pattern written out: three CTEs, one per fact, each aggregated to one row per day, then joined. It is the single most reusable shape in dimensional modeling, and once you have seen it the temptation to join two facts directly disappears.</p>
+        <p>The failure mode on the other side is worth naming too. If sales says "merchant" and carts says "seller", and the two tables list slightly different merchants, then no amount of correct SQL will make the two facts comparable. Conformance is a naming and ownership discipline before it is a technical one, which is why session a5 treats it as a standard rather than a schema detail.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 3: THE FACTS, LIVE ============ -->
+  <section class="section" id="engine">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · your live star</span>
+      <h2>The three facts, in your browser <span class="tag concept">3 min live</span></h2>
+    </div>
+    <p class="lede">Every editor below runs against the full Bazaar star, marts and agent views, rebuilt from source in your tab before each run. Nothing you type can break the next example. Start by reading the three grains off the database instead of off a slide.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Three facts, three row counts, three grain sentences<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Press <strong>▶ Run</strong>. The first run downloads the engine once, then caches it.</p>
+        <div class="sqlbox" data-caption="The same three sentences that open sql/11_fact_ddl.sql, next to the row counts they produce.">
+          <pre class="sql-src">SELECT 'fact_order_item'  AS fact,
+       'one product line on one order' AS grain_sentence,
+       COUNT(*)                        AS rows,
+       COUNT(DISTINCT order_id)        AS distinct_orders
+FROM fact_order_item
+UNION ALL
+SELECT 'fact_transaction', 'one payment attempt',
+       COUNT(*), COUNT(DISTINCT order_id) FROM fact_transaction
+UNION ALL
+SELECT 'fact_cart', 'one cart',
+       COUNT(*), COUNT(DISTINCT order_id) FROM fact_cart;</pre>
+        </div>
+        <div class="callout tip">
+          <strong>Read the third column as a warning label</strong>
+          All three facts carry <code>order_id</code>, and all three have a different number of rows per order. That is precisely why <code>order_id</code> is a degenerate dimension and not a join path between facts: it identifies the order, it does not make the tables compatible.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DEMO 1 ============ -->
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Demo 1 of 2</span>
+      <h2>Commit the double count, then fix it <span class="tag demo">★ 13 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">You will write the wrong query on purpose. It is the single most valuable thing in this session, because the wrong query looks completely reasonable and produces a number that is too plausible to question.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Find the fan-out</strong> on one order: 3 sales lines, 2 payment attempts, so 6 rows and every amount stored twice.</p></div>
+      <div class="step"><p><strong>Scale it up</strong> to the whole marketplace. Watch settled revenue go from 111,906.48 to 121,003 with no error message.</p></div>
+      <div class="step"><p><strong>Fix it properly</strong> by aggregating each fact to the order grain before joining, and confirm the total lands back on 111,906.48.</p></div>
+    </div>
+
+    <div class="sqlbox" data-caption="Order 25 has 3 lines and 2 attempts. Six rows come back, each line twice, and the order's revenue is exactly 2x the truth.">
+      <pre class="sql-src">SELECT s.order_id, s.line_no, s.product_name, s.net_revenue,
+       p.txn_id, p.is_approved
+FROM v_sales_line s
+JOIN v_payment_attempt p ON p.order_id = s.order_id
+WHERE s.order_id = 25
+ORDER BY s.line_no, p.txn_id;
+
+-- the same order, summed both ways
+SELECT (SELECT ROUND(SUM(net_revenue), 2) FROM v_sales_line
+          WHERE order_id = 25)                       AS truth,
+       (SELECT ROUND(SUM(s.net_revenue), 2)
+          FROM v_sales_line s
+          JOIN v_payment_attempt p ON p.order_id = s.order_id
+         WHERE s.order_id = 25)                      AS after_the_join;</pre>
+    </div>
+
+    <div class="sqlbox" data-caption="Now the whole marketplace. This is the query an unmodeled warehouse invites, and the 121,003 it returns is 8% too high.">
+      <pre class="sql-src">SELECT 'joined the two facts on order_id' AS how,
+       COUNT(*)                          AS rows_after_join,
+       ROUND(SUM(s.net_revenue), 2)      AS revenue_reported
+FROM v_sales_line s
+JOIN v_payment_attempt p ON p.order_id = s.order_id
+WHERE s.is_paid = 1
+UNION ALL
+SELECT 'v_sales_line alone (the truth)', COUNT(*), ROUND(SUM(net_revenue), 2)
+FROM v_sales_line
+WHERE is_paid = 1;</pre>
+    </div>
+
+    <div class="sqlbox" data-caption="The fix: aggregate each fact to one row per order FIRST, then join those. Revenue returns to 111,906.48 across 957 settled orders.">
+      <pre class="sql-src">WITH sales AS (          -- fact 1, aggregated to the order grain
+  SELECT order_id, SUM(net_revenue) AS net_revenue
+  FROM v_sales_line
+  WHERE is_paid = 1
+  GROUP BY order_id
+),
+pay AS (                 -- fact 2, aggregated to the SAME grain
+  SELECT order_id, COUNT(*) AS attempts, SUM(is_declined) AS declines
+  FROM v_payment_attempt
+  GROUP BY order_id
+)
+SELECT COUNT(*)                        AS one_row_per_order,
+       ROUND(SUM(s.net_revenue), 2)    AS net_revenue,
+       SUM(p.attempts)                 AS attempts_on_those_orders,
+       SUM(p.declines)                 AS declines_on_those_orders
+FROM sales s
+LEFT JOIN pay p ON p.order_id = s.order_id;</pre>
+    </div>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The bug that survives because the number is believable.</strong> A payments company reported gross processing volume by joining its settlements fact to its authorizations fact on a reference id. Retries are rare, so the inflation was around 6% - large enough to matter to a board, small enough that every month looked like a good month rather than a broken query. It was found eighteen months later by an accountant reconciling to the bank, not by an engineer. An error gets fixed the day it appears; a plausible number gets quoted in a strategy deck. Session b9 removes this footgun structurally, by never exposing both facts in one view.</p>
+    </div>
+  </section>
+
+  <!-- ============ DEMO 2 ============ -->
+  <section class="section" id="demo-2">
+    <div class="section-kicker">
+      <span class="klabel">Demo 2 of 2</span>
+      <h2>Your turn: measures, degenerates and the unknown member <span class="tag demo">★ 10 min · build your own</span></h2>
+    </div>
+    <p class="lede">Three short investigations, each one testing a rule from Part 2 against the real star. Edit them, break them, re-run. Every editor starts from a fresh database.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Q1 · Additive, non-additive, and the ratio you must not store<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <div class="sqlbox" data-caption="Two additive measures summed, then the same AOV computed correctly and incorrectly. Both are one line of SQL; only one is AOV.">
+          <pre class="sql-src">SELECT 'net_revenue' AS measure, 'additive' AS additivity,
+       ROUND(SUM(net_revenue), 2) AS value_summed
+FROM v_sales_line WHERE is_paid = 1
+UNION ALL
+SELECT 'margin', 'additive', ROUND(SUM(margin), 2)
+FROM v_sales_line WHERE is_paid = 1;
+
+SELECT ROUND(SUM(net_revenue), 2)                            AS numerator_revenue,
+       COUNT(DISTINCT order_id)                              AS denominator_orders,
+       ROUND(SUM(net_revenue) / COUNT(DISTINCT order_id), 2) AS aov_divided_at_read_time,
+       ROUND(AVG(net_revenue), 2)                            AS aov_if_you_average_lines,
+       ROUND(100.0 * SUM(margin) / SUM(net_revenue), 2)      AS margin_pct
+FROM v_sales_line
+WHERE is_paid = 1;</pre>
+        </div>
+        <p>116.93 against 80.68, from the same rows. The gap exists because the denominator changed silently from orders to lines. Notice that <code>margin_pct</code> of 46.89% is computed the same way, from two sums - it is never a stored column, and that is why it is still correct when you group by merchant, by month or by both.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Q2 · What a degenerate dimension is actually for<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <div class="sqlbox" data-caption="order_id has no dimension table, and it is still doing two jobs: counting distinct orders, and drilling from a total back to source rows.">
+          <pre class="sql-src">SELECT COUNT(*)                 AS fact_rows,
+       COUNT(DISTINCT order_id) AS distinct_orders,
+       MAX(line_no)             AS most_lines_on_one_order
+FROM fact_order_item;
+
+-- the drill-down job: from a merchant total back to the individual orders
+SELECT s.merchant_name, s.order_id,
+       COUNT(*)                     AS lines_on_order,
+       ROUND(SUM(s.net_revenue), 2) AS order_revenue
+FROM v_sales_line s
+WHERE s.is_paid = 1 AND s.merchant_name = 'Nimbus Audio'
+GROUP BY s.merchant_name, s.order_id
+ORDER BY order_revenue DESC
+LIMIT 8;</pre>
+        </div>
+        <p>1,434 rows and far fewer distinct orders is the whole reason <code>COUNT(*)</code> must never be called "orders". Session b9 shows an AI agent making exactly that mistake and reporting 481 orders for June instead of 327 - a query that runs, on a correct table, and is still wrong because nobody published the grain.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Q3 · Break a dimension and watch the inner join hide the money<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>This is the argument for <code>LEFT JOIN</code> plus <code>COALESCE</code>, made as an experiment. Delete one merchant from the dimension - a stand-in for a load that half failed - then read the same revenue two ways.</p>
+        <div class="sqlbox" data-caption="Same facts, same filter, two joins. One of them reports less money than the business made, with no error and no NULL to notice.">
+          <pre class="sql-src">-- Simulate a dimension row that failed to load. Foreign keys are switched off
+-- for this one demo on purpose: in a real warehouse the load would have
+-- inserted the fact and skipped the dimension, which is exactly this state.
+PRAGMA foreign_keys = OFF;
+DELETE FROM dim_merchant WHERE merchant_id = 'M07';
+
+SELECT 'INNER JOIN - rows silently dropped' AS how,
+       COUNT(*)                      AS fact_rows_kept,
+       ROUND(SUM(f.net_amount), 2)   AS revenue_reported
+FROM fact_order_item f
+JOIN dim_merchant m ON m.merchant_sk = f.merchant_sk
+WHERE f.is_paid = 1
+UNION ALL
+SELECT 'LEFT JOIN - every row survives', COUNT(*), ROUND(SUM(f.net_amount), 2)
+FROM fact_order_item f
+LEFT JOIN dim_merchant m ON m.merchant_sk = f.merchant_sk
+WHERE f.is_paid = 1;
+
+-- and the check that would have caught it: unknown members per fact
+SELECT 'fact_order_item' AS fact,
+       SUM(CASE WHEN merchant_sk = -1 THEN 1 ELSE 0 END) AS unknown_merchant,
+       SUM(CASE WHEN product_sk  = -1 THEN 1 ELSE 0 END) AS unknown_product,
+       SUM(CASE WHEN user_sk     = -1 THEN 1 ELSE 0 END) AS unknown_user,
+       SUM(CASE WHEN date_key    = -1 THEN 1 ELSE 0 END) AS unknown_date
+FROM fact_order_item;</pre>
+        </div>
+        <p>The <code>LEFT JOIN</code> still reports 111,906.48. The inner join reports less, and nothing anywhere says so. Now change the load in your head: instead of the dimension row being missing, imagine the fact arrived with a merchant id the dimension has never seen. <code>COALESCE(..., -1)</code> is what turns that into a visible "unknown" row on a report rather than a silent subtraction from revenue, and the last query is the one-line audit that turns it into a number somebody watches.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 20-30 min total</span></h2>
+    </div>
+    <ul>
+      <li>Write the grain sentence for every fact table you own, in one document, one line each. Any sentence that needs "and", "or" or "sometimes" is a table to split, and you now have a prioritised list.</li>
+      <li>Take one fact table and classify every numeric column as additive, semi-additive or non-additive. Every non-additive column is either a bug or a ratio that should be two columns.</li>
+      <li>Search your codebase or BI tool for a query that joins two fact tables directly. If you find one, reproduce its number both ways - once as written, once by aggregating each fact first - and write down the difference.</li>
+      <li>Check how your loads resolve dimension keys. If any of them uses an inner join, run a count with and without it and see how much money the inner join is hiding today.</li>
+      <li>Pick one metric your organisation stores as a ratio and work out what its numerator and denominator would be. Bring it to b8, where the four marts are built on exactly that rule.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - grain, fact table types, additivity, degenerate dimensions, factless facts</span><span class="note">Parts 1-2 · the grain sentence as first deliverable, and the three-way additivity test</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball - conformed dimensions and drilling across</span><span class="note">Part 2 + Demo 1 · the only two legal ways two facts meet, demonstrated both wrong and right</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">ANSI SQL / SQLite - UNIQUE on the grain, CHECK constraints, indexes on fact keys</span><span class="note"><code>sql/11</code> · the grain enforced as a constraint; constraint semantics proper are b4</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Kimball - SCD type 2 keys as they arrive on the fact</span><span class="note"><code>sql/12</code> · <code>is_current = 1</code> on the lookup; the dimension side is session b6</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Warehouse load mechanics - incremental loads, MERGE, late-arriving facts</span><span class="note">Out of scope by design - <code>sql/12</code> is a full refresh; loading is <code>learn-data-warehouse</code></span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · You are about to create a fact table, and the only way you can describe one row is "whatever the weekly revenue report needs". What do you actually have?</p>
+      <button class="qopt" type="button">A · A valid fact table - the report defines the grain</button>
+      <button class="qopt" type="button">B · A dimension, because it describes something</button>
+      <button class="qopt" type="button">C · A query result you are about to freeze, which will be wrong as soon as somebody asks a slightly different question</button>
+      <p class="qwhy">If you cannot state the grain in business words without referring to a report, the table has no independent meaning. It will answer exactly one question, no dimension can be safely attached to it, and it becomes another table nobody can reuse. Write the sentence first, then the DDL.</p>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">2 · Joining <code>v_sales_line</code> to <code>v_payment_attempt</code> on <code>order_id</code> reports 121,003 instead of 111,906.48. What happened?</p>
+      <button class="qopt" type="button">A · Refunds were counted as revenue</button>
+      <button class="qopt" type="button">B · Each order's lines were paired with each of its payment attempts, so a 3-line order with 2 attempts produced 6 rows and summed every line twice</button>
+      <button class="qopt" type="button">C · The two facts use different date dimensions</button>
+      <p class="qwhy">This is fan-out. The multiplier is lines times attempts, so it varies from order to order and cannot be corrected for after the fact. Aggregate each fact to a common grain first, or reach the other fact through a conformed dimension. Never join fact to fact.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Why does <code>sql/12</code> resolve every dimension key with <code>LEFT JOIN</code> plus <code>COALESCE(..., -1)</code> rather than an inner join?</p>
+      <button class="qopt" type="button">A · An inner join silently drops the fact row when the lookup misses, so revenue goes missing with no error to notice</button>
+      <button class="qopt" type="button">B · LEFT JOIN is faster on large fact tables</button>
+      <button class="qopt" type="button">C · SQLite does not support inner joins on surrogate keys</button>
+      <p class="qwhy">The unknown member turns a lookup failure into a visible "unknown" row that somebody asks about within a day. An inner join turns the same failure into slightly lower revenue that everyone attributes to the market. Silently missing money is the worst failure mode in this course, which is why the loader never uses an inner join.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 7 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Grain sentence first</b><span>"One row is one ___." Write it before the DDL, then enforce it with a UNIQUE constraint.</span></div>
+      <div class="cheat-item"><b>Cannot write it?</b><span>Then you have a query result you are about to freeze, not a fact table.</span></div>
+      <div class="cheat-item"><b>Bazaar's three facts</b><span>order_item (what was sold, 1,434) · transaction (what was paid, 1,060) · cart (what was wanted, 2,229).</span></div>
+      <div class="cheat-item"><b>Why three</b><span>3 lines x 2 attempts = 6 rows. The multiplier varies per order, so it cannot be divided out.</span></div>
+      <div class="cheat-item"><b>Additivity</b><span>Additive (SUM anywhere) · semi-additive (not across time) · non-additive (never SUM).</span></div>
+      <div class="cheat-item"><b>Ratios</b><span>Store the numerator and the denominator. AOV is 116.93, or 80.68 if the denominator slips to lines.</span></div>
+      <div class="cheat-item"><b>Degenerate dimensions</b><span>order_id, txn_id, cart_id, line_no. No dimension of their own, kept for COUNT(DISTINCT) and drill-down.</span></div>
+      <div class="cheat-item"><b>Never an inner join</b><span>LEFT JOIN + COALESCE to -1. Facts meet only through a conformed dimension. Next: b8, the four questions.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 7 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b6-dimension-design.html">← Previous: Dimension design</a> &nbsp;·&nbsp; <a href="b8-answering-the-questions.html">Next: Answering the questions →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leader session 3 · Grain, and one number one meaning - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Leader session 3 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Leader track · Session 3 of 6</div>
+    <h1>Grain, and <span class="accent">one number one meaning</span></h1>
+    <p class="sub">The single most useful sentence in data is "one row is one ___". You can audit a data team with that one question, and you can end most revenue disagreements in under ten minutes with it. This session gives you the sentence, the three collisions it catches, the five fields a metric definition needs before anyone quotes it, and a workshop you can run in your own next team meeting. No code to write.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Leader track</span>
+      <span class="chip audience">C-level · heads of data · stakeholders</span>
+      <span class="chip audience">No code to write</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Frame the argument</span>
+      <span class="a2" style="flex:4">3-15 · Grain as a sentence</span>
+      <span class="a3" style="flex:4">15-28 · Three collisions &amp; the caveat field</span>
+      <span class="a4" style="flex:6">28-45 · Workshop, questions, Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Why this is the most useful 45 minutes in the track</h2>
+    </div>
+    <p class="lede">You will never write the SQL. You will, several times a quarter, sit in a room where two competent teams present two different numbers for the same word, and you will be expected to decide which one is right. Almost every time, neither team is wrong and neither is lying. They are counting different rows. This session hands you the vocabulary to say that out loud, and the two questions that resolve it while everyone is still in the room.</p>
+    <p class="lede">The examples all come from this course's own <strong>Bazaar</strong> dataset: a multi-merchant marketplace with 12 merchants and 90 days of trading, 2026-04-01 to 2026-06-29, in SGD. Every number quoted here was produced by running the code the builder track ships, so you can check any of them. The point is not the marketplace. The point is that the numbers disagree in exactly the way your own numbers disagree.</p>
+    <div class="legend">
+      <span class="pill solid">Live - discussed in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">◎ Discussion exercise - run it with your team</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      One question that audits any table in seconds ("one row is one what?"), the three grain collisions and how each one sounds in a meeting, the five fields a metric definition needs, the reason the caveat field is the one everybody omits, and a 20-minute workshop you can run with your own three most-argued metrics.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: GRAIN AS A SENTENCE ============ -->
+  <section class="section" id="grain">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Kimball &amp; Ross on grain</span>
+      <h2>"One row is one ___" <span class="tag concept">12 min live</span></h2>
+    </div>
+    <p class="lede">Grain is the answer to one question: <strong>what does a single row of this table represent?</strong> Not what the table is called. Not what it is used for. What one row <em>is</em>. A table whose grain is "one product line on one order" and a table whose grain is "one order" look almost identical in a screenshot and answer completely different questions. Kimball put grain first in the design sequence for a reason: choose it wrong and every measure built on top inherits the error.</p>
+    <p class="lede">The leader's use of this is narrower and more powerful than the designer's. You do not need to know how the table was built. You only need to be able to ask the question, and to notice what happens when nobody in the room can finish the sentence in one clause. If the answer needs the word "and", you are looking at two tables that got merged, and every total drawn from it is suspect.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="One question about order volume answered at three different grains, producing three different numbers from the same Bazaar data">
+        <style>
+          .gqT { font: 700 14px Inter, sans-serif; fill: #FFFFFF; }
+          .gqH { font: 700 12px Inter, sans-serif; fill: #FFFFFF; }
+          .gqN { font: 800 27px Inter, sans-serif; fill: #22395C; }
+          .gqC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .gqB { font: 700 11.5px Inter, sans-serif; fill: #1B2637; }
+          .gqK { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+          .gqR { font: 700 11.5px Inter, sans-serif; fill: #991B1B; }
+          .gqArr { stroke: #6C8CBC; stroke-width: 2.5; fill: none; marker-end: url(#gqAh); }
+        </style>
+        <defs>
+          <marker id="gqAh" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#6C8CBC"/>
+          </marker>
+        </defs>
+
+        <text class="gqB" x="26" y="22">One question, asked in a meeting</text>
+        <rect x="26" y="32" width="828" height="42" rx="10" fill="#1B2637"/>
+        <text class="gqT" x="46" y="59">"How many orders did we take in the 90 days to 2026-06-29?"</text>
+
+        <path class="gqArr" d="M156,78 L156,106"/>
+        <path class="gqArr" d="M440,78 L440,106"/>
+        <path class="gqArr" d="M724,78 L724,106"/>
+
+        <!-- column 1 -->
+        <rect x="26" y="112" width="260" height="44" rx="9" fill="#3B5B8C"/>
+        <text class="gqH" x="44" y="139">one row is one order line</text>
+        <text class="gqN" x="44" y="196">1,434</text>
+        <text class="gqC" x="44" y="220">counts lines sold, not orders</text>
+        <text class="gqC" x="44" y="240">a 2-item order counts twice</text>
+        <text class="gqR" x="44" y="266">Overstates orders by 46%</text>
+
+        <!-- column 2 -->
+        <rect x="310" y="112" width="260" height="44" rx="9" fill="#22395C"/>
+        <text class="gqH" x="328" y="139">one row is one order</text>
+        <text class="gqN" x="328" y="196">985</text>
+        <text class="gqC" x="328" y="220">the number that was asked for</text>
+        <text class="gqC" x="328" y="240">957 of them settled payment</text>
+        <text class="gqB" x="328" y="266">The answer to the question</text>
+
+        <!-- column 3 -->
+        <rect x="594" y="112" width="260" height="44" rx="9" fill="#6C8CBC"/>
+        <text class="gqH" x="612" y="139">one row is one payment attempt</text>
+        <text class="gqN" x="612" y="196">1,060</text>
+        <text class="gqC" x="612" y="220">counts tries, including retries</text>
+        <text class="gqC" x="612" y="240">a declined card then a retry = 2</text>
+        <text class="gqR" x="612" y="266">Overstates orders by 8%</text>
+
+        <rect x="26" y="288" width="828" height="46" rx="8" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="gqB" x="46" y="308">All three numbers are correct. Each answers a different question.</text>
+        <text class="gqC" x="46" y="326">Nobody in this meeting is wrong, and nobody is lying. Three people read three tables with three grains.</text>
+
+        <rect x="26" y="348" width="828" height="52" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="gqK" x="46" y="370">Narrow it to June and the gap gets worse, not better: counting lines reports 481 orders where there were 327.</text>
+        <text class="gqK" x="46" y="390">A 47% overstatement, on Bazaar's own data, from one unwritten sentence. The month everyone reviews is the month it bites.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same question at three grains, from Bazaar's own 90-day dataset</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The one question that audits a data team<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Point at any table, dashboard tile or extract and ask: <strong>"one row is one what?"</strong> You are not testing knowledge. You are testing whether the sentence exists at all. Four responses, four different diagnoses:</p>
+        <ul>
+          <li><strong>An immediate one-clause answer.</strong> "One row is one product line on one order." Healthy. The grain was a decision, it was written down, and the person in front of you knows it. Move on.</li>
+          <li><strong>A confident answer that needs "and".</strong> "One row is one order and its payment." That is two grains in one table, which means every sum of money in it is at risk of double counting. This is the single most common shape of a broken revenue number.</li>
+          <li><strong>A pause, then a look at the columns.</strong> The grain is being reverse-engineered in front of you. It is inferable but undocumented, which means it will be inferred differently by the next person. Cheap to fix: ask for it in writing.</li>
+          <li><strong>"It depends what you filter on."</strong> The grain changes with usage. Nothing built on this table can be trusted without reading the query, and no two consumers will read it the same way.</li>
+        </ul>
+        <p>You do not need a follow-up question. The quality of the first answer tells you more about the maturity of the data function than any tooling review will, and it takes eight seconds.</p>
+        <div class="callout tip">
+          <strong>Say it in the room, not afterwards</strong>
+          The question is neutral, so it costs nothing socially. It is not "is this right?" (which invites defence) but "what is this?" (which invites description). That difference is why it works on your own team and in a vendor demo alike.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why grain outranks every other data decision<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Grain is chosen once and inherited forever. A tool migration does not change it. A dashboard rebuild does not change it. Rewriting the pipeline in a fashionable framework does not change it. It is the lowest-level statement in the stack, so every number above it carries whatever it says.</p>
+        <ul>
+          <li><strong>It fixes what is countable.</strong> If the grain is one order, you can never report per-line discounting without going back to the source. Whole categories of question are decided by the grain, before anyone has asked them.</li>
+          <li><strong>It fixes what is addable.</strong> Money at line grain adds up cleanly. A rate or an average never does, at any grain. Session a2 priced the rework; this is where the rework comes from.</li>
+          <li><strong>It fixes who can join to whom.</strong> Two tables at different grains cannot be joined without inflating one of them, which is the third collision in Part 2 and the most expensive.</li>
+        </ul>
+        <p>Inmon and Kimball spent a career disagreeing about warehouse architecture, and agreed completely about this. The argument between the normalized core and the dimensional mart is really an argument about who owns change. Neither school tolerates an undeclared grain, because neither can function with one.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Grain sentences for four tables you probably have<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Read these as templates and try them on your own equivalents. The pattern is always a single noun phrase with no conjunction.</p>
+        <ul>
+          <li><strong>Sales lines:</strong> "one row is one product line on one order." Not "one sale". A sale is ambiguous between the order and the line, which is why the word should not appear in a table name.</li>
+          <li><strong>Payments:</strong> "one row is one payment attempt." Not "one payment". Bazaar has 1,060 attempts behind 985 orders, so the difference is 75 rows of retries and refunds that a leader usually wants to see, not hide.</li>
+          <li><strong>Carts:</strong> "one row is one cart." Not "one shopper" and not "one session". Bazaar has 2,229 carts, and one shopper with three carts appears three times, which is correct and needs saying.</li>
+          <li><strong>Merchant reporting:</strong> "one row is one merchant on one day." A daily table's grain has two parts and that is fine, because the parts are the keys, not two different things being counted.</li>
+        </ul>
+        <p>The naming discipline that keeps these sentences stable across a team, and the question of who is allowed to change one, belongs to <strong>session a5 on naming standards and ownership</strong>. Here you only need to be able to demand the sentence.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: THREE COLLISIONS ============ -->
+  <section class="section" id="collisions">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · the meeting-room symptoms</span>
+      <h2>The three classic collisions <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">Grain errors do not announce themselves as grain errors. They arrive as a disagreement about a business number, and the debate that follows is usually about the business rather than the data. There are three shapes, they cover the large majority of what you will see, and each has a sound you can learn to recognise from the chair.</p>
+
+    <table class="clean">
+      <thead><tr><th>Collision</th><th>What it sounds like in the meeting</th><th>What it does to the number</th><th>The fix you ask for</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>1 · Counting lines as orders</strong></td>
+          <td>"Volume is up strongly but revenue per order is flat, and nobody can explain it."</td>
+          <td>Bazaar June: 481 reported against 327 real orders, a 47% overstatement. It moves with basket size, so it looks like a trend.</td>
+          <td>Count distinct orders, not rows. State the grain on the tile.</td>
+        </tr>
+        <tr>
+          <td><strong>2 · Averaging an average</strong></td>
+          <td>"Finance has one basket size and marketing has another, and both come from the same warehouse."</td>
+          <td>Bazaar AOV is 116.93 from the two totals, or 80.68 if line values are averaged instead: a 31% understatement.</td>
+          <td>Recompute the ratio from the two sums at the grain you need. Never average a ratio.</td>
+        </tr>
+        <tr>
+          <td><strong>3 · Adding across two grains</strong></td>
+          <td>"The reconciliation is off by about eight percent and we have been chasing it for three weeks."</td>
+          <td>Joining Bazaar's sales table to its payments table lifts revenue from 111,906 to 121,003. Every retried card duplicates its own order lines.</td>
+          <td>Aggregate each side to a common grain first, then compare. Do not join two transaction tables.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How joining a sales table to a payments table multiplies rows and inflates revenue on Bazaar data">
+        <style>
+          .fnT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .fnS { font: 400 11px Inter, sans-serif; fill: #D3DEEC; }
+          .fnB { font: 700 11.5px Inter, sans-serif; fill: #1B2637; }
+          .fnC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .fnR { font: 800 15px Inter, sans-serif; fill: #991B1B; }
+          .fnG { font: 800 15px Inter, sans-serif; fill: #22395C; }
+          .fnK { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+          .fnL { stroke: #6C8CBC; stroke-width: 2; fill: none; }
+        </style>
+
+        <text class="fnB" x="26" y="22">One single order, seen by two tables</text>
+
+        <rect x="26" y="34" width="240" height="58" rx="9" fill="#22395C"/>
+        <text class="fnT" x="44" y="56">Sales table</text>
+        <text class="fnS" x="44" y="76">3 product lines on this order</text>
+
+        <rect x="26" y="112" width="240" height="58" rx="9" fill="#3B5B8C"/>
+        <text class="fnT" x="44" y="134">Payments table</text>
+        <text class="fnS" x="44" y="154">2 attempts: declined, then paid</text>
+
+        <path class="fnL" d="M266,63 L330,63 L330,101"/>
+        <path class="fnL" d="M266,141 L330,141 L330,103"/>
+        <path class="fnL" d="M330,102 L390,102"/>
+
+        <rect x="394" y="72" width="216" height="58" rx="9" fill="#991B1B"/>
+        <text class="fnT" x="412" y="94">Joined on the order</text>
+        <text class="fnS" x="412" y="114" fill="#FEF2F2">3 x 2 = 6 rows of revenue</text>
+
+        <text class="fnC" x="640" y="90">Each line is now stored twice,</text>
+        <text class="fnC" x="640" y="110">so the order's money doubles.</text>
+
+        <rect x="26" y="196" width="828" height="1" fill="#B9CBE4"/>
+
+        <text class="fnB" x="26" y="226">Across all 90 days of Bazaar, the same join does this</text>
+
+        <rect x="26" y="240" width="266" height="62" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="fnC" x="44" y="262">Revenue, tables kept apart</text>
+        <text class="fnG" x="44" y="288">111,906 SGD</text>
+
+        <rect x="316" y="240" width="266" height="62" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="fnC" x="334" y="262">Revenue, tables joined</text>
+        <text class="fnR" x="334" y="288">121,003 SGD</text>
+
+        <rect x="606" y="240" width="248" height="62" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="fnC" x="624" y="262">Invented money</text>
+        <text class="fnG" x="624" y="288">9,097 SGD</text>
+
+        <rect x="26" y="318" width="828" height="62" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="fnK" x="46" y="340">This is the collision that survives review longest, because 8% looks like a timing difference rather than a bug.</text>
+        <text class="fnK" x="46" y="360">The tell is that the gap grows in months with more retries. If a reconciliation gap moves with payment failures, it is a</text>
+        <text class="fnK" x="46" y="374">grain error, not an accounting one. Ask what was joined to what before you fund another three weeks of investigation.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - two tables, two grains, one invented 9,097 SGD</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>How to spot each one from the chair<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>You are not going to audit the query. You are going to listen for a pattern and then ask a specific question.</p>
+        <ul>
+          <li><strong>Counting lines as orders.</strong> The tell is a volume metric rising while a per-unit metric stays flat, with no product or pricing change to explain it. Ask: <em>"is that count of orders or count of rows?"</em> If the answer takes more than a sentence, it is rows.</li>
+          <li><strong>Averaging an average.</strong> The tell is two teams with the same word and different numbers, both sourced from the same warehouse, differing by tens of percent rather than a rounding error. Ask: <em>"is that computed from the two totals, or is it an average of the per-row values?"</em> Bazaar's 116.93 against 80.68 is what a 31% version of this looks like.</li>
+          <li><strong>Adding across two grains.</strong> The tell is a persistent small reconciliation gap that resists explanation and moves month to month. Ask: <em>"which two tables were joined to produce this, and what is the grain of each?"</em> Two tables of events joined directly is always wrong, and the inflation is the shape of the retry behaviour, not of the business.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>A fourth one worth knowing: the rate with no denominator</strong>
+          Bazaar contains a merchant-day slice with an 18.2% decline rate, which sounds like an incident. It rests on 11 payment attempts. Two of them failed. Any rate quoted without its denominator is an anecdote wearing a percentage sign, and the fix costs nothing: print the count beside the rate, every time, on every tile.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Why the fix is cheap and the discovery is expensive<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Every one of these three is a one-line correction in the query that produces the number. That is the uncomfortable part. The cost is never in the fix; it is in the months of decisions taken on the wrong number, and in the credibility the data team spends proving the correction is not itself the error.</p>
+        <p>Which is why the leadership intervention is not "find the bugs". It is "make the grain a declared, visible property of every number we quote". A grain that is written next to the number cannot silently disagree with another number. A grain that lives in somebody's head will.</p>
+        <p>The mechanism for that declaration is the metric definition in Part 3, and the ownership rules that keep it honest are <strong>session a5</strong>. What to buy so the declaration is enforced rather than requested is <strong>session a4</strong>, immediately after this one.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 3: THE METRIC AS A GOVERNED OBJECT ============ -->
+  <section class="section" id="definition">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers Dehghani on data as a product</span>
+      <h2>A metric definition is a governed object <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">"One number, one meaning" is a slogan until the meaning is written down in a form that cannot drift. A metric definition needs five fields, and most organisations have two of them. The two they have are the name and something resembling an expression. The three they skip are the grain, the owner and the caveat, and the caveat is the one that prevents the most damage.</p>
+    <p class="lede">This course's own semantic layer carries <strong>13 metric definitions</strong>, and every one of them has an expression, a grain and a caveat. That is not thoroughness for its own sake. It is what took an AI analyst from <strong>0 of 20</strong> standard business questions answered correctly to <strong>20 of 20</strong> on the same data. Nothing about the tables changed. The definitions changed.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 448" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The five fields of a governed metric definition, with the caveat field highlighted, and definitions published as data rather than as a wiki page">
+        <style>
+          .mdT { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .mdF { font: 700 11.5px Inter, sans-serif; fill: #22395C; }
+          .mdV { font: 400 11.5px Inter, sans-serif; fill: #1B2637; }
+          .mdC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .mdB { font: 700 11.5px Inter, sans-serif; fill: #1B2637; }
+          .mdK { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+          .mdW { font: 700 11.5px Inter, sans-serif; fill: #FFFFFF; }
+        </style>
+
+        <text class="mdB" x="26" y="22">One metric, as a governed object</text>
+
+        <rect x="26" y="32" width="500" height="34" rx="8" fill="#22395C"/>
+        <text class="mdT" x="44" y="54">aov</text>
+        <text class="mdW" x="380" y="54">5 fields, not 2</text>
+
+        <rect x="26" y="70" width="500" height="30" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="mdF" x="44" y="90">name</text>
+        <text class="mdV" x="160" y="90">aov</text>
+
+        <rect x="26" y="100" width="500" height="30" fill="#FFFFFF" stroke="#B9CBE4"/>
+        <text class="mdF" x="44" y="120">expression</text>
+        <text class="mdV" x="160" y="120">settled revenue / settled orders</text>
+
+        <rect x="26" y="130" width="500" height="30" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="mdF" x="44" y="150">grain</text>
+        <text class="mdV" x="160" y="150">order line</text>
+
+        <rect x="26" y="160" width="500" height="30" fill="#FFFFFF" stroke="#B9CBE4"/>
+        <text class="mdF" x="44" y="180">owner</text>
+        <text class="mdV" x="160" y="180">the team on the hook for changes</text>
+
+        <rect x="26" y="190" width="500" height="48" fill="#FBF3E2" stroke="#C08A2E" stroke-width="2"/>
+        <text class="mdF" x="44" y="210" fill="#3A2A08">caveat</text>
+        <text class="mdK" x="160" y="210">never average an AOV; recompute</text>
+        <text class="mdK" x="160" y="228">it from the two sums you need</text>
+
+        <rect x="556" y="70" width="298" height="168" rx="9" fill="#1B2637"/>
+        <text class="mdT" x="576" y="96">The field everybody omits</text>
+        <text class="mdC" x="576" y="120" fill="#B9CBE4">The caveat is the only field that says</text>
+        <text class="mdC" x="576" y="138" fill="#B9CBE4">what this number is NOT for.</text>
+        <text class="mdC" x="576" y="166" fill="#B9CBE4">Without it, every reasonable person</text>
+        <text class="mdC" x="576" y="184" fill="#B9CBE4">who reuses the metric reinvents the</text>
+        <text class="mdC" x="576" y="202" fill="#B9CBE4">same mistake, independently, and</text>
+        <text class="mdC" x="576" y="220" fill="#B9CBE4">believes they were being careful.</text>
+
+        <rect x="26" y="256" width="828" height="1" fill="#B9CBE4"/>
+
+        <text class="mdB" x="26" y="284">Where the definition lives decides whether it stays true</text>
+
+        <rect x="26" y="296" width="404" height="104" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="mdB" x="46" y="318" fill="#991B1B">As a wiki page</text>
+        <text class="mdC" x="46" y="340">Nothing connects the words to the query.</text>
+        <text class="mdC" x="46" y="358">The query changes on a Tuesday, the page</text>
+        <text class="mdC" x="46" y="376">does not, and no test can tell you.</text>
+        <text class="mdC" x="46" y="394">Wrong within a quarter, silently.</text>
+
+        <rect x="450" y="296" width="404" height="104" rx="9" fill="#EDF2F9" stroke="#3B5B8C"/>
+        <text class="mdB" x="470" y="318" fill="#22395C">As data in the warehouse</text>
+        <text class="mdC" x="470" y="340">The definition is a queryable table beside</text>
+        <text class="mdC" x="470" y="358">the numbers. BI reads it, the agent reads it,</text>
+        <text class="mdC" x="470" y="376">and it can be tested in the same run that</text>
+        <text class="mdC" x="470" y="394">builds the data. Drift becomes a failure.</text>
+
+        <rect x="26" y="414" width="828" height="30" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="mdK" x="46" y="434">13 definitions with grain and caveat took an AI analyst on this dataset from 0 of 20 questions right to 20 of 20.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - five fields, and the difference between a page and a table</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The caveat field, and why it is always the one missing<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The caveat is one sentence saying what the number is not for. It is omitted for a reason that is worth naming out loud: writing it feels like admitting a weakness in your own work, especially when the audience is the executive who funded it. So the field goes blank, and the weakness gets discovered later by somebody with less context and more urgency.</p>
+        <p>Here are four real caveats from this course's own definitions. Read them as a genre. None of them is an apology, and every one of them prevents a specific, predictable error:</p>
+        <ul>
+          <li><strong>On order count:</strong> counting all rows counts lines, not orders. This is the most common error a text-to-SQL agent makes, so it is written where the agent will read it.</li>
+          <li><strong>On average order value:</strong> never average an AOV. Recompute it from the two sums at whatever grain the question needs.</li>
+          <li><strong>On decline rate:</strong> report the attempt count beside it. Below roughly 30 attempts it is noise, which is why the 18.2% slice built on 11 attempts is not an incident.</li>
+          <li><strong>On abandoned cart value:</strong> it is list value, not lost revenue. Most of it would never have converted, and treating it as recoverable has funded more bad projects than almost any other number.</li>
+        </ul>
+        <p>Notice that the last one is not a technical caveat at all. It is a caveat against a business inference, and it belongs to the metric because the metric is what invites the inference. That is the leadership contribution to a definition: engineers write the expression and the grain, and the person who has watched the number be misused writes the caveat.</p>
+        <div class="callout tip">
+          <strong>Make the field mandatory, not encouraged</strong>
+          A caveat field that may be left blank will be left blank. Require it, and accept "none known at this grain" as a valid entry. Someone typing that sentence has at least thought about it, and the field can then be reviewed.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Publish definitions as data, not as a page<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Most organisations publish metric definitions as documentation: a wiki space, a glossary deck, a spreadsheet somebody maintains. Every one of those has the same defect. There is no mechanical connection between the prose and the query that runs, so the two drift apart the first time the query is edited, and nothing detects it. Documentation that can be wrong without failing is not governance, it is reassurance.</p>
+        <p>The alternative is to hold the definitions in the warehouse itself, as a table beside the data they describe. That single change buys you four things:</p>
+        <ul>
+          <li><strong>One source for every consumer.</strong> The BI tool and any AI analyst read the same row. They cannot disagree, because there is only one place to read.</li>
+          <li><strong>Testability.</strong> A definition that exists as data can be checked in the same run that builds the warehouse. A metric with no caveat, or a metric whose grain does not match its source, becomes a build failure rather than a discovery.</li>
+          <li><strong>Discoverability at the moment of need.</strong> Nobody opens the wiki while building a slide. A definition that sits next to the number gets read.</li>
+          <li><strong>Machine readability.</strong> This is the whole reason the same agent went from 0 of 20 to 20 of 20 on this dataset. The category of tool that does this properly is the semantic layer, which is a purchase decision, and that is <strong>session a4</strong>. What to fund specifically for agent accuracy is <strong>session a6</strong>.</li>
+        </ul>
+        <p>Dehghani's framing is useful here even if you never adopt data mesh: treat the definition as part of the product, not as commentary about it. A product ships with its interface. Commentary is optional, which is precisely the problem.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Synonyms: the cheapest accuracy win available<span class="mini">2 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Your business does not say "net_revenue". It says revenue, sales, topline, GMV, take rate, basket size, order count, failure rate, checkout conversion, lost revenue. Each of those maps to exactly one governed metric, or it maps to nothing and needs a definition of its own.</p>
+        <p>Writing that mapping down takes an afternoon and it removes a guess from every consumer, human or machine. It is also a genuinely political document, because a few of the mappings will be contested. "Lost revenue" mapping to abandoned cart list value is the kind of entry that a marketing team and a finance team will read very differently, and having that argument once, in writing, is enormously cheaper than having it every quarter in a review.</p>
+        <p>Where synonyms become a standard rather than a helpful list, and who is allowed to add one, is <strong>session a5</strong>.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DISCUSSION EXERCISES ============ -->
+  <section class="section" id="workshop">
+    <div class="section-kicker">
+      <span class="klabel">Discussion exercise 1 of 2</span>
+      <h2>The blank-caveat workshop <span class="tag demo">★ 12 min · run this with your own team</span></h2>
+    </div>
+    <p class="lede">This is designed to be run in your own next team meeting, with your own metrics, in about 20 minutes. It needs a whiteboard and no tooling. The finding is never "our team is careless". The finding is always which two or three metrics are being quoted daily by people who cannot state what they mean.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Name the three most-argued metrics.</strong> Not the three most important. The three that have caused a disagreement in the last quarter. Ask the room and take the first three that get nodded at.</p></div>
+      <div class="step"><p><strong>Give each one a single line with five fields.</strong> Name, expression in plain words, grain, owner, caveat. One line each, out loud, filled in by whoever quotes the metric most often rather than whoever built it.</p></div>
+      <div class="step"><p><strong>Watch which lines cannot be completed.</strong> Do not help. Silence on a field is the entire result of the exercise, and the field that goes blank is nearly always the caveat, with grain a close second.</p></div>
+      <div class="step"><p><strong>Assign each blank field to one named person with one date.</strong> Not a workstream. A person and a date, for one sentence. If a blank cannot be assigned, that metric has no owner, which is a larger finding than the blank.</p></div>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The prompt, a good answer, and the failure mode to listen for<span class="mini">6 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The prompt, read aloud:</strong> "Pick our three most-argued numbers. For each one, I want a single line: the name, what it means in plain words, one row is one what, who owns it, and one sentence on what it must not be used for. Whoever quotes it most does the talking, not whoever built it."</p>
+        <p><strong>What a good answer sounds like:</strong> "Average order value. Settled revenue divided by settled orders. Grain is the order line, so it has to be recomputed from the two sums rather than averaged. Owned by the analytics team. And it must not be averaged across weeks or merchants to get a bigger AOV, which is the mistake we made in the March pack." That is roughly 25 seconds, it contains all five fields, and the caveat cites an actual incident rather than a hypothetical.</p>
+        <p><strong>The failure modes to listen for:</strong></p>
+        <ul>
+          <li><strong>The tool answer.</strong> "It is whatever the dashboard shows." That is not a definition, it is a location. The follow-up is "and if two dashboards show different values, which is right?"</li>
+          <li><strong>The conjunction.</strong> Any grain sentence containing "and" is two grains. Write both halves on the board and ask which one the number is summed over.</li>
+          <li><strong>The confident caveat-free answer.</strong> The most dangerous response in the room. Someone states the metric fluently and says there is nothing to warn about. Push once: "so if I put this in a board pack next to last year, nothing breaks?" The pause after that question is the caveat.</li>
+          <li><strong>The deferral.</strong> "The data team would have to check." Fine for the expression, never fine for the caveat. The caveat is written by whoever has seen the number misused, and that is usually the person in the room, not the person who built the table.</li>
+        </ul>
+        <div class="callout example">
+          <span class="ex-pill">Real world</span>
+          <p><strong>The 31% argument that was never about revenue.</strong> On Bazaar's own data, average order value is 116.93 SGD computed from the two totals across 957 settled orders, and 80.68 SGD if the per-line values are averaged instead. Two teams presenting those numbers will spend an hour arguing about pricing, discounting and merchant mix, because both numbers are defensible and both are drawn from the same warehouse. Nobody is wrong. There was never a disagreement about revenue at all: there was one undeclared grain and one missing caveat, worth 31% of the headline number.</p>
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>How to score the workshop without embarrassing anyone<span class="mini">2 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Count filled fields out of fifteen, three metrics by five fields, and put the number on the board. Nothing else. A score of nine or ten is normal and healthy for a team that has never done this. A score of fifteen on the first attempt usually means the definitions were read off an existing governed table, which is the best possible outcome and worth saying so.</p>
+        <p>Re-run it in a quarter with the same three metrics. The score is a genuine maturity measure and it costs twenty minutes, which makes it one of the very few data-governance metrics that does not itself need a caveat about its denominator.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="section" id="revenue-meeting">
+    <div class="section-kicker">
+      <span class="klabel">Discussion exercise 2 of 2</span>
+      <h2>The meeting that ends a revenue disagreement <span class="tag demo">★ 5 min · the script</span></h2>
+    </div>
+    <p class="lede">Two teams, two revenue numbers, and a calendar invite that says "align on revenue". These meetings routinely run for an hour and end in an action item. Run this instead. It takes minutes, because the disagreement was never about revenue.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Get both numbers on the board first, to the cent.</strong> Before any explanation. People argue about causes long before establishing what the two figures actually are, and about a third of these meetings end here, when the two numbers turn out to be for different date ranges.</p></div>
+      <div class="step"><p><strong>Ask each side for its grain.</strong> One row is one what. Not which table, not which tool. If the two grains differ, you have found it, and the rest of the meeting is deciding which grain answers the question that was asked.</p></div>
+      <div class="step"><p><strong>Ask each side for its filter.</strong> What was excluded, and what date field was used. Settled versus attempted, order date versus payment date, refunds in or out. On Bazaar, 985 orders against 957 settled is a 28-order gap that shows up as a revenue difference and has nothing to do with revenue.</p></div>
+      <div class="step"><p><strong>Write the winning definition down before anyone leaves.</strong> Name, expression, grain, owner, caveat, in the room. If it is not written while the argument is fresh, you will hold this meeting again next quarter with the same two teams.</p></div>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The two questions, and what each answer tells you<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The prompt:</strong> "Before either of you explains anything, I want two things from each side. One: one row is one what. Two: what did you filter out and which date field did you use. Then we will see whether we have a disagreement."</p>
+        <p><strong>What a good answer sounds like:</strong> "One row is one order line. I filtered to settled payments only, using the order date, refunds excluded." The other side: "One row is one payment attempt. I included refunds, using the settlement date." Both are correct work. They answer different questions, and now the room can pick which question was asked, which takes a minute rather than an hour.</p>
+        <p><strong>The failure modes to listen for:</strong></p>
+        <ul>
+          <li><strong>"It comes from the certified dashboard."</strong> A provenance claim standing in for a definition. Certification tells you a number was blessed, not what it means. Ask the grain question again, unchanged.</li>
+          <li><strong>An explanation of the business instead of the data.</strong> "Their number is lower because they do not account for the merchant mix." Possible, but you asked for a grain. Return to the question until you have both grains, then let the business explanation be tested against them.</li>
+          <li><strong>Both sides quoting the same grain and the same filter, with different numbers.</strong> Now you have a genuine defect, and it is worth escalating properly. This is rare, and this script is what makes it identifiable as rare.</li>
+          <li><strong>Agreement to "take it offline and reconcile".</strong> The default outcome, and the wrong one. Two grains and two filters can be stated in ninety seconds by people who know their own work. If they genuinely cannot, that is the finding to act on.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ QUESTIONS FOR YOUR TEAM ============ -->
+  <section class="section" id="ask">
+    <div class="section-kicker">
+      <span class="klabel">Take this to your own team</span>
+      <h2>Six questions to ask your data team <span class="tag concept">4 min live</span></h2>
+    </div>
+    <p class="lede">Each of these is short, neutral and hard to deflect. The value is not in the answer being right. It is in how long the answer takes, and whether it is read from something or reconstructed on the spot.</p>
+
+    <table class="clean">
+      <thead><tr><th>Ask this</th><th>Why it works</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>"For our top revenue tile: one row is one what?"</strong></td>
+          <td>It is the fastest audit available and it cannot be answered with a process description. A fluent one-clause answer means the grain was a decision. A pause means it is being inferred, and it will be inferred differently next time.</td>
+        </tr>
+        <tr>
+          <td><strong>"Where does a person go to find out what a metric means, and is that the same place the query reads?"</strong></td>
+          <td>Separates documentation from governance in one question. If the answer is a wiki, the definition and the query can drift apart with nothing detecting it. If it is a table in the warehouse, drift becomes a build failure.</td>
+        </tr>
+        <tr>
+          <td><strong>"Show me a metric definition that has a caveat written in it."</strong></td>
+          <td>Asking whether caveats exist gets you yes. Asking to see one gets you the truth. This is also the question that reveals whether the caveat field exists at all, or is merely encouraged.</td>
+        </tr>
+        <tr>
+          <td><strong>"Which two numbers in this business are known to disagree, and do we know why?"</strong></td>
+          <td>Every organisation has a pair. A team that can name theirs and explain the grain difference is in control. A team that says none disagree either has not looked or is not being told.</td>
+        </tr>
+        <tr>
+          <td><strong>"Do any of our reports join two event tables together?"</strong></td>
+          <td>Goes straight at the most expensive collision. Sales joined to payments, orders joined to shipments, sessions joined to transactions: all inflate. This is the question that would have saved 9,097 SGD of invented revenue on Bazaar.</td>
+        </tr>
+        <tr>
+          <td><strong>"Does every rate on our dashboards show its denominator?"</strong></td>
+          <td>A yes/no question with a nearly free fix and a large payoff. It is what separates a real 18.2% decline incident from two failures out of 11 attempts, and it stops the whole class of alarms raised on tiny slices.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What good answers look like, and what to do with a bad one<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A good answer to any of the six is short and cites an artifact: a table, a file, a column, a specific incident. A weak answer describes a process ("we review definitions in the governance forum") or a tool ("it is all in the BI layer"). Neither is a lie, and neither answers the question.</p>
+        <p>When you get a weak answer, resist the instinct to escalate. The useful move is to ask for the smallest possible artifact by a date: one metric, five fields, one line, next Friday. Grain and caveat discipline spreads by example rather than by mandate, because the first person who writes a good caveat gives everyone else a template, and templates travel faster than policies.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 30-40 min total</span></h2>
+    </div>
+    <ul>
+      <li>Open the dashboard you look at most and pick the top tile. Write its grain sentence yourself, in one clause, with no conjunction. If you cannot, send exactly that question to whoever owns it and see how long the reply takes.</li>
+      <li>Write the caveat for the number you personally quote most often to your own board or leadership team. One sentence on what it must not be used for. You will find this harder than expected, and that difficulty is the point of the exercise.</li>
+      <li>Find one rate on one of your dashboards that is displayed without its denominator. Ask for the count to be printed beside it. It is close to free and it retires a whole category of false alarm.</li>
+      <li>List the words your business actually says for money: revenue, sales, topline, GMV, take rate. Map each to one governed metric. Note which two entries somebody will contest, and book that argument once, deliberately, rather than every quarter by accident.</li>
+      <li>Run the blank-caveat workshop from this page at your next team meeting, and write down the score out of fifteen. Bring it to <strong>a4</strong>, because it is the strongest evidence you will have about which category of tool you actually need.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">The leader track teaches the judgement half of the standard modeling literature: the arguments a leader has to referee, without the mechanics. The full source map, including what is deliberately out of scope, is in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - grain, conformed dimensions, one meaning per number</span><span class="note">Parts 1-2 · grain as the first decision, and the collisions that follow from skipping it</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Inmon, <em>Building the Data Warehouse</em> - who owns change</span><span class="note">Part 1 · why both schools refuse an undeclared grain; ownership itself is session a5</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Dehghani, <em>Data Mesh</em> - data as a product, the contract as the interface</span><span class="note">Part 3 · the definition ships with the product rather than as commentary about it</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">dbt layering conventions and model contracts</span><span class="note">Part 3 · named as how a definition becomes testable; the categories are session a4, the mechanics are b9</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Additivity, semi-additive measures and the arithmetic of ratios</span><span class="note">Part 2 · averaging an average is named and priced; the full treatment is builder session b7</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Fact-to-fact joins and the fan-out they cause</span><span class="note">Part 2 · shown at 111,906 to 121,003; the forbidden-join list itself is builder sessions b7 and b9</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Sales reports 481 orders for June. Finance reports 327. Both used the same warehouse and the same date range. As the person in the chair, what is your first move?</p>
+      <button class="qopt" type="button">A · Ask the data team to reconcile the two figures and report back next week</button>
+      <button class="qopt" type="button">B · Take the lower number, because conservative reporting is safer with a board</button>
+      <button class="qopt" type="button">C · Ask each side "one row is one what", because a 47% gap on the same data is a grain difference, not an error</button>
+      <p class="qwhy">A gap this large between two competent teams on identical data is almost never a defect. On Bazaar's June figures, 481 is the count of order lines and 327 is the count of orders. Asking for the grain resolves it in the meeting; asking for a reconciliation books another meeting and produces the same answer three weeks later.</p>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">2 · A metric definition arrives with a name, an expression, a grain and an owner. The caveat field is blank. What have you actually been handed?</p>
+      <button class="qopt" type="button">A · A complete definition, since the caveat is a nice-to-have once the grain is stated</button>
+      <button class="qopt" type="button">B · A definition that says what the number is but not what it is not for, so every reuse reinvents the same mistake independently</button>
+      <button class="qopt" type="button">C · Nothing usable, since four of five fields is not a definition</button>
+      <p class="qwhy">Four fields is real progress and worth acknowledging. But the caveat is the only field addressed to a future reader who is about to misuse the number in good faith: do not average this AOV, read the denominator on this rate, this abandoned value is list price rather than recoverable revenue. Blank means each consumer works it out for themselves, or does not.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Your team has spent three weeks on a reconciliation gap of about 8% that keeps moving month to month. Which question is most likely to end it?</p>
+      <button class="qopt" type="button">A · "Which two tables were joined to produce this, and what is the grain of each?"</button>
+      <button class="qopt" type="button">B · "Can we get a third party to audit the pipeline?"</button>
+      <button class="qopt" type="button">C · "Should we accept an 8% tolerance and move on?"</button>
+      <p class="qwhy">A gap that persists, resists explanation and varies month to month has the signature of a fan-out from joining two event tables at different grains. On Bazaar, joining sales to payments moves revenue from 111,906 to 121,003, about 8%, and the size of the gap tracks the retry rate rather than anything in the business. One question about grain beats three more weeks of investigation.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 3 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>The audit question</b><span>"One row is one what?" One clause, no conjunction. If the answer needs "and", it is two tables and every total is at risk.</span></div>
+      <div class="cheat-item"><b>Collision 1 · lines as orders</b><span>Volume up, per-order value flat, no pricing change. Bazaar June: 481 reported against 327 real, a 47% overstatement.</span></div>
+      <div class="cheat-item"><b>Collision 2 · averaging an average</b><span>Two teams, same word, same warehouse, tens of percent apart. Bazaar AOV 116.93 from the sums, 80.68 averaged: 31% low.</span></div>
+      <div class="cheat-item"><b>Collision 3 · two grains added</b><span>A stubborn reconciliation gap that moves monthly. Joining Bazaar's sales to payments invents 9,097 SGD, from 111,906 to 121,003.</span></div>
+      <div class="cheat-item"><b>The rate with no denominator</b><span>18.2% decline sounds like an incident; it was 2 failures in 11 attempts. Print the count beside every rate, always.</span></div>
+      <div class="cheat-item"><b>Five fields</b><span>Name, expression, grain, owner, caveat. Most orgs have two. Make the caveat mandatory and accept "none known at this grain".</span></div>
+      <div class="cheat-item"><b>Data, not a wiki</b><span>A definition in a table can be tested and read by BI and agents alike. A page drifts from the query with nothing detecting it.</span></div>
+      <div class="cheat-item"><b>The proof it pays</b><span>13 definitions with grain and caveat: an AI analyst went 0 of 20 to 20 of 20 on unchanged data. Next: a4, what to buy.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Leader session 3 of 6 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a2-cost-of-a-bad-model.html">← Prev: The cost of a bad model</a> &nbsp;·&nbsp; <a href="a4-tooling-landscape.html">Next: The tooling landscape →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

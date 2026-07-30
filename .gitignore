@@ -1,0 +1,6 @@
+# generated at build time by python/build_star.py - rebuild with --fresh
+bazaar.db
+
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 1 · Bazaar's source reality - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 1 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 1 of 10</div>
+    <h1>Bazaar's <span class="accent">source reality</span></h1>
+    <p class="sub">Every model starts with a mess: one spreadsheet somebody exported, with every fact repeated on every row. This session turns that export into a list of entities - the things Bazaar's business actually has - and shows you the eight tables you will design over the next four sessions. By the end you will have queried the real source database in your browser and found the first thing wrong with it.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Builder track</span>
+      <span class="chip audience">Analysts · analytics engineers · DE · DS</span>
+      <span class="chip audience">Runs in your browser · real SQLite</span>
+      <span class="chip time">Start here</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · From spreadsheet to entities</span>
+      <span class="a3" style="flex:5">18-42 · Build-along: query the source, find the mess</span>
+      <span class="a4" style="flex:1">42-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>How this track works</h2>
+    </div>
+    <p class="lede">Ten sessions, one marketplace. <strong>Bazaar</strong> is a multi-merchant ecommerce platform: 60 shoppers, 12 merchants, 60 products, 90 days of orders, carts and payment attempts. Over this track you will design its transactional schema from scratch (b1-b4), work out why analysts cannot query it (b5), build the dimensions and facts they can query (b6-b7), answer four real business questions with the result (b8), publish the model so an AI agent can query it accurately (b9), and extend the whole thing to a new subject area in the capstone (b10).</p>
+    <p class="lede">Everything is real code you keep. The <code>sql/</code> folder in this repo holds the DDL, the transform, the marts and the agent views; <code>python/</code> holds the generator, the build script, the validator, the analysis and the agent scripts; <code>semantic/</code> holds the schema card, the contract and the golden question set. Each page tells you which files it ships.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live SQL - editable &amp; runnable</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      The habit of naming entities before drawing tables, Bazaar's eight-entity conceptual model on one page, and a browser tab running the real source database - so you can see for yourself that the flat export everyone works from is lying to them.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: THE THREE MODELS ============ -->
+  <section class="section" id="three-models">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Fowler/Evans on modeling, Kimball ch.1</span>
+      <h2>Conceptual, logical, physical <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">"Data model" means three different artifacts, and conflating them is why modeling conversations go badly. The <strong>conceptual</strong> model is the things the business has and how they relate - no columns, no types, readable by a merchant. The <strong>logical</strong> model adds attributes, keys and cardinality - readable by an analyst. The <strong>physical</strong> model is DDL for one specific engine - types, constraints, indexes. You go down that ladder once per subject area, and every session in b1-b4 is one rung.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three levels of data model: conceptual, logical, physical, with what each adds and who reads it">
+        <style>
+          .tmT { font: 700 14px Inter, sans-serif; fill: #FFFFFF; }
+          .tmH { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+          .tmC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .tmN { font: 600 12px Inter, sans-serif; fill: #3A2A08; }
+          .tmArr { stroke: #6C8CBC; stroke-width: 2.5; fill: none; marker-end: url(#tmAh); }
+        </style>
+        <defs>
+          <marker id="tmAh" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#6C8CBC"/>
+          </marker>
+        </defs>
+
+        <rect x="26" y="40" width="230" height="60" rx="10" fill="#22395C"/>
+        <text class="tmT" x="46" y="66">Conceptual</text>
+        <text class="tmC" x="46" y="86" fill="#B9CBE4">things and relationships</text>
+        <text class="tmH" x="46" y="132">Adds: the entity list</text>
+        <text class="tmC" x="46" y="152">"a cart holds many products"</text>
+        <text class="tmC" x="46" y="172">Read by: merchants, PMs</text>
+        <text class="tmC" x="46" y="192">Session b1 - today</text>
+
+        <rect x="322" y="40" width="230" height="60" rx="10" fill="#3B5B8C"/>
+        <text class="tmT" x="342" y="66">Logical</text>
+        <text class="tmC" x="342" y="86" fill="#B9CBE4">attributes, keys, cardinality</text>
+        <text class="tmH" x="342" y="132">Adds: columns and keys</text>
+        <text class="tmC" x="342" y="152">"cart_items(cart_id, product_id)"</text>
+        <text class="tmC" x="342" y="172">Read by: analysts, engineers</text>
+        <text class="tmC" x="342" y="192">Sessions b2, b3</text>
+
+        <rect x="618" y="40" width="230" height="60" rx="10" fill="#22395C"/>
+        <text class="tmT" x="638" y="66">Physical</text>
+        <text class="tmC" x="638" y="86" fill="#B9CBE4">types, constraints, indexes</text>
+        <text class="tmH" x="638" y="132">Adds: engine specifics</text>
+        <text class="tmC" x="638" y="152">"quantity INTEGER CHECK (&gt;0)"</text>
+        <text class="tmC" x="638" y="172">Read by: the database</text>
+        <text class="tmC" x="638" y="192">Sessions b4, b5</text>
+
+        <path class="tmArr" d="M256,70 L318,70"/>
+        <path class="tmArr" d="M552,70 L614,70"/>
+
+        <rect x="26" y="230" width="822" height="42" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="tmN" x="46" y="256">Skipping the conceptual model is the most expensive shortcut in modeling: you end up with tables that match an export, not a business.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the ladder every subject area walks down, once</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Why the conceptual model is not optional<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The temptation is to skip straight to tables, because tables feel like progress. What you get is a schema shaped like whatever export you happened to receive - a "sales" table that is really orders and payments jammed together, a "customer" column that is sometimes an email and sometimes a name. Those choices are cheap to make and expensive to unmake, because every query, dashboard and pipeline built on top of them encodes the mistake.</p>
+        <ul>
+          <li><strong>Entities are nouns the business says out loud:</strong> shopper, merchant, product, cart, order, payment. If you have to explain a table's name to a merchant, it is probably not an entity.</li>
+          <li><strong>Relationships carry the verbs:</strong> a shopper <em>places</em> orders, a cart <em>holds</em> products, an order <em>receives</em> payment attempts. The verb tells you the cardinality.</li>
+          <li><strong>Ubiquitous language:</strong> use the business's word, not the engineer's. Bazaar's people say "merchant", so nothing in the schema says "vendor", "seller" or "partner". One concept, one word, everywhere - this is the naming discipline session a5 makes a standard.</li>
+        </ul>
+        <div class="callout example">
+          <span class="ex-pill">Real world</span>
+          <p><strong>The table that was two entities.</strong> A marketplace stored orders and payments in one <code>transactions</code> table because the payment provider's export had them that way. Every revenue number was then off by however many customers had retried a failed card - and nobody could find the bug, because the table's name made the double-count look like the point of the table. Two entities, two grains, two tables. The export was not a model.</p>
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Entity, attribute, or relationship?<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Three questions settle almost every case:</p>
+        <ul>
+          <li><strong>Does it have its own identity and its own lifecycle?</strong> A cart is created, changed and abandoned independently of any order. Entity.</li>
+          <li><strong>Does it only describe something else?</strong> A shipping city describes a shopper. Attribute. (Until the business starts managing cities as things in their own right - then it becomes an entity, and that is a real modeling event, not a mistake.)</li>
+          <li><strong>Does it exist only because two things met?</strong> "This product, in this cart, in this quantity" has no meaning without both. Relationship - and if it carries its own attributes (quantity, added time), it becomes an associative table, which session b3 covers.</li>
+        </ul>
+        <p>Bazaar's ambiguous case is <strong>price</strong>. A product has a list price (attribute of product), and an order line has the price actually charged (attribute of the line, captured at time of sale). Those are two different facts that happen to share a word. Storing only one of them is the single most common way to lose the ability to answer "what did we charge for this last March".</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: BAZAAR'S ENTITIES ============ -->
+  <section class="section" id="entities">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · the running project</span>
+      <h2>Bazaar's eight entities <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">Here is the conceptual model you will spend b2-b4 turning into a real schema. Eight entities, six relationships. Read the verbs on the connectors - each one is a cardinality decision you will make explicit in session b3.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bazaar conceptual model: users, merchants, products, carts, cart items, orders, order items and transactions with the relationships between them">
+        <style>
+          .enT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .enS { font: 400 10.5px Inter, sans-serif; fill: #D3DEEC; }
+          .enV { font: 600 10.5px Inter, sans-serif; fill: #5C6B80; }
+          .enH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .enN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+          .enLine { stroke: #6C8CBC; stroke-width: 2; fill: none; }
+        </style>
+
+        <text class="enH" x="26" y="26">The shopper side</text>
+        <rect x="26" y="40" width="150" height="52" rx="9" fill="#22395C"/>
+        <text class="enT" x="42" y="62">users</text>
+        <text class="enS" x="42" y="80">one per shopper</text>
+
+        <rect x="26" y="150" width="150" height="52" rx="9" fill="#3B5B8C"/>
+        <text class="enT" x="42" y="172">carts</text>
+        <text class="enS" x="42" y="190">intent, not money</text>
+
+        <rect x="26" y="260" width="150" height="52" rx="9" fill="#3B5B8C"/>
+        <text class="enT" x="42" y="282">orders</text>
+        <text class="enS" x="42" y="300">the header</text>
+
+        <text class="enH" x="356" y="26">The join tables</text>
+        <rect x="356" y="150" width="160" height="52" rx="9" fill="#6C8CBC"/>
+        <text class="enT" x="372" y="172">cart_items</text>
+        <text class="enS" x="372" y="190">product in a cart</text>
+
+        <rect x="356" y="260" width="160" height="52" rx="9" fill="#6C8CBC"/>
+        <text class="enT" x="372" y="282">order_items</text>
+        <text class="enS" x="372" y="300">what was sold</text>
+
+        <text class="enH" x="696" y="26">The merchant side</text>
+        <rect x="696" y="40" width="152" height="52" rx="9" fill="#22395C"/>
+        <text class="enT" x="712" y="62">merchants</text>
+        <text class="enS" x="712" y="80">one per seller</text>
+
+        <rect x="696" y="150" width="152" height="52" rx="9" fill="#22395C"/>
+        <text class="enT" x="712" y="172">products</text>
+        <text class="enS" x="712" y="190">owned by one</text>
+
+        <rect x="356" y="368" width="160" height="52" rx="9" fill="#C08A2E"/>
+        <text class="enT" x="372" y="390">transactions</text>
+        <text class="enS" x="372" y="408" fill="#FBF3E2">one per attempt</text>
+
+        <!-- relationships -->
+        <path class="enLine" d="M101,92 L101,150"/>
+        <text class="enV" x="110" y="126">has many</text>
+        <path class="enLine" d="M101,202 L101,260"/>
+        <text class="enV" x="110" y="236">becomes</text>
+        <path class="enLine" d="M176,176 L352,176"/>
+        <text class="enV" x="212" y="168">holds many</text>
+        <path class="enLine" d="M176,286 L352,286"/>
+        <text class="enV" x="212" y="278">has many lines</text>
+        <path class="enLine" d="M516,176 L692,176"/>
+        <text class="enV" x="556" y="168">refers to</text>
+        <path class="enLine" d="M516,286 L640,286 L640,196 L692,196"/>
+        <text class="enV" x="556" y="278">refers to</text>
+        <path class="enLine" d="M772,92 L772,150"/>
+        <text class="enV" x="781" y="126">sells many</text>
+        <path class="enLine" d="M436,312 L436,368"/>
+        <text class="enV" x="445" y="344">is paid by</text>
+
+        <text class="enN" x="26" y="352">Note the two associative tables in the middle column:</text>
+        <text class="enN" x="26" y="372">they exist because a cart holds many products and a</text>
+        <text class="enN" x="26" y="392">product sits in many carts. Session b3 resolves that.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - Bazaar's conceptual model. No columns yet, on purpose.</figcaption>
+    </figure>
+
+    <table class="clean">
+      <thead><tr><th>Entity</th><th>One row is</th><th>Why it is separate</th></tr></thead>
+      <tbody>
+        <tr><td><strong>users</strong></td><td>one registered shopper</td><td>identity that outlives any order</td></tr>
+        <tr><td><strong>merchants</strong></td><td>one selling merchant</td><td>the thing "which merchant dropped" is about</td></tr>
+        <tr><td><strong>products</strong></td><td>one sellable product, owned by one merchant</td><td>exists before and after any sale</td></tr>
+        <tr><td><strong>carts</strong></td><td>one cart</td><td>demand that did not become revenue still needs somewhere to live</td></tr>
+        <tr><td><strong>cart_items</strong></td><td>one product in one cart</td><td>resolves the many-to-many, and carries quantity</td></tr>
+        <tr><td><strong>orders</strong></td><td>one order header: who, when, where to</td><td>the thing a customer refers to</td></tr>
+        <tr><td><strong>order_items</strong></td><td>one product line on one order</td><td>the true grain of "what was sold"</td></tr>
+        <tr><td><strong>transactions</strong></td><td>one payment attempt</td><td>an order can be declined, retried, then refunded - three rows</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The two entities everyone leaves out<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Most first drafts of this model have six tables, not eight. The two that get dropped are the two that matter most later:</p>
+        <ul>
+          <li><strong>carts.</strong> Teams treat the cart as UI state and throw it away at checkout. Then somebody asks "did sales drop because fewer people wanted to buy, or because checkout broke?" and there is no way to tell. Session b8 answers exactly that question, and it is only answerable because carts are a table.</li>
+          <li><strong>transactions.</strong> Teams put a <code>paid</code> flag on the order instead. Then the decline, the retry and the refund all collapse into one boolean, the payments team cannot see their own failure rate, and finance cannot reconcile. Session b8's day-level diagnosis is impossible without this table.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The test</strong>
+          When you are deciding whether something deserves a table, ask what question becomes unanswerable if you skip it. If the answer is "none", skip it. For carts and payment attempts, the answer is "the two questions leadership asks most".
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 3: MEET THE ENGINE ============ -->
+  <section class="section" id="engine">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · your live database</span>
+      <h2>Bazaar, in your browser <span class="tag concept">3 min live</span></h2>
+    </div>
+    <p class="lede">Real SQLite compiled to WebAssembly, seeded with Bazaar's source data before every run. Nothing you type can break the next example, and nothing you run leaves your tab. The data is deterministic (seed 42), so every number printed on these pages is a number you can reproduce.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Your first look at the source<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Press <strong>▶ Run</strong>. The first run downloads the engine once (~660 KB, then cached).</p>
+        <div class="sqlbox" data-seed="oltp" data-caption="Eight tables, and the row counts that tell you the grain of each.">
+          <pre class="sql-src">SELECT 'users' AS entity, COUNT(*) AS rows FROM users
+UNION ALL SELECT 'merchants',    COUNT(*) FROM merchants
+UNION ALL SELECT 'products',     COUNT(*) FROM products
+UNION ALL SELECT 'carts',        COUNT(*) FROM carts
+UNION ALL SELECT 'cart_items',   COUNT(*) FROM cart_items
+UNION ALL SELECT 'orders',       COUNT(*) FROM orders
+UNION ALL SELECT 'order_items',  COUNT(*) FROM order_items
+UNION ALL SELECT 'transactions', COUNT(*) FROM transactions;</pre>
+        </div>
+        <div class="callout tip">
+          <strong>Read the counts as grain evidence</strong>
+          2,229 carts against 985 orders tells you most carts never convert. 1,434 order lines against 985 orders tells you the average order has about 1.5 lines - which is exactly why <code>COUNT(*)</code> on the line table is not the number of orders. 1,060 transactions against 985 orders tells you some orders needed more than one payment attempt.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DEMO 1 ============ -->
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Demo 1 of 2</span>
+      <h2>Rebuild the flat export, and see the problem <span class="tag demo">★ 12 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">The export everyone in the business works from is a join of five of these tables, flattened to one row per order line. Build it, then count how many times the same fact is stored. This is the mess session b2 takes apart.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Join</strong> orders to their lines, then to products, merchants and users - the flattening every "just give me a CSV" request produces.</p></div>
+      <div class="step"><p><strong>Look</strong> at one product across many rows. Its name, category and price are stored again on every single line.</p></div>
+      <div class="step"><p><strong>Count</strong> the redundancy: how many stored copies of each product name exist, versus how many products there are.</p></div>
+    </div>
+
+    <div class="sqlbox" data-seed="oltp" data-caption="The flat export. Every row repeats the product, the merchant and the shopper.">
+      <pre class="sql-src">SELECT o.order_id, o.order_ts, u.email, u.city,
+       p.product_name, p.category, oi.unit_price, oi.quantity,
+       m.merchant_name
+FROM order_items oi
+JOIN orders    o ON o.order_id  = oi.order_id
+JOIN users     u ON u.user_id   = o.user_id
+JOIN products  p ON p.product_id = oi.product_id
+JOIN merchants m ON m.merchant_id = oi.merchant_id
+ORDER BY o.order_id
+LIMIT 12;</pre>
+    </div>
+
+    <div class="sqlbox" data-seed="oltp" data-caption="Now measure the redundancy the export creates. Change the column to email or merchant_name and re-run.">
+      <pre class="sql-src">SELECT COUNT(*)                        AS stored_copies,
+       COUNT(DISTINCT p.product_name)  AS distinct_values,
+       COUNT(*) - COUNT(DISTINCT p.product_name) AS wasted_repeats
+FROM order_items oi
+JOIN products p ON p.product_id = oi.product_id;</pre>
+    </div>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The export is not the problem. Storing it is.</strong> Flattening data for a report is fine and normal - that is what session b6 and b7 do on purpose, for analytics. The failure mode is when the flat shape becomes the <em>system of record</em>: then a price correction has to find every copy, and the copies it misses become a support ticket six weeks later. Session b2 makes that failure happen in front of you, with real SQL.</p>
+    </div>
+  </section>
+
+  <!-- ============ DEMO 2 ============ -->
+  <section class="section" id="demo-2">
+    <div class="section-kicker">
+      <span class="klabel">Demo 2 of 2</span>
+      <h2>Your turn: interrogate the grain <span class="tag demo">★ 10 min · build your own</span></h2>
+    </div>
+    <p class="lede">Grain is the single most important idea in this course, and the fastest way to internalise it is to count the same thing three ways and get three answers. Each editor starts fresh from Bazaar's source tables.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Q1 · How many orders? Three answers, one correct<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <div class="sqlbox" data-seed="oltp" data-caption="Only one of these is the number of orders. The other two are the number of lines and the number of payment attempts.">
+          <pre class="sql-src">SELECT (SELECT COUNT(*) FROM orders)                AS orders_table,
+       (SELECT COUNT(*) FROM order_items)           AS order_lines,
+       (SELECT COUNT(*) FROM transactions)          AS payment_attempts,
+       (SELECT COUNT(DISTINCT order_id) FROM order_items) AS orders_with_lines;</pre>
+        </div>
+        <p>All four numbers are correct answers to <em>different</em> questions. When a dashboard says "orders" and nobody wrote down which one it means, this is where the argument comes from - and session a3 is the leader-track session about exactly this.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Q2 · Find an order that needed more than one payment attempt<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <div class="sqlbox" data-seed="oltp" data-caption="Hint: group transactions by order_id and keep the groups with more than one row.">
+          <pre class="sql-src">SELECT t.order_id, COUNT(*) AS attempts,
+       GROUP_CONCAT(t.status) AS statuses,
+       GROUP_CONCAT(COALESCE(t.decline_reason, '-')) AS reasons
+FROM transactions t
+GROUP BY t.order_id
+HAVING COUNT(*) > 1
+ORDER BY attempts DESC
+LIMIT 8;</pre>
+        </div>
+        <p>Now imagine this table did not exist and the order simply had <code>status = 'paid'</code>. Every one of these stories - declined, retried, succeeded - would be invisible, and so would the incident that session b8 investigates.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Q3 · Which entity is missing from this schema?<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A thought exercise, no SQL. Bazaar can currently answer "what was ordered" and "what was paid". It cannot answer "what was <em>returned</em>". Nothing in the eight tables records a return: what came back, why, whether it was resellable, or which refund it triggered.</p>
+        <p>That is not an oversight - it is the capstone. Session b10 hands you returns and refunds as a new subject area and asks you to take it down the whole ladder: entities, keys, DDL, dimensions, facts, mart, agent view. Bring one question about returns you would want answered, and design toward it.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 20-30 min total</span></h2>
+    </div>
+    <ul>
+      <li>Bookmark this page. The editors are a real database any time you want to test an idea.</li>
+      <li>Take a flat export you actually work with - a CSV somebody emails you, a spreadsheet tab - and list its entities. Just the nouns, no columns. Most exports have three to five hiding in them.</li>
+      <li>For each entity you found, write the one-sentence grain: "one row is one ___". If you need the word "and", you found two entities.</li>
+      <li>Find one fact in that export that is stored more than once. Count the copies. That number is the size of your next data-quality incident.</li>
+      <li>Name one question your current schema cannot answer because an entity is missing. Bring it to b2.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">This track teaches the working core of the standard modeling literature, run on a live engine instead of slides. The full source map, including what is deliberately out of scope, is in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Fowler (<em>PoEAA</em>) and Evans (<em>DDD</em>) - conceptual / logical / physical, ubiquitous language</span><span class="note">Part 1 · the three-model ladder and why naming is a modeling decision</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - ch.1, grain</span><span class="note">Demo 2 · grain as the first question, before any table exists</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Codd / relational theory - functional dependency and the anomaly classes</span><span class="note">Demo 1 · redundancy measured; the anomalies themselves are session b2</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Inmon, <em>Building the Data Warehouse</em> - normalized core vs dimensional mart</span><span class="note">Part 0 · named as the arc of the track; argued properly in b5</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · What does a conceptual model contain that a logical model does not?</p>
+      <button class="qopt" type="button">A · Column types and constraints</button>
+      <button class="qopt" type="button">B · Nothing extra - it contains less: entities and relationships, no attributes or keys</button>
+      <button class="qopt" type="button">C · Indexes for the queries the business will run</button>
+      <p class="qwhy">The conceptual model is deliberately the smallest of the three: the things the business has and how they relate, readable by someone who has never seen SQL. Attributes and keys arrive in the logical model; types, constraints and indexes in the physical one.</p>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">2 · Bazaar has 985 orders and 1,434 order lines. A dashboard says "1,434 orders in the last 90 days". What went wrong?</p>
+      <button class="qopt" type="button">A · The orders table is missing rows</button>
+      <button class="qopt" type="button">B · Payment retries were counted twice</button>
+      <button class="qopt" type="button">C · Someone counted rows in the line table, whose grain is one product line, not one order</button>
+      <p class="qwhy">One row of <code>order_items</code> is one product on one order, so counting it counts lines. Orders are <code>COUNT(DISTINCT order_id)</code>. This is the single most common analytics error, and it is a grain error, not a SQL error.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Why does Bazaar store payment attempts in their own table rather than a <code>paid</code> flag on the order?</p>
+      <button class="qopt" type="button">A · An order can be declined, retried and refunded - three separate events with their own times, amounts and reasons</button>
+      <button class="qopt" type="button">B · Because flags are slower to query than tables</button>
+      <button class="qopt" type="button">C · Because payment providers require it</button>
+      <p class="qwhy">The attempt is its own event at its own grain. Collapsing it into a boolean destroys the decline rate, the retry behaviour and the refund timing - which is exactly the information session b8 needs to explain a one-day revenue collapse.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 1 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Three models</b><span>Conceptual (things) → logical (attributes + keys) → physical (types + constraints). One ladder per subject area.</span></div>
+      <div class="cheat-item"><b>Entity test</b><span>Own identity, own lifecycle. If it only describes something else, it is an attribute.</span></div>
+      <div class="cheat-item"><b>Grain sentence</b><span>"One row is one ___." If you need the word "and", you have two tables.</span></div>
+      <div class="cheat-item"><b>Bazaar's eight</b><span>users, merchants, products, carts, cart_items, orders, order_items, transactions.</span></div>
+      <div class="cheat-item"><b>The two everyone drops</b><span>carts (demand that never converted) and transactions (attempts, not a paid flag).</span></div>
+      <div class="cheat-item"><b>Naming</b><span>Use the business's word, once, everywhere. Merchant, not vendor/seller/partner.</span></div>
+      <div class="cheat-item"><b>Flat exports</b><span>Fine as a report, fatal as a system of record. Session b2 shows exactly why.</span></div>
+      <div class="cheat-item"><b>Running project</b><span>Bazaar marketplace, 90 days, seed 42. Next: b2, the anomaly lab.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 1 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="../index.html">← All sessions</a> &nbsp;·&nbsp; <a href="b2-anomaly-lab.html">Next: The anomaly lab →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

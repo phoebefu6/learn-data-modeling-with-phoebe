@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 9 · Agent-ready modeling - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 9 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 9 of 10</div>
+    <h1>Agent-ready <span class="accent">modeling</span></h1>
+    <p class="sub">Text-to-SQL fails for boring reasons, and almost all of them are modeling reasons: cryptic names, two tables that look joinable but are not, metrics with no single definition, grains nobody wrote down. This session publishes Bazaar's model so an AI analyst can query it accurately - views, a schema card, a metric table, a data contract - and then measures the difference on twenty real questions. Without the contract the agent scores 0 out of 20. With it, 20 out of 20. Same database, same model, same questions.</p>
+    <div class="chip-row">
+      <span class="chip level">🔴 Builder track</span>
+      <span class="chip audience">Analytics engineers · DE · DS · AI engineers</span>
+      <span class="chip audience">Signature lab · real SQL execution</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:3">3-15 · Why agents fail on good data</span>
+      <span class="a3" style="flex:6">15-40 · The lab + the four artifacts you ship</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>The claim this session has to earn</h2>
+    </div>
+    <p class="lede">Every vendor demo of "ask your data a question" works. Every real deployment of it disappoints, and the postmortem is almost never about the language model. It is about a schema that never wrote down what one row means, a "revenue" column that three teams define differently, and two fact tables joined on <code>order_id</code> because the join ran without error.</p>
+    <p class="lede">So the claim is this: <strong>an AI analyst is only as accurate as the model underneath it, and closing the gap is modeling work, not prompt work.</strong> By the end of this session you will have measured that gap yourself, on the model you built in b6-b8.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live lab - real SQL execution</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      Four shipped artifacts - <code>sql/40_agent_views.sql</code>, <code>semantic/schema_card.md</code>, <code>semantic/contract.yaml</code>, <code>semantic/golden_questions.jsonl</code> - plus three runnable scripts and a scorecard that proves they work.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: FOUR FAILURE MODES ============ -->
+  <section class="section" id="failures">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers text-to-SQL benchmark practice, dbt model contracts</span>
+      <h2>The four ways a model breaks an agent <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">These are not hypothetical. Each one is a real query the lab below runs against Bazaar, with the real wrong number it produces. Every one is fixed by publishing something the model already knows.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 366" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four agent failure modes with the real wrong number each produces on Bazaar, and the modeling fix for each">
+        <style>
+          .afT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .afH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .afC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .afB { font: 700 12px Inter, sans-serif; fill: #991B1B; }
+          .afG { font: 700 12px Inter, sans-serif; fill: #22395C; }
+          .afN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <rect x="26" y="30" width="196" height="42" rx="8" fill="#991B1B"/>
+        <text class="afT" x="42" y="56">1 · Wrong grain</text>
+        <text class="afC" x="42" y="94">COUNT(*) on order lines</text>
+        <text class="afB" x="42" y="116">481 not 327 orders</text>
+        <text class="afH" x="42" y="146">Fix: publish the grain</text>
+        <text class="afC" x="42" y="166">sentence per view</text>
+
+        <rect x="242" y="30" width="196" height="42" rx="8" fill="#991B1B"/>
+        <text class="afT" x="258" y="56">2 · Averaged average</text>
+        <text class="afC" x="258" y="94">AVG(line revenue) as AOV</text>
+        <text class="afB" x="258" y="116">80.68 not 116.93</text>
+        <text class="afH" x="258" y="146">Fix: metric table with</text>
+        <text class="afC" x="258" y="166">the exact expression</text>
+
+        <rect x="458" y="30" width="196" height="42" rx="8" fill="#991B1B"/>
+        <text class="afT" x="474" y="56">3 · Fact-to-fact join</text>
+        <text class="afC" x="474" y="94">sales joined to payments</text>
+        <text class="afB" x="474" y="116">121,003 not 111,906</text>
+        <text class="afH" x="474" y="146">Fix: never expose both</text>
+        <text class="afC" x="474" y="166">facts in one view</text>
+
+        <rect x="674" y="30" width="178" height="42" rx="8" fill="#991B1B"/>
+        <text class="afT" x="690" y="56">4 · Rate, no base</text>
+        <text class="afC" x="690" y="94">18.2% decline rate...</text>
+        <text class="afB" x="690" y="116">...on 11 attempts</text>
+        <text class="afH" x="690" y="146">Fix: ship numerator</text>
+        <text class="afC" x="690" y="166">and denominator</text>
+
+        <rect x="26" y="196" width="826" height="52" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="afG" x="46" y="218">None of these four is a language problem. Each one is something the model knew and never wrote down.</text>
+        <text class="afC" x="46" y="238">Publish the grain, the metric definitions, the permitted joins and the denominators, and all four disappear.</text>
+
+        <rect x="26" y="268" width="826" height="72" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="afN" x="46" y="292">The uncomfortable part: every one of these wrong numbers is a query that RAN. No error, no warning,</text>
+        <text class="afN" x="46" y="312">no NULL. A confident wrong answer is the failure mode of an unmodeled warehouse, and it is worse</text>
+        <text class="afN" x="46" y="332">than an error, because an error stops someone and a number does not.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four failures, four real wrong numbers, four modeling fixes</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Names are the prompt<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The schema is the largest single thing an agent reads before it writes a query. Every unclear name spends tokens and buys a guess, so naming stops being a style preference and becomes an accuracy lever:</p>
+        <ul>
+          <li><strong><code>net_revenue</code>, not <code>amt2</code>.</strong> A name that needs a glossary needs the glossary in the context window.</li>
+          <li><strong><code>is_declined</code>, not <code>flag3</code>.</strong> A boolean named after its meaning can be summed into a numerator. A boolean named after its position cannot.</li>
+          <li><strong>Grain in the view name.</strong> <code>v_sales_line</code> says one row is one line. <code>v_sales</code> would not.</li>
+          <li><strong>Different facts, different names.</strong> <code>list_price</code> on the product and <code>unit_price</code> on the line - the naming is what stops an agent treating them as the same number (session b2's point, now load-bearing).</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The cheapest accuracy win in this whole course</strong>
+          A synonym map. The business says "GMV", "topline", "take rate", "basket size"; your model has <code>gross_revenue</code>, <code>net_revenue</code>, <code>commission</code>, <code>aov</code>. Writing that mapping down (it is a dozen lines in <code>semantic/contract.yaml</code>) removes an entire class of guess for zero engineering cost.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Remove the footgun, do not prompt around it<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>You can tell an agent "never join the two fact tables". It will mostly comply. Or you can build the access layer so that no view exposes both facts, and the join becomes unwritable - which is what <code>sql/40_agent_views.sql</code> does.</p>
+        <p>Prefer the second every time. The general principle: <strong>constraints beat instructions.</strong> An instruction is probabilistic and competes with everything else in the context window; a schema that lacks the dangerous path is deterministic. Applied to Bazaar:</p>
+        <ul>
+          <li><strong>Read-only credentials on views only.</strong> No base tables, no writes. <code>python/agent_text_to_sql.py</code> also enforces this in code, twice - an allowlist regex and a read-only SQLite connection.</li>
+          <li><strong>No fact-to-fact path.</strong> The two facts are never both reachable in one view, so the double-count query cannot be expressed.</li>
+          <li><strong>Pre-split measures.</strong> <code>approved_amount</code> and <code>declined_amount</code> exist so that no ratio has to be stored, so no average of averages is available to compute.</li>
+          <li><strong>Unknown members instead of NULLs.</strong> A NULL dimension key silently drops rows from an inner join; a <code>-1</code> unknown row keeps them countable (session b6).</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ THE LAB ============ -->
+  <section class="section" id="lab">
+    <div class="section-kicker">
+      <span class="klabel">Signature lab · 15 min · everyone builds</span>
+      <h2>Ask the agent, with and without the contract <span class="tag demo">★ real SQL, real execution</span></h2>
+    </div>
+    <p class="lede">Pick a question. The lab shows you the SQL an agent writes for it, runs that SQL against the real Bazaar star in your browser, and tells you whether the number is right. Then flip the contract lever off and watch the same question produce a confident wrong answer. Finish with <strong>Score all 20 questions</strong> for the whole scorecard.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Start with the contract ON.</strong> Read what the agent can see: five views with stated grains, thirteen metric definitions, the join rules. Ask a few questions and check the numbers.</p></div>
+      <div class="step"><p><strong>Flip the lever off.</strong> Same question, same database - now the agent has table names and nothing else. Read the SQL it writes and the wrong number it produces.</p></div>
+      <div class="step"><p><strong>Try q02, q04 and q20 specifically.</strong> Those are the grain error, the averaged average and the fact-to-fact double count - the three failures that cost the most in production.</p></div>
+      <div class="step"><p><strong>Score all 20.</strong> 0/20 without, 20/20 with. That delta is what "agent-ready" means, and it is entirely your modeling work.</p></div>
+    </div>
+
+    <div id="agent-lab"></div>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Execution match is the honest metric.</strong> The scorecard does not compare query text - two correct queries can look nothing alike, and a wrong query can look reasonable. It runs both and compares the <em>result sets</em>, to the cent. That is the same grading approach published text-to-SQL benchmarks use, and it is the only one that cannot be gamed by writing plausible SQL. <code>python/eval_golden_questions.py</code> runs the identical grading locally, against a live model if you want.</p>
+    </div>
+  </section>
+
+  <!-- ============ PART 2: THE FOUR ARTIFACTS ============ -->
+  <section class="section" id="artifacts">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · what you ship</span>
+      <h2>The four artifacts <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">"Agent-ready" is not a setting. It is four files, each of which is useful to humans on its own - which is the tell that this is real modeling work rather than AI theatre.</p>
+
+    <table class="clean">
+      <thead><tr><th>Artifact</th><th>What it is</th><th>What it prevents</th></tr></thead>
+      <tbody>
+        <tr><td><code>sql/40_agent_views.sql</code></td><td>five flat, self-describing views + a metric table, read-only</td><td>the fact-to-fact join, base-table access, cryptic column names</td></tr>
+        <tr><td><code>semantic/schema_card.md</code></td><td>the prompt: every view, its grain sentence, six hard rules</td><td>grain errors, invented thresholds, rates with no denominator</td></tr>
+        <tr><td><code>semantic/contract.yaml</code></td><td>owner, SLO, allowed and forbidden joins, metrics, synonyms, known limitations</td><td>silent breaking changes, definition drift, undocumented modeling choices</td></tr>
+        <tr><td><code>semantic/golden_questions.jsonl</code></td><td>20 questions with the grounded SQL and the recorded ungrounded failure</td><td>regressions - it is a test suite for your model's answerability</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Metrics as data, not documentation<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The highest-leverage single object in the whole model is a table of metric definitions <em>inside the database</em>. Six columns: name, definition, SQL expression, source view, grain, caveat. Thirteen rows for Bazaar.</p>
+        <div class="sqlbox" data-caption="The smallest useful semantic layer. Agents read it before writing SQL; so do humans, instead of starting a Slack thread.">
+          <pre class="sql-src">SELECT metric_name, sql_expression, grain, caveat
+FROM v_metric_definitions
+WHERE metric_name IN ('net_revenue', 'orders', 'aov', 'decline_rate');</pre>
+        </div>
+        <p>Note the <code>caveat</code> column - it is the one people leave out and the one that saves the most damage. "Never average an AOV." "Below ~30 attempts it is noise." "Carts, not sessions." Those sentences are the difference between a metric an agent can use and a metric an agent can misuse fluently.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Query-to-text: narrate from metadata, not from vibes<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The return trip matters as much. A fluent sentence around a wrong number is worse than a table, because it removes the reader's last chance to notice. <code>python/agent_query_to_text.py</code> narrates deterministically from the model's own metadata: it classifies each column from its name, demands a denominator for anything that looks like a rate, flags small samples against the 30-observation floor, and appends the contract's caveat for any metric the result names.</p>
+        <div class="sqlbox" data-caption="Run this, then read what the narrator has to say about it: 11.1% is true, and useless.">
+          <pre class="sql-src">SELECT payment_method_label,
+       COUNT(*)          AS attempts,
+       SUM(is_declined)  AS declines,
+       ROUND(100.0 * SUM(is_declined) / COUNT(*), 2) AS decline_rate_pct
+FROM v_payment_attempt
+GROUP BY payment_method_label
+HAVING COUNT(*) >= 30
+ORDER BY decline_rate_pct DESC;</pre>
+        </div>
+        <p>Drop the <code>HAVING</code> clause and re-run. A method with a handful of attempts jumps to the top of the ranking. The model cannot stop someone asking for that; the caveat and the visible denominator are what stop them acting on it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The three scripts, and how to run them<span class="mini">4 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>All three live in <code>python/</code> and all three run offline, with no API key, so nothing here is a demo you cannot reproduce.</p>
+        <ul>
+          <li><strong><code>agent_text_to_sql.py</code></strong> - the full loop against the live Claude API: schema card as system prompt, one strict <code>run_sql</code> tool, a read-only allowlist guard, results fed back until it answers. <code>--offline</code> uses the recorded golden queries instead; <code>--no-contract</code> withholds the schema card so you can watch it fail.</li>
+          <li><strong><code>agent_query_to_text.py</code></strong> - narration. <code>--golden q14</code> narrates a golden question; <code>--llm</code> adds a Claude-written version grounded on the deterministic facts, so the prose cannot contradict the metadata.</li>
+          <li><strong><code>eval_golden_questions.py</code></strong> - the scorecard. <code>--mode grounded</code> scores 20/20, <code>--mode naive</code> scores 0/20, <code>--mode live</code> calls a real model with or without the contract.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>Two guardrails worth copying verbatim</strong>
+          Read-only credentials on views only, and <em>always show the generated SQL beside the number</em>. The second one is not a nicety: the SQL is the only part of an agent's answer a human can actually check.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 30-40 min total</span></h2>
+    </div>
+    <ul>
+      <li>Write a schema card for one model you own. One view per section, a grain sentence each, and the three rules someone would otherwise get wrong. Keep it under 100 lines - it is a prompt, not documentation.</li>
+      <li>Create a metric-definitions table in your own warehouse. Five metrics is enough to start. Include the caveat column, and fill it in honestly.</li>
+      <li>Write five golden questions for your model, with the SQL you believe is correct. Run them. If any of the five is hard to write, that is a modeling gap, not a SQL problem.</li>
+      <li>Take one metric everyone in your organisation uses and ask three people to define it precisely. Compare. That gap is what the contract file closes.</li>
+      <li>Run <code>python python/eval_golden_questions.py --mode naive</code> locally and read every failure explanation. Each one is a modeling decision you now know to make.</li>
+      <li>Bring one subject area your model does not cover to the capstone - b10 takes returns and refunds all the way down the ladder.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Published text-to-SQL benchmark practice - execution-match grading</span><span class="note">The lab · result sets compared to the cent, not query text</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">dbt model contracts and the semantic-layer pattern</span><span class="note">Part 2 · contract.yaml, metrics as data, breaking-change policy</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Anthropic tool-use documentation - tool definitions, strict schemas, read-only guardrails</span><span class="note">Self-study · the shape of <code>agent_text_to_sql.py</code></span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Dehghani, <em>Data Mesh</em> - the contract as the product interface</span><span class="note">Part 2 · ownership and SLO fields; the org argument is session a3/a5</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Prompt engineering and retrieval technique</span><span class="note">Out of scope by design - <code>learn-prompt-engineering</code>, <code>learn-rag</code>, <code>learn-text-to-sql</code></span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · The agent joins <code>v_sales_line</code> to <code>v_payment_attempt</code> on <code>order_id</code> and reports revenue of 121,003 instead of 111,906. What is the fix?</p>
+      <button class="qopt" type="button">A · Add an instruction to the prompt telling it not to join the two facts</button>
+      <button class="qopt" type="button">B · Build the access layer so no view exposes both facts, making the join unwritable</button>
+      <button class="qopt" type="button">C · Store a corrected revenue number in a third table</button>
+      <p class="qwhy">Constraints beat instructions. An instruction competes with everything else in the context window; a schema that lacks the dangerous path is deterministic. Remove the footgun rather than asking the agent not to pull the trigger.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · Why does the lab grade by comparing result sets rather than the SQL text?</p>
+      <button class="qopt" type="button">A · Two correct queries can look completely different, and a wrong query can look reasonable - only the result is checkable</button>
+      <button class="qopt" type="button">B · Comparing SQL strings is computationally expensive</button>
+      <button class="qopt" type="button">C · The agent does not return its SQL</button>
+      <p class="qwhy">Execution match is the honest metric. Text similarity rewards plausible-looking SQL, which is exactly the failure mode you are trying to detect. Run both queries, compare the numbers to the cent.</p>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">3 · Which single artifact does the most to prevent an agent inventing its own metric definitions?</p>
+      <button class="qopt" type="button">A · A longer system prompt</button>
+      <button class="qopt" type="button">B · More example queries in the context</button>
+      <button class="qopt" type="button">C · A metric-definitions table in the database, holding the expression, grain and caveat for each metric</button>
+      <p class="qwhy">Metrics as data beats metrics as documentation: the definition cannot drift out of sync with what is queryable, an agent can look it up mid-query, and a human gets an answer instead of a Slack thread. Thirteen rows did most of the work in this session.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 9 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>The claim</b><span>An AI analyst is only as accurate as the model. 0/20 to 20/20 on the same database, same questions.</span></div>
+      <div class="cheat-item"><b>Four failures</b><span>Wrong grain · averaged average · fact-to-fact join · rate with no denominator.</span></div>
+      <div class="cheat-item"><b>Names are the prompt</b><span>net_revenue not amt2. Grain in the view name. Different facts, different names.</span></div>
+      <div class="cheat-item"><b>Constraints beat instructions</b><span>Do not prompt around a footgun - build the layer so the bad query cannot be written.</span></div>
+      <div class="cheat-item"><b>Metrics as data</b><span>A table with expression, grain and caveat. The caveat column is the one that saves you.</span></div>
+      <div class="cheat-item"><b>Exec match</b><span>Grade result sets, never query text. Plausible SQL is the failure you are hunting.</span></div>
+      <div class="cheat-item"><b>Two guardrails</b><span>Read-only on views only. Always show the SQL beside the number.</span></div>
+      <div class="cheat-item"><b>Ships</b><span>sql/40 · schema_card.md · contract.yaml · golden_questions.jsonl + 3 scripts. Next: b10 capstone.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 9 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b8-answering-the-questions.html">← Previous: Answering the questions</a> &nbsp;·&nbsp; <a href="b10-capstone.html">Next: Capstone →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/bazaar-golden.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/agent-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

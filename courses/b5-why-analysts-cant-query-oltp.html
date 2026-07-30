@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 5 · Why analysts cannot query OLTP - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 5 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 5 of 10</div>
+    <h1>Why analysts <span class="accent">cannot query OLTP</span></h1>
+    <p class="sub">Sessions b1 to b4 built a schema that is genuinely good: third normal form, every fact stored once, every relationship enforced. This session is the pivot, and it does not get to assert anything. You will write one ordinary business question against that schema, count the joins, parse a date out of a text column, guard a fan-out, and invent a definition of revenue that exists nowhere else. Then you will write the same question against the star and watch twenty-one lines collapse to nine.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Builder track · medium</span>
+      <span class="chip audience">Analysts · analytics engineers · DE · DS</span>
+      <span class="chip audience">The pivot session · real SQLite</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Write the question against the source</span>
+      <span class="a3" style="flex:6">18-42 · Grain, conformance, and the star version</span>
+      <span class="a4" style="flex:1">42-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>The pivot has to be earned</h2>
+    </div>
+    <p class="lede">Every dimensional modeling course opens by telling you that analysts cannot query the transactional schema. Almost none of them make you try. So this one does. The question is the most boring one a marketplace ever asks: <strong>net revenue by month, by merchant tier, by product price band, settled orders only</strong>. It is not a trick question and there is nothing exotic in it. Against Bazaar's source schema it takes five joins, a date parsed out of a text column, a guard against a fan-out that silently inflates money, and a hand-written definition of revenue that lives only inside that one query.</p>
+    <p class="lede">Then the same question against the star: one view, no joins, nine lines, and the definition of revenue is a row in a table. That gap is the entire argument for sessions b6 and b7, and it is much more convincing when you have felt it than when somebody draws it on a slide.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live SQL - editable &amp; runnable</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      A grain worksheet you can point at any business question, the vocabulary to argue Inmon against Kimball without picking a team, and a side-by-side pair of queries that answer the same question in twenty-one lines and in nine. This session ships the grain worksheet; b6 ships <code>sql/10_dim_ddl.sql</code> and b7 ships <code>sql/11</code> and <code>sql/12</code>.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: TWO SHAPES ============ -->
+  <section class="section" id="two-shapes">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Kimball ch.1-2, Codd, Inmon</span>
+      <h2>Write-optimised is not read-optimised <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">The source schema is not badly designed. It is designed for a different verb. An OLTP schema is optimised for <strong>writing one row correctly</strong>: one purchase, one payment attempt, one cart change, right now, while somebody is holding a phone. An analytical schema is optimised for <strong>reading millions of rows that are all shaped alike</strong>: ninety days of order lines, grouped six ways, scanned in full, approximately now. Those two goals pull in opposite directions on almost every decision you make, which is why one schema cannot serve both without one of the two users suffering.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OLTP source schema versus analytical star schema, compared on grain, normalization, write pattern, time handling, constraints and the cost of one business question">
+        <style>
+          .oaT { font: 700 14px Inter, sans-serif; fill: #FFFFFF; }
+          .oaS { font: 400 11.5px Inter, sans-serif; fill: #B9CBE4; }
+          .oaH { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+          .oaC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .oaB { font: 600 11.5px Inter, sans-serif; fill: #991B1B; }
+          .oaG { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+        </style>
+
+        <text class="oaH" x="26" y="24">The same eight facts, two shapes, two different verbs</text>
+
+        <rect x="26" y="38" width="396" height="54" rx="10" fill="#22395C"/>
+        <text class="oaT" x="46" y="62">OLTP source schema</text>
+        <text class="oaS" x="46" y="82">optimised for writing ONE row correctly</text>
+
+        <text class="oaC" x="46" y="120">Grain: whatever the application must update</text>
+        <text class="oaC" x="46" y="141">Normalized to 3NF, every fact stored once</text>
+        <text class="oaC" x="46" y="162">Row-at-a-time writes, transactional, instant</text>
+        <text class="oaC" x="46" y="183">Dates and hours hide inside TEXT timestamps</text>
+        <text class="oaC" x="46" y="204">Constraints reject bad data at the door</text>
+        <text class="oaC" x="46" y="225">Indexes serve lookups, and cost write speed</text>
+
+        <rect x="26" y="242" width="396" height="52" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="oaB" x="46" y="264">One business question = 5 joins, 1 date parse,</text>
+        <text class="oaB" x="46" y="284">1 fan-out guard, 1 private revenue definition</text>
+
+        <rect x="458" y="38" width="396" height="54" rx="10" fill="#3B5B8C"/>
+        <text class="oaT" x="478" y="62">Analytical star schema</text>
+        <text class="oaS" x="478" y="82">optimised for reading MILLIONS of like rows</text>
+
+        <text class="oaC" x="478" y="120">Grain: stated once, chosen from the question</text>
+        <text class="oaC" x="478" y="141">Deliberately flat and wide, joins removed</text>
+        <text class="oaC" x="478" y="162">Batch loads, full scans, read-mostly</text>
+        <text class="oaC" x="478" y="183">Calendar and hour are dimension columns</text>
+        <text class="oaC" x="478" y="204">Quality enforced at load, then trusted</text>
+        <text class="oaC" x="478" y="225">Every join is fact to dimension, never more</text>
+
+        <rect x="458" y="242" width="396" height="52" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="oaG" x="478" y="264">The same question = 1 view, 0 joins, 9 lines,</text>
+        <text class="oaG" x="478" y="284">and revenue is defined by a row in a table</text>
+
+        <rect x="26" y="308" width="828" height="80" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="oaG" x="46" y="332">Neither shape is better. They are optimised against different verbs: the source keeps one</text>
+        <text class="oaG" x="46" y="352">purchase correct while somebody is buying, the star reads ten million purchases that are</text>
+        <text class="oaG" x="46" y="372">all shaped alike. Asking one schema to do both is the mistake, not choosing between them.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - two shapes, two verbs. Both are correct designs for their own job.</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The four costs, named<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>When an analyst says "the database is hard to query", they almost never mean the SQL is hard. They mean one of these four things, and each one is a modeling problem rather than a skill problem:</p>
+        <ul>
+          <li><strong>Join distance.</strong> The attribute you want to group by is three or four tables away from the number you want to sum. Merchant tier lives on <code>merchants</code>; revenue lives on <code>order_items</code>; getting them into one row costs a join for every hop. Every hop is a chance to pick the wrong key.</li>
+          <li><strong>Buried time.</strong> <code>order_ts</code> is TEXT. Month, weekday, hour, week-of-year, is-it-a-weekend: none of them exist as columns, so every analyst writes their own <code>strftime</code> and their own weekend rule. Two dashboards that disagree about whether Saturday is a weekend day is a real incident, not a hypothetical.</li>
+          <li><strong>Fan-out.</strong> Join order lines to payment attempts and every retried order is counted twice. The query looks completely reasonable, the number is wrong, and nothing errors. This is the single most expensive failure mode in analytics on a source schema.</li>
+          <li><strong>Private definitions.</strong> "Settled revenue" gets defined inside the query: which statuses count, whether discounts come off, whether refunds are netted. That definition is now stuck in one analyst's SQL file, so the next person writes a different one and both are defensible.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The honest framing</strong>
+          None of this means the OLTP schema should be changed. Widening <code>orders</code> to hold a month column, or storing a revenue total on the header, makes the application worse to keep correct. The answer is a second shape, loaded from the first, which is exactly what b6 and b7 design.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Why "just add an index" does not fix it<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The first instinct when analytical queries are slow on a source database is to add indexes. It helps a little and it makes the real problem worse.</p>
+        <ul>
+          <li><strong>Indexes serve selective lookups, not scans.</strong> "Give me order 4711" is a lookup. "Sum ninety days of order lines, grouped six ways" reads most of the table, and reading most of a table through an index is slower than reading it directly.</li>
+          <li><strong>Every index taxes the writer.</strong> Bazaar's source schema declares seven indexes, deliberately short, because each one is extra work on every insert. Adding twenty indexes for analysts degrades the checkout path they are analysing.</li>
+          <li><strong>Indexes cannot invent a column.</strong> No index makes <code>month_name</code> exist, resolves a fan-out, or writes down what revenue means. Those are modeling gaps, and only a model fixes them.</li>
+        </ul>
+        <p>The second instinct is a read replica. That is a genuinely good idea and it solves contention, not shape: the replica has exactly the same five joins and the same buried date. Session a4 on the leader track covers where each of these tools actually helps.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: GRAIN AND CONFORMANCE ============ -->
+  <section class="section" id="grain">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers Kimball on grain, conformed dimensions, the bus matrix</span>
+      <h2>Grain, conformance, and the two schools <span class="tag concept">8 min live</span></h2>
+    </div>
+    <p class="lede">Two ideas carry the rest of this track. <strong>Grain</strong> is the sentence "one row of this table is one ___", and the discipline is that you choose it from the question rather than inheriting it from the source. <strong>Conformance</strong> is what lets two different facts be sliced the same way: if <code>fact_order_item</code> and <code>fact_cart</code> both point at the same <code>dim_merchant</code>, with the same keys and the same attribute values, then "revenue by merchant" and "cart conversion by merchant" can sit on one slide without an argument.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 356" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bus matrix showing which of the six dimensions each of the three Bazaar facts can be sliced by">
+        <style>
+          .bmH { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+          .bmD { font: 700 10.5px Inter, sans-serif; fill: #22395C; }
+          .bmF { font: 700 12px Inter, sans-serif; fill: #FFFFFF; }
+          .bmG { font: 400 10.5px Inter, sans-serif; fill: #B9CBE4; }
+          .bmY { font: 700 13px Inter, sans-serif; fill: #3B5B8C; }
+          .bmN { font: 700 13px Inter, sans-serif; fill: #991B1B; }
+          .bmT { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+        </style>
+
+        <text class="bmH" x="26" y="22">The bus matrix: which dimensions each fact can be sliced by</text>
+
+        <text class="bmD" x="260" y="52">dim_date</text>
+        <text class="bmD" x="360" y="52">dim_time</text>
+        <text class="bmD" x="460" y="52">dim_user</text>
+        <text class="bmD" x="560" y="52">dim_merch</text>
+        <text class="bmD" x="660" y="52">dim_prod</text>
+        <text class="bmD" x="760" y="52">dim_pay</text>
+
+        <rect x="26" y="62" width="226" height="48" rx="8" fill="#3B5B8C"/>
+        <text class="bmF" x="42" y="82">fact_order_item</text>
+        <text class="bmG" x="42" y="100">one product line on one order</text>
+        <rect x="252" y="62" width="600" height="48" fill="#EDF2F9"/>
+        <text class="bmY" x="282" y="92">✓</text>
+        <text class="bmY" x="382" y="92">✓</text>
+        <text class="bmY" x="482" y="92">✓</text>
+        <text class="bmY" x="582" y="92">✓</text>
+        <text class="bmY" x="682" y="92">✓</text>
+        <text class="bmN" x="782" y="92">-</text>
+
+        <rect x="26" y="116" width="226" height="48" rx="8" fill="#22395C"/>
+        <text class="bmF" x="42" y="136">fact_transaction</text>
+        <text class="bmG" x="42" y="154">one payment attempt</text>
+        <rect x="252" y="116" width="600" height="48" fill="#FFFFFF"/>
+        <text class="bmY" x="282" y="146">✓</text>
+        <text class="bmY" x="382" y="146">✓</text>
+        <text class="bmY" x="482" y="146">✓</text>
+        <text class="bmN" x="582" y="146">-</text>
+        <text class="bmN" x="682" y="146">-</text>
+        <text class="bmY" x="782" y="146">✓</text>
+
+        <rect x="26" y="170" width="226" height="48" rx="8" fill="#6C8CBC"/>
+        <text class="bmF" x="42" y="190">fact_cart</text>
+        <text class="bmG" x="42" y="208">one cart</text>
+        <rect x="252" y="170" width="600" height="48" fill="#EDF2F9"/>
+        <text class="bmY" x="282" y="200">✓</text>
+        <text class="bmY" x="382" y="200">✓</text>
+        <text class="bmY" x="482" y="200">✓</text>
+        <text class="bmY" x="582" y="200">✓</text>
+        <text class="bmN" x="682" y="200">-</text>
+        <text class="bmN" x="782" y="200">-</text>
+
+        <rect x="26" y="236" width="826" height="102" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="bmT" x="46" y="260">dim_date, dim_time_of_day and dim_user carry a tick on all three facts, and dim_merchant on two.</text>
+        <text class="bmT" x="46" y="281">Those are the CONFORMED dimensions: one key, one set of attribute values, shared. That is what</text>
+        <text class="bmT" x="46" y="302">makes "revenue by merchant" and "cart conversion by merchant" comparable numbers.</text>
+        <text class="bmT" x="46" y="323">A dash is not a gap to fix. It is a grain fact: a payment attempt has no product.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the bus matrix. Read the columns for conformance, the rows for grain.</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Choose the grain from the question, not from the source<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The failure that produces unusable analytical tables is inheriting the grain. Somebody joins five source tables, likes the result, saves it as a table, and now the grain is "whatever that join produced" - which nobody can state in a sentence, so nobody can tell whether summing a column is safe.</p>
+        <p>The worksheet below is the whole method, and it is deliberately boring. Write the question. Write the grain sentence. List the dimensions the question needs (they are the words after "by"). List the measures (the words after "how much" or "how many"). Only then decide which table answers it.</p>
+        <table class="clean">
+          <thead><tr><th>Business question</th><th>One row is</th><th>Dimensions needed</th><th>Measures</th><th>Answered by</th></tr></thead>
+          <tbody>
+            <tr><td>Net revenue by month, merchant tier and price band</td><td>one product line on one order</td><td>date, merchant, product</td><td>net_amount, quantity</td><td><code>fact_order_item</code></td></tr>
+            <tr><td>Which merchant lost the most revenue in the last fortnight</td><td>one product line on one order</td><td>date, merchant</td><td>net_amount</td><td><code>fact_order_item</code></td></tr>
+            <tr><td>What share of payment attempts were declined, and why</td><td>one payment attempt</td><td>date, hour, payment method</td><td>is_declined, declined_amount</td><td><code>fact_transaction</code></td></tr>
+            <tr><td>Did demand fall, or did checkout break</td><td>one cart</td><td>date, merchant, channel</td><td>converted_flag, cart_value</td><td><code>fact_cart</code> beside <code>fact_transaction</code></td></tr>
+            <tr><td>When is the peak hour for payments</td><td>one payment attempt</td><td>hour of day</td><td>attempt count</td><td><code>fact_transaction</code> via <code>dim_time_of_day</code></td></tr>
+          </tbody>
+        </table>
+        <p>Three things fall out of the worksheet immediately. The words after "by" are always dimensions. Any question whose grain sentence needs the word "and" is two questions. And the last row is the one that forces <code>dim_time_of_day</code> to be a separate dimension rather than columns on <code>dim_date</code> - b6 explains why.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Inmon and Kimball, as a trade-off rather than a winner<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Two schools, argued for thirty years, and the honest answer is that they optimise for different risks. Learn both positions properly, because you will be in a room where somebody asserts one of them as settled fact.</p>
+        <ul>
+          <li><strong>Inmon: a normalized enterprise core, then dimensional marts on top.</strong> Load the warehouse in third normal form, integrated across every source, then build departmental star schemas from it. The core is the single place a fact is reconciled. You pay for it with a longer build, more hops from source to dashboard, and a modeling team that must understand the whole enterprise before it can ship anything.</li>
+          <li><strong>Kimball: dimensional from the start, with conformed dimensions as the integration mechanism.</strong> Model one business process at a time as a star, and make the dimensions conform so the stars line up into a bus matrix. You ship a usable mart in weeks. You pay for it with integration that lives in a discipline rather than in a schema, so conformance decays the moment nobody is guarding it.</li>
+          <li><strong>What they actually disagree about is where change is absorbed.</strong> Inmon absorbs change in a normalized core that is expensive to build and cheap to extend. Kimball absorbs change in dimensions that are cheap to build and need governance to stay conformed. That is a real trade-off about your organisation, not about SQL.</li>
+        </ul>
+        <p>Where this course lands, and why: Bazaar is one business process family with one owner, so it goes Kimball-style, dimensional and conformed, and b6 to b8 build exactly that. If Bazaar had six source systems disagreeing about what a customer is, a normalized integration layer would earn its cost first. The modern dbt convention is quietly a compromise between the two: staging models that clean and rename one-to-one with the source, intermediate models that integrate, and marts that are dimensional. Same argument, new file names.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where this course stops, honestly<span class="mini">2 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>This course <strong>designs</strong> the model: grain, keys, conformance, additivity, the DDL, the transform, the marts, the agent layer. It loads that model once, with a full refresh, because a full refresh keeps the modeling visible instead of burying it in merge logic.</p>
+        <p><strong>Loading it incrementally is a different course.</strong> Incremental loads, MERGE statements, late-arriving facts, and the mechanics of applying a slowly-changing type-2 change on every run belong to <a href="https://phoebefu6.github.io/learn-data-warehouse-with-phoebe/">learn-data-warehouse-with-phoebe</a> (builder sessions 4 to 6). Those are loading problems. Grain, conformance and key strategy are modeling problems. Keeping the two apart is why both courses stay 45 minutes a session instead of 90.</p>
+        <p>The pipeline that runs the load on a schedule, with orchestration and monitoring, is <code>learn-data-engineering-with-phoebe</code>. Query tuning, partitioning and execution plans are out of scope everywhere in this course except the seven indexes b4 declared because the access paths obviously needed them.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DEMO 1 ============ -->
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Demo 1 of 2</span>
+      <h2>Write the question against the source, and feel the cost <span class="tag demo">★ 14 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">These four editors run against Bazaar's <strong>eight source tables only</strong> - users, merchants, products, carts, cart_items, orders, order_items, transactions. No star, no views, no shortcuts. Exactly what an analyst gets when someone grants them read access to the application database.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Hit the fan-out first.</strong> Join order lines to payment attempts to keep only paid money. The query is reasonable, the SQL is valid, and the revenue number is inflated. Nothing warns you.</p></div>
+      <div class="step"><p><strong>Dig the date out of a string.</strong> <code>order_ts</code> is TEXT. Month, hour and weekend do not exist as columns, so you write them - and so does everybody else, differently.</p></div>
+      <div class="step"><p><strong>Assemble the real answer.</strong> Five joins, the guard, the month expression, a hand-rolled price band, and a definition of settled revenue that exists only in this query.</p></div>
+      <div class="step"><p><strong>Count what you just did.</strong> Then hold the number 111,906.48 in your head, because the next section reproduces it in nine lines.</p></div>
+    </div>
+
+    <div class="sqlbox" data-seed="oltp" data-caption="Both queries filter to settled orders and sum the same expression. One of them is 111,906.48. The other is bigger, and nothing in it looks wrong.">
+      <pre class="sql-src">SELECT 'joined to transactions'  AS method,
+       COUNT(*)                  AS rows_summed,
+       ROUND(SUM(oi.quantity * oi.unit_price - oi.discount_amt), 2) AS revenue
+FROM order_items oi
+JOIN orders       o ON o.order_id = oi.order_id
+JOIN transactions t ON t.order_id = o.order_id
+WHERE o.status IN ('paid', 'refunded')
+
+UNION ALL
+
+SELECT 'guarded with EXISTS',
+       COUNT(*),
+       ROUND(SUM(oi.quantity * oi.unit_price - oi.discount_amt), 2)
+FROM order_items oi
+JOIN orders o ON o.order_id = oi.order_id
+WHERE o.status IN ('paid', 'refunded')
+  AND EXISTS (SELECT 1 FROM transactions t
+               WHERE t.order_id = o.order_id AND t.status = 'approved');</pre>
+    </div>
+
+    <div class="callout tip">
+      <strong>Why the first one lies</strong>
+      Bazaar has 985 orders and 1,060 payment attempts, because declines get retried. Joining lines to attempts multiplies every line of a retried order by the number of attempts, so revenue is counted once per attempt instead of once per line. There are 1,434 order lines in the database and no query summing them should ever sum more rows than that. Reading the row count beside the money is the cheapest fan-out detector there is.
+    </div>
+
+    <div class="sqlbox" data-seed="oltp" data-caption="Everything the calendar knows has to be re-derived from a string, in every query, by every analyst.">
+      <pre class="sql-src">SELECT o.order_id,
+       o.order_ts,
+       typeof(o.order_ts)                            AS stored_as,
+       strftime('%Y-%m', o.order_ts)                 AS month_you_wanted,
+       CAST(strftime('%H', o.order_ts) AS INTEGER)   AS hour_you_wanted,
+       CASE WHEN strftime('%w', o.order_ts) IN ('0', '6')
+            THEN 1 ELSE 0 END                        AS is_weekend_probably
+FROM orders o
+ORDER BY o.order_id
+LIMIT 8;</pre>
+    </div>
+
+    <div class="sqlbox" data-seed="oltp" data-caption="The real answer against the source: 5 joins, a parsed month, a fan-out guard, a hand-rolled price band, and a private definition of revenue. 21 lines.">
+      <pre class="sql-src">SELECT
+  strftime('%Y-%m', o.order_ts)                    AS order_month,
+  m.tier                                           AS merchant_tier,
+  CASE WHEN p.list_price <  25 THEN 'budget'
+       WHEN p.list_price <  80 THEN 'mid'
+       ELSE 'premium' END                          AS price_tier,
+  COUNT(DISTINCT o.order_id)                       AS orders,
+  SUM(oi.quantity)                                 AS units,
+  ROUND(SUM(oi.quantity * oi.unit_price - oi.discount_amt), 2) AS net_revenue
+FROM order_items oi
+JOIN orders    o ON o.order_id    = oi.order_id
+JOIN products  p ON p.product_id  = oi.product_id
+JOIN merchants m ON m.merchant_id = oi.merchant_id
+JOIN users     u ON u.user_id     = o.user_id
+WHERE o.status IN ('paid', 'refunded')
+  AND EXISTS (SELECT 1 FROM transactions t
+               WHERE t.order_id = o.order_id AND t.status = 'approved')
+  AND date(o.order_ts) BETWEEN '2026-04-01' AND '2026-06-29'
+GROUP BY order_month, merchant_tier, price_tier
+ORDER BY order_month, net_revenue DESC
+LIMIT 10;</pre>
+    </div>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Six analysts, six definitions of revenue.</strong> A marketplace audited its reporting and found six live queries computing "revenue", differing on whether refunded orders counted, whether line discounts came off, whether the merchant's commission was netted, and whether the date came from the order or the payment. All six were written by competent people, all six were defensible, and the weekly business review had been comparing them to each other for a year. The fix was not better SQL. It was one table with the grain written down, the measure computed once at load, and the definition stored as a row - which is precisely what <code>v_metric_definitions</code> is for, and what the final editor below shows.</p>
+    </div>
+  </section>
+
+  <!-- ============ DEMO 2 ============ -->
+  <section class="section" id="demo-2">
+    <div class="section-kicker">
+      <span class="klabel">Demo 2 of 2</span>
+      <h2>Your turn: the same question against the star <span class="tag demo">★ 10 min · build your own</span></h2>
+    </div>
+    <p class="lede">These editors have the source tables <em>and</em> the star, the marts and the agent views loaded, so you can compare the two shapes in the same tab. The star is what b6 and b7 build; today you only need to see what it buys.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Q1 · The same answer, in nine lines<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Run it and compare the output row by row with the 21-line version above. Identical numbers. Then read what is missing from the query: no joins, no date parsing, no fan-out guard, no CASE expression inventing a price band, and no private definition of revenue.</p>
+        <div class="sqlbox" data-caption="Nine lines, one view, zero joins. The merchant tier, the price band and the month are all just columns.">
+          <pre class="sql-src">SELECT order_month_name, merchant_tier, product_price_tier,
+       COUNT(DISTINCT order_id)  AS orders,
+       SUM(units)                AS units,
+       ROUND(SUM(net_revenue), 2) AS net_revenue
+FROM v_sales_line
+WHERE is_paid = 1
+GROUP BY order_month_name, merchant_tier, product_price_tier
+ORDER BY order_month_name, net_revenue DESC
+LIMIT 10;</pre>
+        </div>
+        <p>Three things did the work, and each one has a session. The <strong>grain</strong> is stated: one row of <code>v_sales_line</code> is one product line on one order, so <code>SUM(net_revenue)</code> is safe and <code>COUNT(*)</code> is lines rather than orders. The <strong>dimensions are flat and wide</strong>, so merchant tier and price band are columns instead of joins - that is b6. The <strong>measure was computed once at load</strong>, so nobody re-derives it - that is b7.</p>
+        <div class="sqlbox" data-caption="Three facts, three grains, three row counts. Every analytical table on this site can state its grain in one sentence.">
+          <pre class="sql-src">SELECT 'fact_order_item' AS fact_table,
+       'one product line on one order' AS one_row_is,
+       COUNT(*) AS row_count
+FROM fact_order_item
+UNION ALL SELECT 'fact_transaction', 'one payment attempt', COUNT(*) FROM fact_transaction
+UNION ALL SELECT 'fact_cart',        'one cart',            COUNT(*) FROM fact_cart;</pre>
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Q2 · Slice two different facts the same way<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>This is conformance doing its job. Revenue lives on <code>fact_order_item</code>, cart conversion lives on <code>fact_cart</code>, and both point at the same <code>dim_merchant</code>. Notice what the query does <em>not</em> do: it never joins the two facts to each other. Each is aggregated to a common grain first, then the two results are matched on the shared dimension value.</p>
+        <div class="sqlbox" data-caption="Money and demand, side by side, sliced by the same merchant tier. Aggregate each fact first; never join two facts directly.">
+          <pre class="sql-src">WITH sales AS (
+  SELECT m.tier AS merchant_tier, ROUND(SUM(f.net_amount), 2) AS net_revenue
+  FROM fact_order_item f
+  JOIN dim_merchant m ON m.merchant_sk = f.merchant_sk
+  WHERE f.is_paid = 1
+  GROUP BY m.tier
+),
+demand AS (
+  SELECT m.tier AS merchant_tier, COUNT(*) AS carts, SUM(c.converted_flag) AS converted
+  FROM fact_cart c
+  JOIN dim_merchant m ON m.merchant_sk = c.merchant_sk
+  GROUP BY m.tier
+)
+SELECT s.merchant_tier, s.net_revenue, d.carts, d.converted,
+       ROUND(d.converted * 100.0 / d.carts, 2) AS cart_conversion_pct
+FROM sales s
+JOIN demand d ON d.merchant_tier = s.merchant_tier
+ORDER BY s.net_revenue DESC;</pre>
+        </div>
+        <p>Try it against the source schema instead and you will need eight joins, two fan-out guards and a decision about which merchant a mixed cart belongs to. That last decision is a modeling choice, and the star has already made it once and written it down - rather than leaving it to whoever writes the query next.</p>
+        <div class="sqlbox" data-caption="The definition of every metric, stored as data. 13 rows, one place, readable by an analyst and by an agent.">
+          <pre class="sql-src">SELECT metric_name, source_view, grain, sql_expression, caveat
+FROM v_metric_definitions
+ORDER BY source_view, metric_name;</pre>
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Q3 · Write the grain worksheet for a question of your own<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>No SQL for this one. Take a question your business actually asks in a weekly meeting and fill in the five worksheet columns from Part 2: the question, the grain sentence, the dimensions, the measures, and which table answers it.</p>
+        <p>Two things usually happen. First, the grain sentence needs the word "and" - which means the question is two questions wearing one sentence, and the room has been arguing about the join rather than the answer. Second, the "answered by" column comes out blank, because no table in your warehouse states a grain at all. Both outcomes are useful, and both are the case for b6 and b7.</p>
+        <p>Bring the filled worksheet to b6. The dimensions you listed are the dimensions you will design, and the words you used for them are the naming decision session a5 turns into a standard.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 20-30 min total</span></h2>
+    </div>
+    <ul>
+      <li>Take the longest analytical query you own and count four things: joins, date expressions, fan-out guards, and definitions that exist only in that file. That count is your case for a model, in numbers a manager can read.</li>
+      <li>Find one query in your codebase that joins two things at different grains without a guard. Run it with <code>COUNT(*)</code> beside the money and check whether the row count exceeds the row count of the finest-grain table involved. If it does, you have found a live fan-out.</li>
+      <li>Write the grain sentence for the three most-used tables in your warehouse. If any of them needs the word "and", write down which two questions it is really answering.</li>
+      <li>Pick one attribute two teams disagree about - customer segment, channel, region - and check whether both teams' tables use the same key and the same values for it. That is a conformance test, and it usually fails.</li>
+      <li>Read the four numbered rules at the top of <code>sql/10_dim_ddl.sql</code> before b6. That file is what session b6 ships, and the rules are its spine.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map, including what is deliberately out of scope, in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - grain, conformed dimensions, the bus matrix</span><span class="note">Part 2 · grain chosen from the question; the matrix read by row and by column</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Inmon, <em>Building the Data Warehouse</em> - normalized core versus dimensional mart</span><span class="note">Part 2 · argued as a trade-off about where change is absorbed, with no winner declared</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Codd / relational fundamentals - normalization as a write-side optimisation</span><span class="note">Part 1 · why 3NF is correct for the source and wrong for the reader; derived in b2</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">dbt layering conventions - staging, intermediate, marts</span><span class="note">Part 2 · named as the modern compromise between the two schools</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Kimball SCD types and snowflaking</span><span class="note">Pointed at; designed properly in b6. Incremental and type-2 LOAD mechanics are <a href="https://phoebefu6.github.io/learn-data-warehouse-with-phoebe/">learn-data-warehouse-with-phoebe</a>, not this course</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Joining <code>order_items</code> to <code>transactions</code> on <code>order_id</code> inflated the revenue number. Why?</p>
+      <button class="qopt" type="button">A · The transactions table stores the wrong amounts</button>
+      <button class="qopt" type="button">B · SQLite handles REAL arithmetic incorrectly at that size</button>
+      <button class="qopt" type="button">C · The two tables have different grains, so an order with several payment attempts repeats each of its lines once per attempt</button>
+      <p class="qwhy">Bazaar's 985 orders produced 1,060 payment attempts, because declines get retried, so the join multiplies the lines of every retried order. The SQL is valid and nothing errors, which is exactly why fan-out is expensive. The cheapest detector is to read the row count beside the money: no query summing order lines should ever exceed 1,434 rows.</p>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">2 · What does "conformed dimension" buy you?</p>
+      <button class="qopt" type="button">A · Smaller dimension tables, because attributes are stored once</button>
+      <button class="qopt" type="button">B · Two different facts can be sliced by the same attribute values and the results compared, because they share one key and one set of values</button>
+      <button class="qopt" type="button">C · The ability to join two fact tables directly to each other</button>
+      <p class="qwhy">Conformance is what makes "revenue by merchant" and "cart conversion by merchant" comparable numbers rather than two arguments. It is emphatically not permission to join two facts: you aggregate each fact to a common grain first, then match on the shared dimension value.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Which of these is the honest statement of the Inmon versus Kimball argument?</p>
+      <button class="qopt" type="button">A · They absorb change in different places: a normalized core that is costly to build and cheap to extend, versus dimensions that are cheap to build and need governance to stay conformed</button>
+      <button class="qopt" type="button">B · Inmon is for large companies and Kimball is for small ones</button>
+      <button class="qopt" type="button">C · Kimball superseded Inmon once columnar storage arrived</button>
+      <p class="qwhy">The choice is about your organisation, not your SQL dialect. Bazaar is one process family with one owner, so this course goes dimensional and conformed. Six source systems disagreeing about what a customer is would justify a normalized integration layer first. The dbt staging / intermediate / marts convention is quietly a compromise between the two.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 5 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Two verbs</b><span>OLTP writes one row correctly. Analytics reads millions of like-shaped rows. One schema cannot serve both.</span></div>
+      <div class="cheat-item"><b>The four costs</b><span>Join distance, buried time, fan-out, private definitions. All four are modeling gaps, not SQL skill gaps.</span></div>
+      <div class="cheat-item"><b>Fan-out detector</b><span>Put COUNT(*) beside the money. If it exceeds the finest-grain table's row count, you are double-counting.</span></div>
+      <div class="cheat-item"><b>Grain</b><span>"One row is one ___." Chosen from the question, never inherited from a join you happened to like.</span></div>
+      <div class="cheat-item"><b>Dimensions are the words after "by"</b><span>Measures are the words after "how much". That is the whole worksheet.</span></div>
+      <div class="cheat-item"><b>Conformance</b><span>Same key, same values, shared by two facts. Aggregate each fact first; never join facts directly.</span></div>
+      <div class="cheat-item"><b>Inmon vs Kimball</b><span>Where change is absorbed: normalized core versus governed dimensions. A trade-off, not a winner.</span></div>
+      <div class="cheat-item"><b>Scope line</b><span>This course designs and loads once. Incremental and type-2 load mechanics are learn-data-warehouse. Next: b6, dimensions.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 5 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b4-physical-oltp.html">← Previous: Physical OLTP</a> &nbsp;·&nbsp; <a href="b6-dimension-design.html">Next: Dimension design →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

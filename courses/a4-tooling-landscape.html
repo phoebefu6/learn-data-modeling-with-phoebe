@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leader session 4 · The tooling landscape - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Leader session 4 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Leader track · Session 4 of 6</div>
+    <h1>The <span class="accent">tooling landscape</span></h1>
+    <p class="sub">Vendor logos change every eighteen months. The four decisions underneath them have not changed in a decade. This session reads the market as four categories rather than a list of products: where to draw and version the model, where to transform and test it, where to make it discoverable, and where a metric gets its single definition. For each one you get the problem it solves, the signal you actually need it, what it costs in adoption rather than licence, and the failure mode of buying it too early. No code to write.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Leader track</span>
+      <span class="chip audience">C-level · heads of data · stakeholders</span>
+      <span class="chip audience">No code to write</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:3">0-3 · Frame</span>
+      <span class="a2" style="flex:17">3-20 · The four categories</span>
+      <span class="a3" style="flex:12">20-32 · Adoption cost and the decision frame</span>
+      <span class="a4" style="flex:13">32-45 · Audit, build vs buy, Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Read the market as decisions, not logos</h2>
+    </div>
+    <p class="lede">You will be asked to approve tooling spend for a modeling practice, probably by someone who has already fallen for a good demo. The demo is not the problem. The problem is that the request will arrive named after a product, and a product name tells you nothing about whether you have the problem it solves. Reframed as a category, the same request becomes answerable in one meeting: which of the four things does this buy us, do we have the signal that we need that thing, and what will it cost us in behaviour rather than in licence fees?</p>
+    <p class="lede">Be honest about the shelf life of specifics. This market consolidates and rebrands constantly, features move between categories, and open-source and commercial options trade places. The <strong>categories</strong> are the durable part, and so are the conventions inside them. Where a product is named on this page it is named as an example of a category, never as a recommendation, and no pricing or feature claim appears anywhere, because either would be out of date before you finished reading it.</p>
+    <p class="lede">Examples come from this course's own <strong>Bazaar</strong> dataset: a marketplace with 12 merchants trading from 2026-04-01 to 2026-06-29 in SGD. Its numbers were produced by running the code the builder track ships, so the tooling arguments here are anchored to something checkable rather than to a vendor's slide.</p>
+    <div class="legend">
+      <span class="pill solid">Live - discussed in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">◎ Discussion exercise - run it with your team</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      Four categories you can map any vendor onto in thirty seconds, the specific signal that tells you each one is now worth buying, the adoption cost of each expressed as behaviour rather than money, three rules for deciding between standardising and buying, a build-versus-buy question per layer, and a "you do not need this yet if" list you can hold up in a budget review.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: THE FOUR CATEGORIES ============ -->
+  <section class="section" id="categories">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · the durable part of the market</span>
+      <h2>Four categories, and what each one enforces <span class="tag concept">17 min live</span></h2>
+    </div>
+    <p class="lede">A modeling practice needs four things from its tooling, and only four. Each sits on top of the one below it, and each one is worth buying only because it <strong>enforces</strong> something a human being reliably forgets. That is the whole test. A tool that merely enables good behaviour is a tool your team will stop using in the second busy quarter. A tool that makes bad behaviour fail is one they cannot stop using.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 436" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The four tooling categories a modeling practice needs, stacked from drawing the model to the semantic layer, with what each one enforces">
+        <style>
+          .stT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .stS { font: 400 11px Inter, sans-serif; fill: #B9CBE4; }
+          .stE { font: 700 11.5px Inter, sans-serif; fill: #1B2637; }
+          .stW { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .stH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .stK { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <text class="stH" x="26" y="24">Four layers, bottom to top. Each one enforces something people forget.</text>
+
+        <!-- layer 4 -->
+        <rect x="26" y="36" width="252" height="64" rx="9" fill="#C08A2E"/>
+        <text class="stT" x="44" y="62">4 · One definition</text>
+        <text class="stS" x="44" y="82" fill="#FBF3E2">semantic layer</text>
+        <rect x="286" y="36" width="568" height="64" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="stE" x="304" y="62">Enforces: one metric has one expression, read by BI and by any AI analyst</text>
+        <text class="stW" x="304" y="82">Without it: every tool redefines revenue, and the definitions drift apart quietly</text>
+
+        <!-- layer 3 -->
+        <rect x="26" y="112" width="252" height="64" rx="9" fill="#6C8CBC"/>
+        <text class="stT" x="44" y="138">3 · Discoverable</text>
+        <text class="stS" x="44" y="158" fill="#EDF2F9">catalog / metadata layer</text>
+        <rect x="286" y="112" width="568" height="64" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="stE" x="304" y="138">Enforces: a table's owner, grain and freshness are published, not tribal</text>
+        <text class="stW" x="304" y="158">Without it: the answer to "who owns this" is whoever has been here longest</text>
+
+        <!-- layer 2 -->
+        <rect x="26" y="188" width="252" height="64" rx="9" fill="#3B5B8C"/>
+        <text class="stT" x="44" y="214">2 · Tested on change</text>
+        <text class="stS" x="44" y="234">transformation and testing</text>
+        <rect x="286" y="188" width="568" height="64" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="stE" x="304" y="214">Enforces: a change that breaks a promised column or grain fails before it ships</text>
+        <text class="stW" x="304" y="234">Without it: breakage is discovered downstream, by a stakeholder, in a meeting</text>
+
+        <!-- layer 1 -->
+        <rect x="26" y="264" width="252" height="64" rx="9" fill="#22395C"/>
+        <text class="stT" x="44" y="290">1 · Drawn and versioned</text>
+        <text class="stS" x="44" y="310">ERD and diagram tooling</text>
+        <rect x="286" y="264" width="568" height="64" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="stE" x="304" y="290">Enforces: the model is one shared artifact rather than four people's memory</text>
+        <text class="stW" x="304" y="310">Without it: onboarding is oral history and every design review restarts from zero</text>
+
+        <rect x="26" y="344" width="828" height="80" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="stK" x="46" y="366">The stack is also the adoption order. Layer 2 is the one most teams should own first, because it is the only layer</text>
+        <text class="stK" x="46" y="386">that can make a bad change fail rather than merely be visible. Layer 4 bought before layers 1 and 2 exist does not</text>
+        <text class="stK" x="46" y="406">create agreement about metrics; it encodes whatever disagreement you already had, and makes it harder to see.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the four layers, what each enforces, and the order to adopt them</figcaption>
+    </figure>
+
+    <table class="clean">
+      <thead><tr><th>Category</th><th>The problem it solves</th><th>The signal you actually need it</th><th>Failure mode of buying it too early</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>1 · Draw and version the model</strong><br><span class="pill light">ERD tooling</span></td>
+          <td>Nobody can see the whole model at once, so design reviews argue about what exists rather than what should.</td>
+          <td>Two engineers describe the same relationship differently in the same meeting, or a new joiner takes more than a week to find out what joins to what.</td>
+          <td>A beautiful diagram that nobody regenerates. It is a lie within a quarter, and worse than no diagram because people trust it.</td>
+        </tr>
+        <tr>
+          <td><strong>2 · Transform and test</strong><br><span class="pill light">models as versioned code</span></td>
+          <td>Transformation logic lives in scattered scripts and BI tools, so nobody knows what a change will break until it breaks.</td>
+          <td>More than one person edits transformation logic, or a change has broken a downstream report without anyone noticing until a stakeholder did.</td>
+          <td>Rarely too early, which makes it the exception. The real risk is adopting the tool while skipping the layering convention and the tests, which buys the folder structure and none of the enforcement.</td>
+        </tr>
+        <tr>
+          <td><strong>3 · Catalog and metadata</strong><br><span class="pill light">discoverability</span></td>
+          <td>Owner, grain and freshness live in people's heads, so every question routes through the same two long-serving employees.</td>
+          <td>The same "who owns this table and is it fresh" question is asked in chat every week, or an analyst has built something on a table that was deprecated.</td>
+          <td>An empty catalog with 90% of descriptions blank. It becomes a place where documentation is not, and it teaches the team that the catalog is useless.</td>
+        </tr>
+        <tr>
+          <td><strong>4 · Semantic layer</strong><br><span class="pill light">one metric, one definition</span></td>
+          <td>Each consuming tool defines revenue for itself, so BI, finance and any AI analyst disagree by construction.</td>
+          <td>Two dashboards give different values for the same word, or you are being asked to fund natural-language querying over your data.</td>
+          <td>You encode the disagreement instead of resolving it. Metrics nobody has defined get a canonical home and now look official.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Layers 1 and 2 · the diagram and the enforcement<span class="mini">6 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Layer 1, drawing and versioning the model.</strong> The category covers everything from free browser-based diagram tools to commercial data modelers to the diagram-as-text formats that live in a code repository. They are cheap, and the choice barely matters. What matters is one property, and it is the property most teams do not check: <em>can the diagram be regenerated from the actual database rather than maintained by hand?</em></p>
+        <p>A hand-maintained diagram is accurate on the day it is drawn and decorative thereafter. It does not fail loudly. It quietly stops matching reality, one shipped change at a time, and the first person to trust it is misled precisely because it looks authoritative. That is the honest observation to hold on to: <strong>a diagram nobody regenerates is a lie within a quarter</strong>, and a lie you have paid for and printed. So the question to ask about any candidate is not what it can draw, but what it does on the Tuesday after somebody adds a column.</p>
+        <p><strong>Layer 2, transformation and testing.</strong> This is the layer worth real attention, because it is the only one that can make a bad change fail rather than merely be visible. The convention it carries is more valuable than any product in it. The widely used shape, popularised by dbt and now the default across the industry, is three layers of models held as version-controlled code:</p>
+        <ul>
+          <li><strong>Staging.</strong> One model per source table, doing nothing but renaming, casting and cleaning. Boring on purpose, and the boredom is the feature: it means source changes are absorbed in exactly one place.</li>
+          <li><strong>Intermediate.</strong> The joins and reshaping nobody wants to write twice. This is where grain changes happen, deliberately and once, instead of being re-derived in every report.</li>
+          <li><strong>Marts.</strong> The tables consumers actually query, each with a declared grain. Bazaar's marts are one row per merchant per day, one row per date and hour, one row per day: three grains, three questions, no ambiguity.</li>
+        </ul>
+        <p>On top of that sits the piece worth the most to you as an approver: the <strong>model contract</strong>. A contract declares what a model promises - which columns exist, of what type, at what grain, never null - and turns a breach into a build failure rather than a conversation. That is the difference between documentation and governance. Documentation can be wrong without anything happening. A contract cannot.</p>
+        <div class="callout tip">
+          <strong>The question that separates the two</strong>
+          Ask of any candidate in layer 2: "if someone renames a column that a downstream report depends on, what happens?" If the answer is "the report breaks and someone tells us", you are buying a folder structure. If the answer is "the build fails before it ships", you are buying enforcement. Only the second one is worth an adoption programme.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Layers 3 and 4 · discoverability and one definition<span class="mini">6 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Layer 3, the catalog or metadata layer.</strong> The problem is genuinely real: in most organisations the owner, grain and freshness of a table are tribal knowledge, which means every question routes through the same two long-serving people, and their departure is a business risk you have not written down. The category runs from open-source metadata platforms to the catalog features now bundled into warehouse and BI products. Again the product choice matters less than one property: <em>how much of the catalog populates itself?</em></p>
+        <p>Lineage, schemas, freshness timestamps and query popularity can be harvested automatically. Ownership, grain sentences and business meaning cannot. So a catalog is a machine for making the automatic part free and the manual part visible, and its failure mode is entirely about the manual part. An empty catalog is worse than no catalog: it trains the whole team that looking things up there is a waste of a click, and that lesson takes years to unlearn. Fund a catalog with a named backfill for a defined slice, or do not fund it yet.</p>
+        <p><strong>Layer 4, the semantic layer.</strong> One metric, one expression, one grain, one caveat, read by every consumer. Session a3 argued why this must live as data rather than as a wiki page; this is the purchase decision that follows. The category includes standalone semantic or metrics layers, the semantic modelling built into some BI platforms, and the increasingly common pattern of holding definitions as a governed table in the warehouse itself, which costs nothing in licence and quite a lot in discipline.</p>
+        <p>The evidence that it pays is unusually crisp on this course's own data. Bazaar's semantic layer is <strong>13 metric definitions</strong>, each with an expression, a grain and a caveat. Given the same tables and the same questions, an AI analyst scored <strong>0 of 20</strong> standard business questions without those definitions and <strong>20 of 20</strong> with them. Nothing about the data changed. That is the honest business case for layer 4, and it is a stronger one than any demo, because it is a measurement rather than a promise.</p>
+        <p>The trap is sequencing. A semantic layer is a place to put agreements. If you have no agreements, it becomes a place where disagreements look official, and the fact that they are now centralised makes them harder to notice rather than easier. What to fund specifically so that natural-language querying works is <strong>session a6</strong>, and it is worth taking before signing anything in this layer.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where the fifth and sixth categories fit<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Two adjacent categories will be pitched to you in the same conversations, and it is worth knowing why they are not on this list.</p>
+        <ul>
+          <li><strong>Data quality and observability tools.</strong> These monitor for anomalies, volume drops and freshness misses. Valuable, and genuinely different from layer 2: a testing layer asserts what must be true and fails the build, while an observability tool watches what usually happens and alerts on surprise. Buy the first one first. Alerts on a model with no contracts produce a stream of notifications that nobody can act on, and the team learns to close them.</li>
+          <li><strong>Orchestration and pipeline tooling.</strong> Scheduling, dependencies, retries, backfills. This is the operational layer beneath everything here, and it is a different course entirely. Modeling decisions do not depend on it, and it will not fix a single problem on this page.</li>
+        </ul>
+        <p>Both are frequently sold as solutions to modeling problems. Neither is. The test is the same one you apply everywhere else: name the human failure it enforces against. Observability enforces against nobody noticing. Orchestration enforces against things not running. Neither enforces against a metric meaning two things, which is the problem you actually have.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: ADOPTION COST ============ -->
+  <section class="section" id="adoption">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · the cost that is not on the invoice</span>
+      <h2>What it costs in adoption, not licence <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">Every one of these four categories has a free or nearly free option, and every one of them can still fail expensively. That is because the licence is the small number. The real cost is behavioural: the conventions people must agree to, the review step they must now pass through, the fields somebody must fill in, and the artifacts somebody must keep true. Approve the licence and skip the behaviour, and you have bought a folder.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 424" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Licence cost compared with adoption cost, and what happens to an artifact that nobody regenerates over one quarter">
+        <style>
+          .adH { font: 700 12.5px Inter, sans-serif; fill: #1B2637; }
+          .adT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .adC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .adB { font: 700 11.5px Inter, sans-serif; fill: #1B2637; }
+          .adR { font: 700 11.5px Inter, sans-serif; fill: #991B1B; }
+          .adK { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <text class="adH" x="26" y="24">Two cost lines. Only one of them appears on the invoice.</text>
+
+        <rect x="26" y="34" width="404" height="34" rx="8" fill="#3B5B8C"/>
+        <text class="adT" x="46" y="56">On the invoice</text>
+        <rect x="26" y="68" width="404" height="122" rx="0" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="adC" x="46" y="92">Seats, or compute, or nothing at all</text>
+        <text class="adC" x="46" y="114">Negotiated once, forecastable</text>
+        <text class="adC" x="46" y="136">Approved in a single meeting</text>
+        <text class="adC" x="46" y="158">Reversible: you can stop paying</text>
+        <text class="adB" x="46" y="180">This is the number the request is about</text>
+
+        <rect x="450" y="34" width="404" height="34" rx="8" fill="#C08A2E"/>
+        <text class="adT" x="470" y="56">Not on the invoice</text>
+        <rect x="450" y="68" width="404" height="122" rx="0" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="adK" x="470" y="92">Conventions the team must agree first</text>
+        <text class="adK" x="470" y="114">A review step every change now passes</text>
+        <text class="adK" x="470" y="136">Fields a named person must fill in</text>
+        <text class="adK" x="470" y="158">Backfill of everything that exists today</text>
+        <text class="adB" x="470" y="180">This is the number that decides the outcome</text>
+
+        <text class="adH" x="26" y="222">The decay test: what one quarter does to an artifact</text>
+
+        <rect x="26" y="234" width="828" height="58" rx="8" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="adR" x="46" y="256">Maintained by hand</text>
+        <text class="adC" x="46" y="278">Correct on day one. Every shipped change makes it slightly false, and nothing anywhere reports that. By month three it</text>
+        <text class="adC" x="46" y="292" fill="#991B1B">misleads with authority, because it still looks finished.</text>
+
+        <rect x="26" y="304" width="828" height="58" rx="8" fill="#EDF2F9" stroke="#3B5B8C"/>
+        <text class="adB" x="46" y="326">Regenerated from the system</text>
+        <text class="adC" x="46" y="348">Correct on every day it runs, because the artifact is an output rather than a document. Staleness becomes impossible</text>
+        <text class="adC" x="46" y="362">rather than merely discouraged, and no one has to remember anything.</text>
+
+        <rect x="26" y="374" width="828" height="40" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="adK" x="46" y="398">The buying rule that falls out of this: skip anything whose value depends on people updating it manually.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the invoice is the small number, and the decay test settles most decisions</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The adoption bill for each of the four layers<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Ask for these to be written down and owned before you approve anything. They are not risks. They are the actual scope of work, and the licence is a rounding error against them.</p>
+        <ul>
+          <li><strong>Layer 1, ERD tooling.</strong> Adoption cost is a regeneration habit. Somebody must make the diagram an output of the database rather than a drawing, and design reviews must start from the regenerated version. If your candidate cannot regenerate, the adoption cost is a permanent manual chore, which is another way of saying the artifact will be false by the next quarter.</li>
+          <li><strong>Layer 2, transformation and testing.</strong> The highest adoption cost of the four, and the one most worth paying. Everyone who edits transformation logic has to move into version control, accept a review step, agree on the staging and intermediate and marts convention, and write tests for models they already trusted. Weeks of friction, and after it a broken change fails in the build instead of in a stakeholder meeting.</li>
+          <li><strong>Layer 3, catalog.</strong> The bill is the backfill, and it is always underestimated because the harvestable parts arrive instantly and look like progress. Owner and grain and business meaning for every table that already exists is human work, and it must be scoped as a named piece of work for a defined slice, not as a hope.</li>
+          <li><strong>Layer 4, semantic layer.</strong> The bill is a series of arguments, held once and in public. Every contested metric has to be settled before it can be encoded, and a few of those settlements will disappoint someone senior. Bazaar's 13 definitions look tidy on the page; the work in them is not the syntax, it is deciding that revenue means one thing.</li>
+        </ul>
+        <div class="callout example">
+          <span class="ex-pill">Real world</span>
+          <p><strong>The catalog that taught a team to ignore catalogs.</strong> A data function bought a catalog to solve "nobody knows who owns anything", switched on automatic harvesting, and had every table listed within a fortnight. Ownership and grain were left for teams to fill in as they went. A quarter later the tool held several hundred tables with descriptions on a small fraction of them, and analysts had learned that searching it returned a name and nothing useful. The licence was not the loss. The loss was that the second attempt, eighteen months later with a proper backfill, had to overcome a whole team's belief that catalogs do not work. Buying the layer before you fund the behaviour does not delay the benefit. It puts a cost in front of it.</p>
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Why "we will keep it updated" is not a plan<span class="mini">2 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Any artifact that requires a human to remember something in order to stay true will stop being true, and the timescale is a quarter rather than a year. This is not a comment on anyone's diligence. It is arithmetic: updating is unrewarded, invisible when done and invisible when skipped, and it competes with work that has a deadline.</p>
+        <p>So when a proposal contains the phrase "and the team will keep it up to date", treat it as a defect in the proposal rather than a commitment. There are only three acceptable answers. The artifact is generated automatically, so staleness is impossible. Or a specific person owns it as a named responsibility with a review cadence you can point at. Or you accept that it will be stale and stop calling it a source of truth. All three are legitimate. The fourth option, which is hoping, is the one that has already failed in your organisation at least once.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 3: THE DECISION FRAME ============ -->
+  <section class="section" id="frame">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · how to decide</span>
+      <h2>Standardise, buy, or skip <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">Three rules, applied in order. They will resolve most tooling requests without needing a comparison matrix, and they have the useful property of being defensible out loud to the person whose request you just declined.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 372" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three gates for a tooling decision: standardise conventions first, buy where the tool enforces something people forget, skip anything needing manual updates">
+        <style>
+          .dfQ { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .dfS { font: 400 11px Inter, sans-serif; fill: #B9CBE4; }
+          .dfV { font: 800 13px Inter, sans-serif; fill: #FFFFFF; }
+          .dfN { font: 400 11px Inter, sans-serif; fill: #EDF2F9; }
+          .dfH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .dfK { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+          .dfA { stroke: #6C8CBC; stroke-width: 2.5; fill: none; marker-end: url(#dfAh); }
+        </style>
+        <defs>
+          <marker id="dfAh" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#6C8CBC"/>
+          </marker>
+        </defs>
+
+        <text class="dfH" x="26" y="24">Run every request through these three, in order</text>
+
+        <rect x="26" y="36" width="520" height="60" rx="9" fill="#22395C"/>
+        <text class="dfQ" x="46" y="60">Gate 1 · Is there a convention we have not agreed yet?</text>
+        <text class="dfS" x="46" y="80">Naming, grain sentences, layering, who may change a table</text>
+        <path class="dfA" d="M546,66 L594,66"/>
+        <rect x="600" y="36" width="254" height="60" rx="9" fill="#3B5B8C"/>
+        <text class="dfV" x="620" y="60">Standardise first</text>
+        <text class="dfN" x="620" y="80">A tool cannot hold an agreement</text>
+
+        <rect x="26" y="112" width="520" height="60" rx="9" fill="#22395C"/>
+        <text class="dfQ" x="46" y="136">Gate 2 · Does it enforce something humans keep forgetting?</text>
+        <text class="dfS" x="46" y="156">Not "helps us remember". Makes the wrong thing fail.</text>
+        <path class="dfA" d="M546,142 L594,142"/>
+        <rect x="600" y="112" width="254" height="60" rx="9" fill="#22395C"/>
+        <text class="dfV" x="620" y="136">Buy it</text>
+        <text class="dfN" x="620" y="156">This is the only reason to buy</text>
+
+        <rect x="26" y="188" width="520" height="60" rx="9" fill="#22395C"/>
+        <text class="dfQ" x="46" y="212">Gate 3 · Does its value depend on manual updating?</text>
+        <text class="dfS" x="46" y="232">Diagrams, glossaries, ownership fields, descriptions</text>
+        <path class="dfA" d="M546,218 L594,218"/>
+        <rect x="600" y="188" width="254" height="60" rx="9" fill="#991B1B"/>
+        <text class="dfV" x="620" y="212">Skip it</text>
+        <text class="dfN" x="620" y="232" fill="#FEF2F2">Or fund the updating as real work</text>
+
+        <rect x="26" y="266" width="828" height="88" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="dfK" x="46" y="288">Gate 1 is the one that saves the most money, and it is the one leaders skip. Conventions are free, they survive every</text>
+        <text class="dfK" x="46" y="308">migration, and a tool bought before them encodes whatever confusion you had. Gate 3 is the one that saves the most</text>
+        <text class="dfK" x="46" y="328">credibility: it is not a rule against documentation, it is a rule against calling an unmaintained artifact a source of</text>
+        <text class="dfK" x="46" y="348">truth. Decide which of the three verdicts you are giving, and say which gate produced it.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - three gates, in order, and the verdict each one produces</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The three rules, and how to say them out loud<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <ul>
+          <li><strong>Standardise conventions before buying tools.</strong> Naming, grain sentences, the staging and intermediate and marts layering, who may change a table: all free, all portable, all survive every migration you will ever do. A tool bought before the convention exists gets used four different ways by four different people, which is exactly the situation you were trying to fix, now with an invoice. Say it as: "what would we standardise on if we had no budget at all? Let us do that first, and then see what is left."</li>
+          <li><strong>Buy where the tool enforces something a human keeps forgetting.</strong> This is the whole positive case. Tests and contracts enforce that a promise is kept. A semantic layer enforces that one word means one thing. Regenerated diagrams enforce that the picture matches the database. A tool that only makes good behaviour <em>possible</em> is competing with a busy quarter, and the busy quarter wins. Say it as: "what does this make impossible that is currently merely discouraged?"</li>
+          <li><strong>Skip anything whose value depends on people updating it manually.</strong> Not because documentation is bad, but because an unmaintained artifact presented as authoritative is worse than an absence. Either the update is automatic, or it is a named person's job with a cadence, or you stop calling it a source of truth. Say it as: "who fills this in, in which week, and what happens if they do not?"</li>
+        </ul>
+        <p>Notice that all three rules are questions rather than positions. That is deliberate: they let you decline a request without contradicting the person's technical judgement, which is usually correct about the tool and usually wrong about the sequence.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The build-versus-buy question worth asking per layer<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Building your own is a real option in two of the four layers and a bad idea in the other two. One question per layer settles it:</p>
+        <ul>
+          <li><strong>Layer 1, ERD.</strong> "Can we generate this from the database we already have, and is that good enough for a design review?" Very often yes, using nothing but a script and an existing diagram format. Genuinely build, and expect it to cost a couple of days.</li>
+          <li><strong>Layer 2, transformation and testing.</strong> "Are we prepared to maintain a dependency graph, a test runner and a contract checker as internal products, forever?" Almost always no. This category is mature and the conventions are industry-standard. Adopt, do not build. Every homegrown version of this becomes one person's unmaintained framework.</li>
+          <li><strong>Layer 3, catalog.</strong> "Do we need search across many teams, or do we need one honest table of owners and grains?" If the honest answer is the second, a governed table plus a scheduled harvest of schemas and freshness gets you most of the value at close to zero licence. Buy when the number of teams, not the number of tables, is the problem.</li>
+          <li><strong>Layer 4, semantic layer.</strong> "Do our consumers read definitions from one place, or does each tool hold its own?" You can absolutely start by building: a governed table of definitions in the warehouse, with expression, grain, owner and caveat. That is exactly what this course ships as 13 definitions, and it was enough to take an AI analyst from 0 of 20 to 20 of 20. Buy when you need enforcement at query time rather than agreement at design time.</li>
+        </ul>
+        <p>The pattern across all four: build where the artifact is small and the value is agreement, buy where the value is enforcement at runtime and the maintenance never ends.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>You do not need this yet if...<span class="mini">2 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Hold this list up in a budget review. Every line is a legitimate reason to defer, and deferring is not the same as neglecting.</p>
+        <ul>
+          <li><strong>ERD tooling</strong> - if one person can draw the whole model on a whiteboard from memory and two others would agree with it. Buy nothing; take a photo and put it in the repository.</li>
+          <li><strong>Transformation and testing</strong> - if exactly one person writes all the transformation logic and there are no downstream consumers outside their team. This is the shortest deferral on the list, because it expires the moment a second person joins.</li>
+          <li><strong>Catalog</strong> - if a single spreadsheet of tables, owners and grain sentences would fit on one screen and stay current. Write that spreadsheet. It is the same value at zero cost, and it also tells you when you have outgrown it.</li>
+          <li><strong>Semantic layer</strong> - if you have fewer than roughly a dozen metrics that matter and nobody is currently disagreeing about any of them. Write the definitions as a governed table first. If they hold for two quarters, you have your answer about whether you needed a product.</li>
+          <li><strong>Any of the four</strong> - if the grain and caveat workshop from session a3 scored badly. That score is a diagnosis of missing agreement, and no product in this market sells agreement.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DISCUSSION EXERCISE 1 ============ -->
+  <section class="section" id="audit">
+    <div class="section-kicker">
+      <span class="klabel">Discussion exercise 1 of 2</span>
+      <h2>The four-layer audit <span class="tag demo">★ 8 min · run this in your next team meeting</span></h2>
+    </div>
+    <p class="lede">Twenty minutes, a whiteboard, no vendors present. The output is a picture of which layers you actually have, which you have paid for but not adopted, and which single layer is worth the next quarter's attention. Run it before any tooling conversation rather than during one.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Draw the four layers on the board.</strong> Draw and version, transform and test, catalog, semantic. Nothing else on the board yet, and no product names.</p></div>
+      <div class="step"><p><strong>Write what you own in each layer, and what it enforces.</strong> Two columns. A layer where you can name a tool but cannot name what it makes impossible goes in a third column marked "paid for, not adopted", and that column is usually the most interesting thing in the room.</p></div>
+      <div class="step"><p><strong>For each empty layer, state the signal.</strong> Not the benefit. The observable event that says you need it now: two engineers describing the same relationship differently, the weekly "who owns this" question, two dashboards disagreeing on one word. No signal means no purchase this quarter.</p></div>
+      <div class="step"><p><strong>Pick exactly one layer for the next quarter and name its adoption cost.</strong> One. Write the behaviour change and the person who owns it beside the layer. If nobody will accept the behaviour change, you have learned that this was never a tooling problem.</p></div>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The prompt, a good answer, and the failure mode to listen for<span class="mini">5 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The prompt, read aloud:</strong> "Four layers on the board. For each one, tell me what we own, and tell me what it makes impossible. Not what it helps with. What it makes impossible. Then for every empty layer, tell me the thing we have actually observed that says we need it."</p>
+        <p><strong>What a good answer sounds like:</strong> "Layer 2 we own: transformation logic is in version control with tests, and a change that breaks a declared column fails the build, so that is genuine enforcement. Layer 1 we have diagrams, but they are drawn by hand and last updated in February, so I would put that in the paid-for-not-adopted column. Layer 3 is empty, and the signal is real: the same three people get asked who owns a table roughly weekly. Layer 4 is empty and I do not think we have the signal yet, because nothing is currently disagreeing."</p>
+        <p><strong>The failure modes to listen for:</strong></p>
+        <ul>
+          <li><strong>Product names instead of enforcement.</strong> "We have the enterprise catalog." That answers a procurement question, not this one. Ask again: what does it make impossible? Silence there is the finding.</li>
+          <li><strong>A benefit standing in for a signal.</strong> "It would give us better visibility." A benefit is what a vendor says. A signal is something that has already happened, that you can date. Keep asking until you get an event.</li>
+          <li><strong>Wanting layer 4 first.</strong> Extremely common, because it is the layer with the best demo and the clearest link to AI ambitions. The gentle version of the pushback: "if we encoded our metric definitions tomorrow, would the room agree with them?" If not, you are about to make a disagreement official.</li>
+          <li><strong>Picking three layers for one quarter.</strong> Each has a behavioural adoption cost, and three simultaneous behaviour changes is three abandoned initiatives. Insist on one, and name the person.</li>
+          <li><strong>"We have all four already."</strong> Then the honest follow-up is why the last metric argument happened, and which layer failed to prevent it. There is always a recent one.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DISCUSSION EXERCISE 2 ============ -->
+  <section class="section" id="pitch">
+    <div class="section-kicker">
+      <span class="klabel">Discussion exercise 2 of 2</span>
+      <h2>Map the pitch onto the frame <span class="tag demo">★ 5 min · the script</span></h2>
+    </div>
+    <p class="lede">Use this the next time someone brings you a tooling request, whether it comes from your own team or from a vendor who found your calendar. It takes about five minutes and it moves the conversation from features to sequence, which is where the actual decision lives.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Ask which of the four categories it is.</strong> A good answer names one. An answer that names three means the product spans layers, which is fine but means you are being asked to approve three adoption programmes at once, and you should price it that way.</p></div>
+      <div class="step"><p><strong>Ask what it makes impossible.</strong> Then wait. The gap between "it enables" and "it prevents" is the entire difference between a tool that survives a busy quarter and one that does not.</p></div>
+      <div class="step"><p><strong>Ask which convention it assumes we have already agreed.</strong> Every tool in every layer assumes something: a layering convention, a naming standard, an ownership model. Name it, then check whether you actually have it. Most declined requests die honestly right here.</p></div>
+      <div class="step"><p><strong>Ask who fills in the manual fields, and in which week.</strong> A name and a week, or the fields stay blank and the artifact becomes decorative. Then give a verdict and say which gate produced it, so the next request arrives already framed.</p></div>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The prompt, a good answer, and the failure mode to listen for<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The prompt:</strong> "Four questions before we talk about the product. Which of the four layers is this? What does it make impossible? Which convention does it assume we have already agreed? And who fills in the manual fields, in which week?"</p>
+        <p><strong>What a good answer sounds like:</strong> "It is layer 2. It makes it impossible to ship a change that drops a column another team has declared a dependency on, because the build fails. It assumes we have agreed a layering convention, which we have not, so I would want two weeks on that first. There are no manual fields; the contracts are declared alongside the code that people already have to touch." That is a strong answer, and note that it includes a delay the requester volunteered.</p>
+        <p><strong>The failure modes to listen for:</strong></p>
+        <ul>
+          <li><strong>An answer about the roadmap.</strong> "The next release will add contracts." You are being asked to buy an intention. Decide on what exists today.</li>
+          <li><strong>A demo answer.</strong> "Let me show you." The demo will be good; that is its purpose. It will not answer question three, which is the one that decides.</li>
+          <li><strong>No manual fields claimed at all.</strong> Nearly always untrue in layers 3 and 4. Ownership, grain sentences and caveats cannot be harvested from anything. If the answer is "it is all automatic", the person has not used it with real data yet.</li>
+          <li><strong>Urgency attached to an AI initiative.</strong> "We need this before we can launch the AI analyst." Sometimes true and worth acting on, and session a6 is where that case gets made properly. But the accuracy came from 13 definitions with grain and caveat, not from a purchase order, and it is worth knowing which one you are being sold.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ QUESTIONS FOR YOUR TEAM ============ -->
+  <section class="section" id="ask">
+    <div class="section-kicker">
+      <span class="klabel">Take this to your own team</span>
+      <h2>Seven questions to ask your data team <span class="tag concept">4 min live</span></h2>
+    </div>
+    <p class="lede">Short, neutral, and hard to answer with a product name. As in a3, the value is less in the answer being right than in how quickly it arrives and whether it cites something you could go and look at.</p>
+
+    <table class="clean">
+      <thead><tr><th>Ask this</th><th>Why it works</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>"Which of our four layers does this request buy us, and what does it make impossible?"</strong></td>
+          <td>Converts a product pitch into a category decision in one sentence. The second half is the real test: enabling good behaviour loses to a busy quarter, preventing bad behaviour does not.</td>
+        </tr>
+        <tr>
+          <td><strong>"When was our model diagram last regenerated, and was it regenerated or redrawn?"</strong></td>
+          <td>Dates the artifact and reveals whether it is an output or a document. A redrawn diagram older than a quarter is not a diagram, it is a historical record that people are still trusting.</td>
+        </tr>
+        <tr>
+          <td><strong>"If someone renames a column a report depends on, what happens?"</strong></td>
+          <td>The single sharpest question about layer 2. "The report breaks and someone tells us" means you have a folder structure. "The build fails" means you have contracts. Nothing else you ask about this layer matters as much.</td>
+        </tr>
+        <tr>
+          <td><strong>"What share of tables in our catalog have a named owner and a grain sentence?"</strong></td>
+          <td>Asks for a proportion, which cannot be answered with an anecdote. A low number is not a failure of the catalog, it is an unfunded backfill, and that is a scoping decision rather than a tooling one.</td>
+        </tr>
+        <tr>
+          <td><strong>"Do BI and any AI analyst read the same metric definitions from the same place?"</strong></td>
+          <td>Tests for layer 4 without asking whether you own a semantic layer. If each consumer holds its own definitions, they disagree by construction, and no amount of review cadence fixes that.</td>
+        </tr>
+        <tr>
+          <td><strong>"Which convention would we standardise on if we had no budget at all this year?"</strong></td>
+          <td>Surfaces gate 1 in a form nobody can argue with. The answer is almost always naming, grain or layering, all free, and it usually turns out to be the actual blocker behind the tooling request.</td>
+        </tr>
+        <tr>
+          <td><strong>"Which tool do we pay for and not really use, and what stopped us?"</strong></td>
+          <td>Every organisation has one, and the reason is nearly always an unfunded behaviour change rather than a bad product. It is the cheapest available lesson about your own adoption capacity, and it should shape the size of the next commitment.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>How to decline a good request well<span class="mini">2 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Most tooling requests you decline will be technically correct. The person is right that the tool solves a real problem; they are wrong about the sequence, and telling them they are wrong about the tool will cost you the next honest recommendation they might have made.</p>
+        <p>So decline on the gate, not on the merit. "This is a good fit for layer 4 and I want it. Gate 1 says we have not agreed what revenue means, so a semantic layer would encode the argument rather than settle it. Settle the metric definitions this quarter and bring the same request back with them attached, and I will approve it." That is a yes with a sequence, it names what has to be true, and it is a genuinely stronger position than either approving or refusing.</p>
+        <p>It also has a side effect worth having: the next request arrives already mapped onto the four layers, with the convention question answered. Once that happens, this session has done its job and you can stop running the script.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 30-40 min total</span></h2>
+    </div>
+    <ul>
+      <li>Write your own four-layer map on one page: what you own in each layer, and what it makes impossible. Mark the layers where you can name a tool but not an enforcement. That column is your real tooling problem, and it does not need a purchase.</li>
+      <li>Find your model diagram and date it. If it was redrawn rather than regenerated, and the date is more than a quarter old, either commission the regeneration or take it off the wall. Both are better than leaving it up.</li>
+      <li>Ask one person who edits transformation logic what happens today if they rename a column a report depends on. Write down the answer verbatim. It is the most honest single sentence about your layer 2 maturity that you will get all quarter.</li>
+      <li>Pick the one layer you would fund next, and write its adoption cost as a behaviour change with a named owner: the review step, the backfill, or the arguments to be settled. If you cannot name the owner, the layer is not ready, whatever the licence costs.</li>
+      <li>Take the score from the a3 blank-caveat workshop and put it next to your four-layer map. A poor score plus an empty layer 4 is a sequencing answer, not a shopping list. Bring both to <strong>a5</strong>, which owns the naming standards, the ownership model and the contract document that gate 1 keeps pointing at.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">This page teaches conventions and categories rather than products, because the conventions are the part that will still be true when the logos have changed. The full source map, including what is deliberately out of scope, is in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">dbt layering conventions (staging / intermediate / marts) and model contracts</span><span class="note">Part 1 · layer 2, and the difference between enabling and enforcing; built for real in builder sessions b8 and b9</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Dehghani, <em>Data Mesh</em> - data as a product, the contract as the interface</span><span class="note">Parts 1 and 3 · why a contract beats documentation; the contract document itself is session a5</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - grain and conformed dimensions</span><span class="note">Part 1 · the marts convention assumes a declared grain; grain is session a3, the design work is b5-b7</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Inmon, <em>Building the Data Warehouse</em> - who owns change</span><span class="note">Part 2 · adoption cost is really a question about who absorbs change; ownership is session a5</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Semantic layers and metric definitions as machine-readable artifacts</span><span class="note">Part 1 · layer 4, and the 0 of 20 to 20 of 20 result; what to fund for agents is a6, the build is b9</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Your team has no agreed naming standard and no agreed layering convention. A semantic layer demo was genuinely impressive and the business case cites AI ambitions. What is the right call?</p>
+      <button class="qopt" type="button">A · Approve it, because the tool will force the conventions to be agreed as a side effect</button>
+      <button class="qopt" type="button">B · Say yes to the layer and no to the timing: settle the metric definitions first, because a semantic layer over undefined metrics makes the disagreement official rather than resolving it</button>
+      <button class="qopt" type="button">C · Refuse the category outright, since semantic layers are only worth it at large scale</button>
+      <p class="qwhy">Gate 1 before gate 2. A semantic layer is a place to put agreements, so buying one before the agreements exist centralises the confusion and makes it look canonical. The evidence that the layer pays is strong - 13 definitions with grain and caveat took an AI analyst from 0 of 20 to 20 of 20 on this course's data - but the value was in the definitions, and those can be written this quarter with no licence at all.</p>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">2 · Which of these is the strongest signal that you now need a catalog?</p>
+      <button class="qopt" type="button">A · The table count has passed a few hundred and is still growing</button>
+      <button class="qopt" type="button">B · A vendor has shown you automatic lineage across your whole warehouse</button>
+      <button class="qopt" type="button">C · The same "who owns this table and is it fresh" question is asked in chat every week, and an analyst recently built on a deprecated table</button>
+      <button class="qopt" type="button">D · Leadership has asked for better data governance</button>
+      <p class="qwhy">A signal is an observable event you can date, not a benefit or a threshold. Table count says nothing about whether anyone is struggling to find things, and a lineage demo is a capability rather than a need. The weekly routing question plus a real incident is exactly the shape of "ownership is tribal knowledge", which is the problem this layer enforces against.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · A proposal you like ends with "and the team will keep the descriptions up to date". How should you treat that sentence?</p>
+      <button class="qopt" type="button">A · As a defect in the proposal: either generate the artifact automatically, or name one person with a review cadence, or stop calling it a source of truth</button>
+      <button class="qopt" type="button">B · As a reasonable commitment, since the team wrote the proposal and owns the outcome</button>
+      <button class="qopt" type="button">C · As a reason to add a quarterly reminder to the governance forum agenda</button>
+      <p class="qwhy">Updating is unrewarded, invisible whether done or skipped, and competes with work that has a deadline, so it stops happening within about a quarter. That is arithmetic rather than a comment on diligence. Three answers are acceptable - automatic, or a named owner with a cadence, or an honest downgrade from "source of truth" - and hoping is not one of them. This is gate 3, and it is the rule that protects your credibility rather than your budget.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 4 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Four categories, not four logos</b><span>Draw and version · transform and test · catalog · semantic layer. Map any vendor onto one of them before discussing features.</span></div>
+      <div class="cheat-item"><b>Layer 1 · the honest observation</b><span>A diagram nobody regenerates is a lie within a quarter, and a dangerous one because it still looks finished.</span></div>
+      <div class="cheat-item"><b>Layer 2 · the sharpest question</b><span>"If someone renames a column a report depends on, what happens?" Build fails = enforcement. Report breaks = a folder structure.</span></div>
+      <div class="cheat-item"><b>Layer 3 · the bill is the backfill</b><span>Schemas and freshness harvest themselves. Owner, grain and meaning never do. An empty catalog teaches the team to ignore catalogs.</span></div>
+      <div class="cheat-item"><b>Layer 4 · the measured case</b><span>13 definitions with expression, grain and caveat took an AI analyst from 0 of 20 to 20 of 20 on unchanged data.</span></div>
+      <div class="cheat-item"><b>Gate 1 · standardise first</b><span>Naming, grain sentences, layering: free, portable, survive every migration. A tool bought before them encodes the confusion.</span></div>
+      <div class="cheat-item"><b>Gate 2 · buy enforcement</b><span>Not "helps us remember". Makes the wrong thing fail. Anything that merely enables good behaviour loses to a busy quarter.</span></div>
+      <div class="cheat-item"><b>Gate 3 · skip manual upkeep</b><span>Automatic, or a named owner with a cadence, or not a source of truth. Next: a5, the conventions gate 1 keeps demanding.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Leader session 4 of 6 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a3-grain-and-meaning.html">← Prev: Grain, and one number one meaning</a> &nbsp;·&nbsp; <a href="a5-naming-and-ownership.html">Next: Naming standards and ownership →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

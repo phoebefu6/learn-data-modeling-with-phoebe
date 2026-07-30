@@ -1,0 +1,184 @@
+# contract.yaml - the data contract for Bazaar's analytical model (session b9)
+#
+# A schema tells you what columns exist. A contract tells you what they MEAN, who owns them,
+# what is guaranteed, and what breaks if you change them. It is what turns "the model" from a
+# set of tables into something a downstream team - or an AI agent - can depend on.
+#
+# This file is the machine-readable twin of semantic/schema_card.md: the card is written for a
+# model's context window, this is written for CI, catalogs, and the humans on the hook.
+
+contract:
+  name: bazaar-analytics
+  version: 1.0.0
+  owner: data-platform
+  consumers: [bi-dashboards, finance-close, merchant-portal, ai-analyst-agent]
+  slo:
+    freshness: "loaded daily by 07:00 SGT"
+    completeness: "every settled order appears within one load cycle"
+  breaking_change_policy: >
+    Adding a column or a view is non-breaking and needs no notice. Renaming or removing a
+    column, changing a column's type, or changing the GRAIN of any view or fact is breaking:
+    it needs a minor version bump, two weeks of notice to every consumer listed above, and a
+    deprecation window where old and new coexist. Changing a metric DEFINITION without
+    renaming it is the most dangerous change of all - every historical number silently
+    changes meaning - and requires the same treatment as a removal.
+
+grains:
+  fact_order_item: one row per product line on one order
+  fact_transaction: one row per payment attempt
+  fact_cart: one row per cart
+  mart_merchant_daily: one row per merchant per day
+  mart_hourly_transactions: one row per date per hour
+  mart_funnel_daily: one row per day
+  mart_payment_health_daily: one row per day per payment method
+
+# Joins that are ALLOWED. Anything not listed here is not sanctioned - which is the point.
+# Note that no fact-to-fact join appears, and none ever will: facts meet only through a
+# shared dimension, or by being aggregated to a common grain first.
+allowed_joins:
+  - fact_order_item.date_key -> dim_date.date_key
+  - fact_order_item.time_key -> dim_time_of_day.time_key
+  - fact_order_item.merchant_sk -> dim_merchant.merchant_sk
+  - fact_order_item.product_sk -> dim_product.product_sk
+  - fact_order_item.user_sk -> dim_user.user_sk
+  - fact_transaction.date_key -> dim_date.date_key
+  - fact_transaction.time_key -> dim_time_of_day.time_key
+  - fact_transaction.payment_method_key -> dim_payment_method.payment_method_key
+  - fact_transaction.user_sk -> dim_user.user_sk
+  - fact_cart.date_key -> dim_date.date_key
+  - fact_cart.merchant_sk -> dim_merchant.merchant_sk
+  - fact_cart.user_sk -> dim_user.user_sk
+
+forbidden_joins:
+  - pair: [fact_order_item, fact_transaction]
+    reason: >
+      Different grains. One order with 3 lines and 2 payment attempts yields 6 rows and
+      revenue inflated 2x. Aggregate each fact separately, then compare on order_id or date.
+  - pair: [fact_order_item, fact_cart]
+    reason: >
+      Different grains, and cart_value is list value while net_revenue is discounted. They
+      will never reconcile to the cent - that mismatch is real, not a bug to join away.
+  - pair: [mart_merchant_daily, mart_hourly_transactions]
+    reason: >
+      Different grains (merchant-day vs date-hour). Joining fans out every merchant across
+      every hour. Pick the mart that matches the question's grain.
+
+metrics:
+  net_revenue:
+    definition: money charged for goods after line discounts, excluding failed payments
+    expression: SUM(net_revenue) WHERE is_paid = 1
+    source: v_sales_line
+    grain: order line
+    additive: true
+    caveat: excludes refunds; for settled cash including refunds use settled_amount
+  orders:
+    definition: count of distinct orders that settled
+    expression: COUNT(DISTINCT order_id) WHERE is_paid = 1
+    source: v_sales_line
+    grain: order line
+    additive: true
+    caveat: COUNT(*) counts lines, not orders - the most common agent error
+  aov:
+    definition: settled revenue divided by settled orders
+    expression: SUM(net_revenue) / COUNT(DISTINCT order_id) WHERE is_paid = 1
+    source: v_sales_line
+    grain: order line
+    additive: false
+    caveat: never average an AOV; recompute from the two sums at the grain you need
+  margin:
+    definition: net revenue minus standard product cost
+    expression: SUM(margin) WHERE is_paid = 1
+    source: v_sales_line
+    grain: order line
+    additive: true
+    caveat: standard unit cost, not landed cost - not a finance-grade margin
+  commission:
+    definition: marketplace take at the commission rate in force at time of sale
+    expression: SUM(commission) WHERE is_paid = 1
+    source: v_sales_line
+    grain: order line
+    additive: true
+    caveat: uses the SCD2 merchant version on the fact, so historic rates stay correct
+  decline_rate:
+    definition: share of payment attempts that were declined
+    expression: SUM(is_declined) * 1.0 / COUNT(*)
+    source: v_payment_attempt
+    grain: payment attempt
+    additive: false
+    caveat: report the attempt count beside it; below ~30 attempts it is noise
+  settled_amount:
+    definition: cash that actually moved, refunds netted off
+    expression: SUM(attempt_amount) WHERE is_approved = 1 OR is_refund = 1
+    source: v_payment_attempt
+    grain: payment attempt
+    additive: true
+    caveat: differs from net_revenue by refund timing and retries - reconcile, do not assume
+  cart_conversion_rate:
+    definition: share of carts that became an order
+    expression: SUM(is_converted) * 1.0 / COUNT(*)
+    source: v_cart
+    grain: cart
+    additive: false
+    caveat: carts, not sessions - a user with three carts counts three times
+  abandoned_value:
+    definition: list value sitting in carts that never converted
+    expression: SUM(abandoned_value)
+    source: v_cart
+    grain: cart
+    additive: true
+    caveat: list value, not lost revenue - most of it would never have converted
+
+# Synonyms the business actually says, mapped to the metric that answers them. This is the
+# cheapest accuracy win available to a text-to-SQL agent: it removes the guess.
+synonyms:
+  revenue: net_revenue
+  sales: net_revenue
+  GMV: gross_revenue
+  topline: net_revenue
+  take rate: commission
+  basket size: aov
+  average basket: aov
+  order count: orders
+  transactions: orders
+  failure rate: decline_rate
+  auth rate: approval_rate
+  checkout conversion: cart_conversion_rate
+  lost revenue: abandoned_value
+
+# Known modeling decisions that a reader could mistake for facts. Writing these down is the
+# difference between a model people trust and a model people argue about.
+known_limitations:
+  - id: dominant-merchant
+    where: fact_cart.merchant_sk
+    detail: >
+      A cart is attributed to the merchant on its highest-value line. A mixed cart therefore
+      credits all of its abandonment to one merchant.
+  - id: cart-vs-order-value
+    where: fact_cart.cart_value vs fact_order_item.net_amount
+    detail: >
+      Cart value is list price; order revenue is discounted. A converted cart will not equal
+      its order to the cent, by design.
+  - id: scd2-single-version
+    where: dim_merchant, dim_product
+    detail: >
+      The type-2 STRUCTURE is in place but the initial load carries one current version per
+      business key. Historic tier and price changes are not yet backfilled.
+  - id: small-sample-rates
+    where: any rate metric
+    detail: >
+      Merchant-day and method-day slices routinely have fewer than 30 observations. Rates at
+      those slices are not decision-grade; always read the denominator.
+  - id: guest-users
+    where: dim_user.is_guest
+    detail: >
+      Guest checkouts have no history, so any returning-customer metric either excludes them
+      or counts them wrong. It is not exposed in the agent views for that reason.
+
+agent_access:
+  allowed_objects: [v_sales_line, v_payment_attempt, v_cart, v_merchant_day, v_hour_of_day, v_metric_definitions]
+  permissions: read-only
+  must_show_sql: true
+  refuse_when:
+    - the question needs a table not in allowed_objects
+    - the question needs a join listed in forbidden_joins
+    - the metric has no entry in v_metric_definitions and no definition was supplied

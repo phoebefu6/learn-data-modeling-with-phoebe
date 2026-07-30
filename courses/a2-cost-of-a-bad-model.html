@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leader session 2 · The cost of a bad model - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Leader session 2 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Leader track · Session 2 of 6</div>
+    <h1>The cost of a <span class="accent">bad model</span></h1>
+    <p class="sub">Nobody funds a modeling project. Everybody funds the consequences of not having done one: the reconciliation work, the quarter where two teams brought different revenue numbers, the AI initiative that stalled because nothing could be defined. This session itemises that invoice, shows you which line is the expensive one, and gives you a way to decide whether to fix a model now, live with it, or ringfence it.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Leader track</span>
+      <span class="chip audience">C-level · heads of data · stakeholders</span>
+      <span class="chip audience">No code to write</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-20 · The four cost lines</span>
+      <span class="a3" style="flex:4">20-38 · Decide: fix, live with, or ringfence</span>
+      <span class="a4" style="flex:1">38-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Why this bill is invisible</h2>
+    </div>
+    <p class="lede">A bad model never sends an invoice with its own name on it. It bills you through other people's line items: analyst time coded as "reporting", a BI migration that ran three months long, a headcount request to "improve data quality", a decision made on instinct because nobody trusted the dashboard. Session a1 argued that the schema is a business decision. This session prices it.</p>
+    <p class="lede">One honest caveat before the numbers: the figures on this page come from <strong>Bazaar</strong>, the small marketplace dataset this course is built on - 985 orders over 90 days. They are an illustration of the arithmetic, not a benchmark for your organisation. The percentages are what transfer; the dollars are yours to substitute.</p>
+    <div class="legend">
+      <span class="pill solid">Live - discussed in session</span>
+      <span class="pill light">Self-study - read after</span>
+      <span class="pill peach">◆ Run this in your own meeting</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      The four cost lines named so you can spot them in your own P&amp;L, one worked cost sketch you can redo with your own volumes, and a three-signal test for whether a known modeling problem needs fixing this quarter or can wait.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: FOUR COST LINES ============ -->
+  <section class="section" id="costs">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Kimball on grain, Inmon on who owns change</span>
+      <h2>The four cost lines <span class="tag concept">8 min live</span></h2>
+    </div>
+    <p class="lede">Three of these are money you can count. The fourth is the one that actually hurts, and it compounds.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The four cost lines of a bad data model: rework, reconciliation, lost trust which compounds, and a ceiling on automation">
+        <style>
+          .cbT { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .cbH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .cbC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .cbB { font: 700 12px Inter, sans-serif; fill: #991B1B; }
+          .cbN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+          .cbAx { stroke: #B7C2D1; stroke-width: 1.5; }
+          .cbCurve { stroke: #991B1B; stroke-width: 2.5; fill: none; }
+          .cbFlat { stroke: #6C8CBC; stroke-width: 2.5; fill: none; stroke-dasharray: 5 4; }
+        </style>
+
+        <rect x="26" y="30" width="196" height="40" rx="8" fill="#3B5B8C"/>
+        <text class="cbT" x="42" y="56">1 · Rework</text>
+        <text class="cbC" x="42" y="92">Every asset built on a</text>
+        <text class="cbC" x="42" y="111">wrong grain gets rebuilt.</text>
+        <text class="cbB" x="42" y="136">Scales with TIME trusted,</text>
+        <text class="cbC" x="42" y="155">not with how wrong it was.</text>
+
+        <rect x="242" y="30" width="196" height="40" rx="8" fill="#3B5B8C"/>
+        <text class="cbT" x="258" y="56">2 · Reconciliation</text>
+        <text class="cbC" x="258" y="92">Analyst-weeks spent</text>
+        <text class="cbC" x="258" y="111">explaining why two</text>
+        <text class="cbC" x="258" y="130">numbers differ.</text>
+        <text class="cbB" x="258" y="155">Nobody budgets this line.</text>
+
+        <rect x="458" y="30" width="196" height="40" rx="8" fill="#991B1B"/>
+        <text class="cbT" x="474" y="56">3 · Lost trust</text>
+        <text class="cbC" x="474" y="92">Two numbers in one room</text>
+        <text class="cbC" x="474" y="111">once, and the next call</text>
+        <text class="cbC" x="474" y="130">gets made on instinct.</text>
+        <text class="cbB" x="474" y="155">This one compounds.</text>
+
+        <rect x="674" y="30" width="180" height="40" rx="8" fill="#C08A2E"/>
+        <text class="cbT" x="690" y="56">4 · Automation cap</text>
+        <text class="cbC" x="690" y="92">A metric nobody can</text>
+        <text class="cbC" x="690" y="111">define cannot be handed</text>
+        <text class="cbC" x="690" y="130">to any AI analyst.</text>
+        <text class="cbB" x="690" y="155">The model caps the roadmap.</text>
+
+        <text class="cbH" x="26" y="200">Why line 3 is the expensive one</text>
+        <path class="cbAx" d="M60,340 L60,214"/>
+        <path class="cbAx" d="M60,340 L520,340"/>
+        <text class="cbC" x="18" y="222">cost</text>
+        <text class="cbC" x="470" y="360">time trusted</text>
+        <path class="cbFlat" d="M60,320 L520,286"/>
+        <text class="cbC" x="358" y="278">rework: roughly linear</text>
+        <path class="cbCurve" d="M60,332 C210,330 360,300 520,224"/>
+        <text class="cbB" x="330" y="216">lost trust: compounds</text>
+
+        <rect x="560" y="200" width="294" height="150" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="cbH" x="578" y="226">Rework is a project.</text>
+        <text class="cbC" x="578" y="248">You can scope it, staff it and</text>
+        <text class="cbC" x="578" y="267">finish it.</text>
+        <text class="cbH" x="578" y="296">Lost trust is a culture change.</text>
+        <text class="cbC" x="578" y="318">Once decisions route around the</text>
+        <text class="cbC" x="578" y="337">data, winning them back costs</text>
+        <text class="cbN" x="578" y="356">far more than the fix did.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four lines, and the one that does not stay linear</figcaption>
+    </figure>
+
+    <table class="clean">
+      <thead><tr><th>Cost line</th><th>How it shows up in your world</th><th>The signal it is already happening</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1 · Rework</strong></td><td>dashboards rebuilt, pipelines re-pointed, a migration that overruns</td><td>an engineer says "we need to redefine what a row means in that table"</td></tr>
+        <tr><td><strong>2 · Reconciliation</strong></td><td>analyst time coded as reporting, recurring "why do these differ" meetings</td><td>somebody owns a spreadsheet that bridges two systems, and only they understand it</td></tr>
+        <tr><td><strong>3 · Lost trust</strong></td><td>decisions made on instinct, teams keeping private numbers</td><td>a leader says "I do not use that dashboard, I ask my team directly"</td></tr>
+        <tr><td><strong>4 · Automation cap</strong></td><td>self-service stalls, an AI analyst pilot never leaves pilot</td><td>a vendor demo works and your own data breaks it in week two</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Rework scales with time trusted, not with size of error<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>This is the counterintuitive part, and it is the argument that unlocks budget. A small modeling error found in week one costs a conversation. The same error found after eighteen months costs every dashboard, alert, pipeline, board slide and external commitment built on top of it - plus the credibility of everyone who quoted it.</p>
+        <ul>
+          <li><strong>The multiplier is downstream count, not error magnitude.</strong> A 3% wrong number that forty assets depend on is far more expensive than a 40% wrong number nobody has built on yet.</li>
+          <li><strong>Therefore the cheapest moment to fix is always now,</strong> and the second cheapest is before the next team builds on it. That second window is the one leaders actually control.</li>
+          <li><strong>And it explains the pattern you have seen:</strong> the team that raises a modeling concern early gets told it is premature, and the same concern eighteen months later becomes a programme with a steering committee.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The one-line version for a budget conversation</strong>
+          "We are not deciding whether to pay for this. We are deciding whether to pay for it now, at the size of a conversation, or later, at the size of a programme."
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>A worked cost sketch, with the arithmetic visible<span class="mini">4 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Bazaar's dataset is deliberately small, which makes the arithmetic legible. Substitute your own volumes and the shape holds.</p>
+        <ul>
+          <li><strong>The error:</strong> a dashboard counts rows in the order-line table and calls them orders. Bazaar has 985 orders and 1,434 order lines, so June reports 481 orders instead of 327 - a 47% overstatement. Nothing errors. The number simply reads high, consistently, forever.</li>
+          <li><strong>Who acts on it:</strong> whoever sets acquisition targets from order volume. Every target derived from that number is set against a base that is half again too big, so performance looks like underdelivery when it is not.</li>
+          <li><strong>The second error, same table:</strong> average order value computed by averaging line values instead of dividing revenue by orders. Bazaar's true AOV is 116.93; the wrong method gives 80.68 - a 31% understatement. Note the direction: one metric reads high while a related one reads low, so the two errors hide each other in any sanity check.</li>
+          <li><strong>The third, from joining two tables that should never meet:</strong> revenue inflates from 111,906.48 to 121,003, about 8% high. Small enough to survive review, large enough to matter in a forecast.</li>
+          <li><strong>What it costs to find:</strong> not much, if the model published what one row means. Weeks, if it did not - because the investigation is not a query, it is an archaeology project across everyone who ever touched the table.</li>
+        </ul>
+        <p>The pattern worth taking to your own numbers: modeling errors are usually not wild, and that is exactly why they survive. A number that is 47% wrong in one direction and 31% wrong in the other still passes a smell test, and passes it every month.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: THE DECISION ============ -->
+  <section class="section" id="decide">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · what to do about it</span>
+      <h2>Fix it, live with it, or ringfence it <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">Not every known modeling problem deserves a project this quarter. Three options, and three signals that decide between them.</p>
+
+    <table class="clean">
+      <thead><tr><th>Option</th><th>What it means in practice</th><th>When it is the right call</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Fix it</strong></td><td>remodel the subject area, migrate the downstream assets, retire the old shape</td><td>any of the three signals below is present</td></tr>
+        <tr><td><strong>Live with it</strong></td><td>document the compromise where consumers will see it, name an owner, revisit on a date</td><td>none of the signals is present and the blast radius is one team</td></tr>
+        <tr><td><strong>Ringfence it</strong></td><td>freeze the bad shape, forbid new dependencies, build new work against a corrected model beside it</td><td>a fix is right but cannot be sequenced this quarter</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The three signals that mean fix it now<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <ul>
+          <li><strong>1. The number is in an external commitment.</strong> Board reporting, an investor deck, a regulator, a customer SLA, a partner rebate. Once a wrong number leaves the building, correcting it is no longer a data project - it is a communications event.</li>
+          <li><strong>2. The error compounds with volume.</strong> If growth makes the gap bigger rather than proportionally the same, waiting is actively expensive. Double-counting in a payments join gets worse as retry rates rise.</li>
+          <li><strong>3. A second team is about to build on it.</strong> This is the signal leaders can see and the data team often cannot, because it lives in the roadmap rather than the schema. Every new consumer multiplies the eventual rework, so the moment before onboarding one is the last cheap moment.</li>
+        </ul>
+        <p>If none of the three is present, "live with it, documented, with an owner and a review date" is a legitimate engineering decision - and it is a far better answer than a vague promise to clean things up, because it can be audited.</p>
+        <div class="callout tip">
+          <strong>The move that is never right</strong>
+          Fixing the dashboard instead of the model. A corrected query on top of a wrong grain works until the next person writes their own query - and now you have two numbers, which is the fastest possible route to cost line 3.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What "documented" has to mean to count<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>"We know about it and it is documented" is only a real answer if a consumer would actually hit the documentation. A wiki page nobody opens is not a control. This course's own model carries its compromises in a <code>known_limitations</code> block inside the data contract that ships beside the tables, which means anyone connecting to the model meets the caveats on the way in.</p>
+        <ul>
+          <li><strong>Name the compromise, its blast radius, and who owns it.</strong> "Carts are attributed to the merchant on the highest-value line, so mixed carts credit all abandonment to one merchant."</li>
+          <li><strong>Put it where the query happens,</strong> not where the meeting happened - in the catalog entry, the contract, the metric definition's caveat field.</li>
+          <li><strong>Give it a review date,</strong> because an undated compromise becomes a permanent one on its first anniversary.</li>
+        </ul>
+        <p>Session a5 turns this into a standard, and the builder track ships the artifact. What matters for a leader is the test: could someone build on this model and never learn what it does not do? If yes, it is not documented.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ EXERCISE ============ -->
+  <section class="section" id="workshop">
+    <div class="section-kicker">
+      <span class="klabel">Discussion exercise · 15 min · everyone participates</span>
+      <h2>Price one problem you already know about <span class="tag demo">◆ run this in your own meeting</span></h2>
+    </div>
+    <p class="lede">Every organisation has a known modeling problem that has been discussed and not fixed. This exercise turns the discussion into a number and a decision, in about fifteen minutes.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Name it in one sentence,</strong> as a grain or definition problem: "our sales table has one row per shipment, but we report it as orders".</p></div>
+      <div class="step"><p><strong>Count the dependants.</strong> How many dashboards, alerts, pipelines and external commitments read that table? The count is the rework multiplier, and it is usually higher than anyone in the room guesses.</p></div>
+      <div class="step"><p><strong>Test the three signals.</strong> External commitment? Compounds with volume? A team about to build on it? One yes means fix.</p></div>
+      <div class="step"><p><strong>Decide out loud, and write the decision down</strong> with an owner and a date - including if the decision is to live with it.</p></div>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What a good answer sounds like, and what to listen for<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Good:</strong> "One row is one shipment. Eleven dashboards and the partner rebate calculation read it. The rebate is contractual, so signal one is present. We fix it this quarter, Priya owns it, and we freeze new consumers from today."</p>
+        <p><strong>Listen for these three failure modes:</strong></p>
+        <ul>
+          <li><strong>"It is only a reporting issue."</strong> Reporting is where the money is decided. This phrase almost always means nobody has counted the dependants.</li>
+          <li><strong>"We will handle it in the migration."</strong> A migration is the worst time to change a definition, because you lose the ability to tell a migration bug from a modeling change. Fix before or after, never during.</li>
+          <li><strong>Nobody can state the grain.</strong> If the room cannot finish "one row is one ___" for the table under discussion, stop the exercise. That is the finding, and it is a bigger one than the original problem.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ REAL WORLD ============ -->
+  <section class="section" id="realworld">
+    <div class="section-kicker">
+      <span class="klabel">Why this matters</span>
+      <h2>The quarter nobody bills for</h2>
+    </div>
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The shape repeats across industries.</strong> A team reports strong order growth; finance reports flat revenue; both are correct, because one counts lines and the other counts settled payments. The reconciliation takes weeks, the answer is a one-sentence grain difference, and the real damage is what happened in between: the leadership team stopped using either number and started asking people directly. The model was fixed in a fortnight. The habit of asking people instead of the dashboard took a year to unwind - which is cost line 3 doing exactly what the curve on this page predicts.</p>
+    </div>
+  </section>
+
+  <!-- ============ QUESTIONS TO ASK ============ -->
+  <section class="section" id="questions">
+    <div class="section-kicker">
+      <span class="klabel">Take this to your next data review</span>
+      <h2>Questions to ask your data team <span class="tag concept">5 min live</span></h2>
+    </div>
+    <ul>
+      <li><strong>"What is one row in our most-used table?"</strong> If the answer takes more than one sentence, or two people give different sentences, you have found the cost line before it bills you.</li>
+      <li><strong>"How many assets depend on that table?"</strong> The number is the rework multiplier. A team that cannot answer it cannot price a fix, which is why fixes keep losing to features.</li>
+      <li><strong>"Which of our reported numbers appear in an external commitment?"</strong> That list is your fix-first queue, in order.</li>
+      <li><strong>"Where would a new consumer learn what this model does not do?"</strong> If the answer is a person rather than an artifact, the compromise is undocumented no matter what the wiki says.</li>
+      <li><strong>"What are we currently spending on reconciliation?"</strong> Ask for it in analyst-days per month. It is almost never zero, and it is almost never in a budget line with an honest name.</li>
+      <li><strong>"If we handed our data to an AI analyst tomorrow, what would it get wrong?"</strong> A specific answer means the team understands their model. A confident "nothing" means session a6 is going to be uncomfortable.</li>
+    </ul>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before your next data review <span class="tag exercise">◐ 30 min total, all conversations</span></h2>
+    </div>
+    <ul>
+      <li>Pick your three most-quoted metrics and ask three different people to define each one precisely. Compare the answers. The gaps are your reconciliation cost, made visible.</li>
+      <li>Ask for the dependant count on your busiest table. Then ask when the last new consumer was onboarded, and whether anybody checked the grain first.</li>
+      <li>List every number your organisation reports externally. Beside each, write who can state its grain from memory. Blanks are risk, not admin.</li>
+      <li>Find the person who maintains the spreadsheet that bridges two systems. Ask what it reconciles and how long it takes each month. That is a cost line with a name attached.</li>
+      <li>Bring one known modeling problem to session a3, along with its dependant count - a3 is the workshop that makes grain arguments resolvable in minutes.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - grain, and one meaning per number</span><span class="note">Part 1 · the line-versus-order and averaged-average errors, priced</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Inmon, <em>Building the Data Warehouse</em> - who owns change</span><span class="note">Part 2 · the ringfence option; the full argument is builder session b5</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Dehghani, <em>Data Mesh</em> - data as a product, documented limitations</span><span class="note">Part 2 self-study · session a5 makes it a standard</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Text-to-SQL and AI-analyst readiness</span><span class="note">Cost line 4 only · session a6 owns it, and builder session b9 measures it</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Two modeling errors are found. Error A is 40% wrong and nothing has been built on it. Error B is 3% wrong and forty assets depend on it. Which is more expensive to fix?</p>
+      <button class="qopt" type="button">A · Error A, because the magnitude is larger</button>
+      <button class="qopt" type="button">B · Error B, because rework scales with the number of dependants and the time it has been trusted, not with the size of the error</button>
+      <button class="qopt" type="button">C · They cost the same; the fix is the same amount of modeling work</button>
+      <p class="qwhy">The modeling change may be identical. The bill is everything downstream: forty assets to rebuild, plus every number already quoted from it. This is why the cheapest moment to fix is now, and the second cheapest is before the next team builds on it.</p>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">2 · Which cost line does not stay linear over time?</p>
+      <button class="qopt" type="button">A · Rework, because there are always more dashboards next quarter</button>
+      <button class="qopt" type="button">B · Reconciliation, because analysts get more expensive</button>
+      <button class="qopt" type="button">C · Lost trust - once decisions route around the data, winning them back costs far more than the fix, and the behaviour spreads</button>
+      <p class="qwhy">Rework and reconciliation are projects: scope them, staff them, finish them. Lost trust is a culture change, it compounds, and it is why the argument for fixing a model is rarely strongest when made purely in engineering hours.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · A team says a known grain problem is "documented, so we can live with it". What makes that answer legitimate rather than a deferral?</p>
+      <button class="qopt" type="button">A · The compromise is recorded where a consumer meets it - in the catalog, contract or metric caveat - with a named owner and a review date</button>
+      <button class="qopt" type="button">B · It was raised in a meeting and everyone agreed</button>
+      <button class="qopt" type="button">C · There is a wiki page describing it</button>
+      <p class="qwhy">Documentation is only a control if a consumer would actually hit it on the way in. The test: could someone build on this model and never learn what it does not do? If yes, it is not documented - it is remembered, and memory leaves when people do.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 2 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Four cost lines</b><span>Rework · reconciliation · lost trust · a cap on automation. Only the first two get budget lines.</span></div>
+      <div class="cheat-item"><b>Rework multiplier</b><span>Dependant count x time trusted. Not error magnitude.</span></div>
+      <div class="cheat-item"><b>Lost trust compounds</b><span>Rework is a project. Trust is a culture change, and it costs more than the fix.</span></div>
+      <div class="cheat-item"><b>Three fix-now signals</b><span>In an external commitment · compounds with volume · a second team about to build on it.</span></div>
+      <div class="cheat-item"><b>Errors are modest</b><span>47% high on orders, 31% low on AOV, 8% high on revenue - all pass a smell test monthly.</span></div>
+      <div class="cheat-item"><b>Never fix the dashboard</b><span>A corrected query on a wrong grain gives you two numbers, which is cost line 3.</span></div>
+      <div class="cheat-item"><b>"Documented" test</b><span>Could a new consumer build on this and never learn its limits? Then it is not documented.</span></div>
+      <div class="cheat-item"><b>The budget line</b><span>"Pay now at the size of a conversation, or later at the size of a programme." Next: a3, grain.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Leader session 2 of 6 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a1-why-the-schema-decides.html">← Previous: Why the schema decides everything</a> &nbsp;·&nbsp; <a href="a3-grain-and-meaning.html">Next: Grain, and one number one meaning →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

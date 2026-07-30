@@ -1,0 +1,61 @@
+product_id,merchant_id,sku,product_name,category,list_price,unit_cost,launched_date,status
+1001,M01,M01-1001,Pour-Over Kettle,Home,32.9,16.98,2025-09-22,active
+1002,M01,M01-1002,Linen Throw,Home,129.0,82.14,2025-04-27,active
+1003,M01,M01-1003,Ceramic Vase,Home,189.0,79.76,2024-08-12,active
+1004,M01,M01-1004,Rattan Basket,Home,45.0,29.8,2025-11-16,active
+1005,M01,M01-1005,Oak Tray,Home,24.0,11.73,2025-11-13,active
+1006,M02,M02-1006,Vitamin C Serum,Beauty,189.0,87.02,2025-05-18,active
+1007,M02,M02-1007,Clay Mask,Beauty,32.9,19.96,2025-08-06,active
+1008,M02,M02-1008,Rose Toner,Beauty,45.0,24.81,2025-06-18,active
+1009,M02,M02-1009,Night Balm,Beauty,12.9,5.73,2024-12-24,active
+1010,M02,M02-1010,Lip Oil,Beauty,45.0,19.42,2025-03-26,active
+1011,M03,M03-1011,Hardcover Novel,Media,24.0,14.06,2025-06-07,active
+1012,M03,M03-1012,Poetry Anthology,Media,24.0,14.71,2024-08-15,active
+1013,M03,M03-1013,Art Monograph,Media,79.0,44.7,2025-11-08,active
+1014,M03,M03-1014,Cookbook,Media,18.5,12.32,2025-10-01,active
+1015,M03,M03-1015,Atlas,Media,189.0,81.15,2025-02-17,active
+1016,M04,M04-1016,Trail Runners,Sport,189.0,86.66,2025-10-23,active
+1017,M04,M04-1017,Yoga Mat,Sport,12.9,6.45,2026-01-21,active
+1018,M04,M04-1018,Resistance Set,Sport,59.9,28.43,2025-06-20,active
+1019,M04,M04-1019,Cycling Bidon,Sport,18.5,9.47,2025-01-10,active
+1020,M04,M04-1020,Tempo Shorts,Sport,24.0,15.86,2025-07-03,active
+1021,M05,M05-1021,Pour-Over Kettle,Home,24.0,16.17,2025-09-02,active
+1022,M05,M05-1022,Linen Throw,Home,79.0,33.69,2025-03-27,active
+1023,M05,M05-1023,Ceramic Vase,Home,79.0,49.66,2025-06-21,active
+1024,M05,M05-1024,Rattan Basket,Home,45.0,20.76,2025-11-12,active
+1025,M05,M05-1025,Oak Tray,Home,79.0,51.09,2024-11-06,active
+1026,M06,M06-1026,Pour-Over Kettle,Home,32.9,15.53,2024-11-16,active
+1027,M06,M06-1027,Linen Throw,Home,59.9,29.91,2025-07-12,active
+1028,M06,M06-1028,Ceramic Vase,Home,32.9,14.02,2025-08-17,active
+1029,M06,M06-1029,Rattan Basket,Home,79.0,39.92,2025-12-21,active
+1030,M06,M06-1030,Oak Tray,Home,45.0,23.01,2024-09-27,active
+1031,M07,M07-1031,Studio Headphones,Electronics,79.0,47.14,2024-08-30,out_of_stock
+1032,M07,M07-1032,Desk Mic,Electronics,59.9,39.79,2025-11-04,active
+1033,M07,M07-1033,Bluetooth Speaker,Electronics,45.0,20.99,2025-06-04,active
+1034,M07,M07-1034,USB-C Interface,Electronics,12.9,5.78,2024-12-13,active
+1035,M07,M07-1035,Earbuds Pro,Electronics,59.9,36.5,2025-04-15,active
+1036,M08,M08-1036,Oxford Shirt,Apparel,79.0,45.63,2024-09-25,active
+1037,M08,M08-1037,Merino Tee,Apparel,18.5,9.62,2025-08-20,active
+1038,M08,M08-1038,Canvas Tote,Apparel,45.0,19.42,2024-12-11,active
+1039,M08,M08-1039,Wool Scarf,Apparel,12.9,7.16,2024-08-28,active
+1040,M08,M08-1040,Chino Trousers,Apparel,32.9,16.93,2025-12-21,active
+1041,M09,M09-1041,Slow Feeder,Pet,59.9,34.86,2025-10-26,active
+1042,M09,M09-1042,Rope Toy,Pet,45.0,24.83,2025-01-08,active
+1043,M09,M09-1043,Cat Tunnel,Pet,59.9,31.42,2025-05-04,active
+1044,M09,M09-1044,Grooming Brush,Pet,189.0,85.63,2024-12-27,active
+1045,M09,M09-1045,Travel Bowl,Pet,79.0,47.09,2025-09-05,active
+1046,M10,M10-1046,Dot Grid Notebook,Office,45.0,23.65,2026-03-02,active
+1047,M10,M10-1047,Fineliner Set,Office,45.0,22.26,2024-12-17,active
+1048,M10,M10-1048,Desk Mat,Office,59.9,32.4,2024-12-05,active
+1049,M10,M10-1049,Index Cards,Office,32.9,18.19,2025-09-10,active
+1050,M10,M10-1050,Kraft Folder,Office,18.5,9.14,2025-03-24,active
+1051,M11,M11-1051,Cold Brew Pack,Grocery,18.5,11.71,2025-07-05,active
+1052,M11,M11-1052,Chili Crisp,Grocery,45.0,21.53,2025-08-11,active
+1053,M11,M11-1053,Sea Salt Flakes,Grocery,24.0,10.23,2025-06-25,active
+1054,M11,M11-1054,Olive Oil 500ml,Grocery,129.0,74.68,2025-12-18,active
+1055,M11,M11-1055,Rice Crackers,Grocery,129.0,68.08,2025-08-15,active
+1056,M12,M12-1056,Wooden Blocks,Toys,79.0,43.33,2025-06-26,active
+1057,M12,M12-1057,Puzzle 500pc,Toys,24.0,14.17,2026-02-25,active
+1058,M12,M12-1058,Plush Otter,Toys,18.5,11.51,2025-07-21,active
+1059,M12,M12-1059,Marble Run,Toys,24.0,15.1,2024-09-18,active
+1060,M12,M12-1060,Card Game,Toys,129.0,55.86,2025-06-20,active

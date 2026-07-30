@@ -1,0 +1,14 @@
+# learn-data-modeling-with-phoebe - shipped code dependencies
+#
+# The core pipeline (gen_bazaar_data, build_star, validate_model) needs NOTHING beyond the
+# Python standard library - sqlite3 and csv are built in. That is deliberate: the modeling
+# lesson should never be blocked on an install.
+#
+#   python 3.10+
+#
+# Charts in answer_questions.py:
+matplotlib>=3.8
+#
+# The two agent scripts (agent_text_to_sql, agent_query_to_text) and eval_golden_questions
+# --mode live. Not needed for --offline, which is how the course pages run them.
+anthropic>=0.40

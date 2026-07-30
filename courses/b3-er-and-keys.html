@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 3 · ER, cardinality and keys - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 3 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 3 of 10</div>
+    <h1>ER, cardinality and <span class="accent">keys</span></h1>
+    <p class="sub">Session b1 gave you eight entities. Session b2 gave you a reason to keep every fact in one place. This session turns that list into a logical model: read the cardinality off the verb, resolve the two many-to-many relationships with associative tables, and then make the hardest small decision in modeling - which key. Bazaar splits it three ways on purpose, and by the end you will be able to defend each split in one sentence.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Builder track · medium</span>
+      <span class="chip audience">Analysts · analytics engineers · DE · DS</span>
+      <span class="chip audience">Runs in your browser · real SQLite</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:3">3-15 · Cardinality, read off the verb</span>
+      <span class="a3" style="flex:5">15-40 · Build-along: resolve it, then key it</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>From a list of things to a model</h2>
+    </div>
+    <p class="lede">A conceptual model is a list of nouns and a handful of lines. A <strong>logical</strong> model is that same picture with three extra facts written on it: how many of each side participate in the relationship, whether participation is optional or mandatory, and what identifies a row. Those three additions are all this session is. They are also where most schemas quietly go wrong, because each one looks like a formality and each one is actually a business rule.</p>
+    <p class="lede">Everything here is still engine-independent. No types, no indexes, no DDL - those are session b4, which takes the model you finish today and ships it as <code>sql/01_oltp_ddl.sql</code>. What you decide now is what that file will be forced to say.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live SQL - editable &amp; runnable</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      The habit of reading cardinality straight out of the sentence the business already says, two resolved many-to-many relationships with their own attributes, and a defensible answer to "why is this key an integer and that one a string" for every table in Bazaar.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: CARDINALITY ============ -->
+  <section class="section" id="cardinality">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Codd / relational fundamentals, Fowler and Evans on naming</span>
+      <h2>Cardinality is already in the verb <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">You do not need a notation to find cardinality. You need the sentence the business says out loud, and then two questions about it: <strong>how many?</strong> and <strong>must there be one?</strong> "A shopper places orders" is one-to-many. "An order must have a shopper" is mandatory. "A cart may become an order" is optional, and that single word <em>may</em> is why the cart column on an order is allowed to be empty while the user column is not.</p>
+    <p class="lede">Then there is the third shape, the one that cannot be stored as written: <strong>many-to-many</strong>. "A cart holds many products, and a product sits in many carts" is true, useful, and impossible to put in two tables. It needs a third one - and that third table turns out to be the most interesting table in the schema.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A many-to-many relationship between carts and products, resolved by the cart_items associative table, with cardinality written as words">
+        <style>
+          .caT { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .caS { font: 400 10.5px Inter, sans-serif; fill: #B9CBE4; }
+          .caH { font: 700 12.5px Inter, sans-serif; fill: #1B2637; }
+          .caV { font: 600 10.5px Inter, sans-serif; fill: #5C6B80; }
+          .caB { font: 600 11.5px Inter, sans-serif; fill: #991B1B; }
+          .caN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+          .caLine { stroke: #6C8CBC; stroke-width: 2; fill: none; }
+          .caDash { stroke: #991B1B; stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+        </style>
+
+        <text class="caH" x="26" y="24">Before - the sentence the business says</text>
+
+        <rect x="26" y="38" width="160" height="52" rx="9" fill="#22395C"/>
+        <text class="caT" x="42" y="60">carts</text>
+        <text class="caS" x="42" y="78">2,229 rows</text>
+
+        <rect x="694" y="38" width="160" height="52" rx="9" fill="#22395C"/>
+        <text class="caT" x="710" y="60">products</text>
+        <text class="caS" x="710" y="78">60 rows</text>
+
+        <path class="caDash" d="M186,64 L690,64"/>
+        <text class="caV" x="330" y="56">many carts hold many products</text>
+        <text class="caV" x="352" y="84">and back again, both directions</text>
+
+        <rect x="26" y="108" width="828" height="58" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="caB" x="46" y="132">A many-to-many cannot be stored as drawn. No column on carts and no column on products can hold</text>
+        <text class="caB" x="46" y="152">"two of this product, in that cart, added at 15:51" - the fact belongs to the pair, not to either side.</text>
+
+        <text class="caH" x="26" y="198">After - resolved by an associative table</text>
+
+        <rect x="26" y="212" width="160" height="56" rx="9" fill="#22395C"/>
+        <text class="caT" x="42" y="236">carts</text>
+        <text class="caS" x="42" y="254">one per cart</text>
+
+        <rect x="360" y="212" width="160" height="56" rx="9" fill="#C08A2E"/>
+        <text class="caT" x="376" y="236">cart_items</text>
+        <text class="caS" x="376" y="254" fill="#FBF3E2">3,246 rows</text>
+
+        <rect x="694" y="212" width="160" height="56" rx="9" fill="#22395C"/>
+        <text class="caT" x="710" y="236">products</text>
+        <text class="caS" x="710" y="254">one per product</text>
+
+        <path class="caLine" d="M186,240 L356,240"/>
+        <text class="caV" x="198" y="232">one cart holds</text>
+        <text class="caV" x="198" y="260">many cart items</text>
+
+        <path class="caLine" d="M520,240 L690,240"/>
+        <text class="caV" x="530" y="232">each cart item names</text>
+        <text class="caV" x="530" y="260">exactly one product</text>
+
+        <rect x="26" y="292" width="828" height="82" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="caN" x="46" y="316">The associative table earns its keep by carrying facts of its own: quantity, added_ts, and on an order</text>
+        <text class="caN" x="46" y="336">line also line_no, unit_price and discount_amt. If it has nothing of its own to store, it is only plumbing.</text>
+        <text class="caN" x="46" y="356">Its primary key states the grain out loud: (cart_id, product_id) is one row per product per cart.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the move you will make twice today: many-to-many becomes two one-to-many relationships plus a table with its own attributes</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Prove the many-to-many with two queries<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A many-to-many is not a design opinion. It is a fact you can measure, and it is only real if it holds in <em>both</em> directions. One product in many carts is half the claim; one cart holding many products is the other half. Run both.</p>
+        <div class="sqlbox" data-seed="oltp" data-caption="Two result tables: one product in 113 carts, then carts holding three products each. Both directions true means many-to-many.">
+          <pre class="sql-src">SELECT p.product_id, p.product_name, m.merchant_id,
+       COUNT(DISTINCT ci.cart_id) AS carts_holding_this_product
+FROM cart_items ci
+JOIN products  p ON p.product_id  = ci.product_id
+JOIN merchants m ON m.merchant_id = p.merchant_id
+GROUP BY p.product_id, p.product_name, m.merchant_id
+ORDER BY carts_holding_this_product DESC
+LIMIT 5;
+
+SELECT ci.cart_id, COUNT(*) AS products_in_this_cart,
+       GROUP_CONCAT(ci.product_id) AS product_ids
+FROM cart_items ci
+GROUP BY ci.cart_id
+HAVING COUNT(*) = 3
+ORDER BY ci.cart_id
+LIMIT 5;</pre>
+        </div>
+        <p>The Nimbus Audio products sit at the top of the first result because M07 is Bazaar's biggest seller for most of the quarter - a fact sessions b8 and b9 spend their time on. For now the only thing that matters is the shape: a product appears in many carts, a cart holds many products, so neither table can own the relationship.</p>
+        <div class="callout tip">
+          <strong>The one-direction test</strong>
+          If the relationship is only "many" on one side, you do not need a third table. A merchant sells many products, but a product belongs to exactly one merchant - so <code>products.merchant_id</code> is enough, and inventing a <code>merchant_products</code> table would add a join for nothing.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Optional versus mandatory, and the column that proves it<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Participation is the half of cardinality people skip, and it is the half that decides whether a column may be empty. Two sentences from Bazaar, one word apart:</p>
+        <ul>
+          <li><strong>"An order must have a shopper."</strong> Mandatory. <code>orders.user_id</code> is required, and no order can exist without one. Making that column optional would let an order arrive with nobody to ship to, invoice, or apologise to.</li>
+          <li><strong>"A cart may become an order."</strong> Optional. Most carts never do - 985 orders against 2,229 carts. So <code>orders.cart_id</code> is allowed to be empty, because an order can also be placed by a route that never created a cart row, and a cart with no order is the normal case rather than an error.</li>
+        </ul>
+        <p>Write both sentences down before you write the column. "Must" becomes a required column; "may" becomes an optional one. When somebody later asks why one is nullable and the other is not, the answer is a business rule, not a preference - and that is exactly the difference between a model and a schema that grew.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Reading a relationship you did not design<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>When you inherit a schema, the cardinality is already decided and usually undocumented. You can recover it in three queries per relationship, and it is worth doing before you trust any join:</p>
+        <ul>
+          <li><strong>Is the child side really "many"?</strong> Group the child table by the foreign key and look at the maximum count. If it is always 1, somebody modelled a one-to-one as a one-to-many, and the join is safe but the design is misleading.</li>
+          <li><strong>Is participation mandatory?</strong> Count rows where the foreign key is empty. If the count is zero but the column is nullable, you have a rule the application enforces and the database does not - which lasts until the first backfill script.</li>
+          <li><strong>Is the parent side really "one"?</strong> This is the one people miss. If two parent rows can match one child through the join column, your "one-to-many" is a many-to-many in disguise and every aggregate over that join is double-counting.</li>
+        </ul>
+        <p>That third check is the source of an enormous share of "the numbers do not match" incidents. A join that fans out is not a broken query; it is an unmodelled many-to-many being discovered at report time.</p>
+      </div>
+    </details>
+
+    <table class="clean">
+      <thead><tr><th>Relationship</th><th>Read it as a sentence</th><th>Cardinality</th><th>How the model resolves it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>merchants - products</strong></td><td>a merchant sells many products; a product belongs to exactly one merchant</td><td>one-to-many, mandatory both sides</td><td><code>products.merchant_id</code>, required</td></tr>
+        <tr><td><strong>users - carts</strong></td><td>a shopper creates many carts; every cart belongs to one shopper</td><td>one-to-many, mandatory</td><td><code>carts.user_id</code>, required</td></tr>
+        <tr><td><strong>users - orders</strong></td><td>an order <em>must</em> have a shopper</td><td>one-to-many, mandatory</td><td><code>orders.user_id</code>, required</td></tr>
+        <tr><td><strong>carts - orders</strong></td><td>a cart <em>may</em> become an order</td><td>zero-or-one to one, optional</td><td><code>orders.cart_id</code>, allowed to be empty</td></tr>
+        <tr><td><strong>carts - products</strong></td><td>a cart holds many products; a product sits in many carts</td><td>many-to-many</td><td><strong>cart_items</strong>, key (cart_id, product_id)</td></tr>
+        <tr><td><strong>orders - products</strong></td><td>an order sells many products; a product is sold on many orders</td><td>many-to-many</td><td><strong>order_items</strong>, key (order_id, line_no)</td></tr>
+        <tr><td><strong>orders - order_items</strong></td><td>an order has many lines; every line belongs to one order</td><td>one-to-many, mandatory</td><td><code>order_items.order_id</code>, part of the key</td></tr>
+        <tr><td><strong>orders - transactions</strong></td><td>an order receives zero, one or several payment attempts</td><td>one-to-many, optional on the attempt side</td><td><code>transactions.order_id</code>, required</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ PART 2: KEYS ============ -->
+  <section class="section" id="keys">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers Codd on keys and functional dependency, Kimball on grain</span>
+      <h2>Natural, surrogate, composite <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">A key answers one question: what makes this row this row and not another one. Bazaar answers it three different ways, and the split is not inconsistency - each table is telling you who owns its identity. <code>merchants.merchant_id</code> is a <strong>natural</strong> key because the business genuinely owns it: <code>'M07'</code> is meaningful, stable, and printed on invoices. <code>users.user_id</code> and <code>orders.order_id</code> are <strong>surrogate</strong> integers, because email addresses change and nothing outside the system owns an order number. <code>cart_items</code> and <code>order_items</code> use <strong>composite</strong> keys, because the thing being identified is a pair.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 372" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three key strategies used in Bazaar: natural keys, surrogate keys and composite keys, with the reason for each">
+        <style>
+          .kyT { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .kyS { font: 400 10.5px Inter, sans-serif; fill: #EDF2F9; }
+          .kyH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .kyC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .kyB { font: 600 11.5px Inter, sans-serif; fill: #991B1B; }
+          .kyN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <rect x="26" y="34" width="262" height="54" rx="9" fill="#22395C"/>
+        <text class="kyT" x="44" y="58">Natural key</text>
+        <text class="kyS" x="44" y="76">the business owns it</text>
+        <text class="kyH" x="44" y="116">merchants.merchant_id</text>
+        <text class="kyC" x="44" y="138">'M07' is meaningful, stable</text>
+        <text class="kyC" x="44" y="157">and printed on invoices.</text>
+        <text class="kyC" x="44" y="176">Support reads it aloud on</text>
+        <text class="kyC" x="44" y="195">the phone.</text>
+        <text class="kyB" x="44" y="222">Risk: if the business ever</text>
+        <text class="kyB" x="44" y="241">renumbers, you renumber too</text>
+
+        <rect x="308" y="34" width="262" height="54" rx="9" fill="#3B5B8C"/>
+        <text class="kyT" x="326" y="58">Surrogate key</text>
+        <text class="kyS" x="326" y="76">the system owns it</text>
+        <text class="kyH" x="326" y="116">users.user_id, orders.order_id</text>
+        <text class="kyC" x="326" y="138">Email changes, and nothing</text>
+        <text class="kyC" x="326" y="157">outside Bazaar owns an order</text>
+        <text class="kyC" x="326" y="176">number. So the id is an</text>
+        <text class="kyC" x="326" y="195">integer with no meaning.</text>
+        <text class="kyB" x="326" y="222">Risk: meaningless to humans,</text>
+        <text class="kyB" x="326" y="241">so print something else too</text>
+
+        <rect x="590" y="34" width="262" height="54" rx="9" fill="#6C8CBC"/>
+        <text class="kyT" x="608" y="58">Composite key</text>
+        <text class="kyS" x="608" y="76">the pair is the row</text>
+        <text class="kyH" x="608" y="116">cart_items(cart_id, product_id)</text>
+        <text class="kyC" x="608" y="138">order_items(order_id, line_no)</text>
+        <text class="kyC" x="608" y="157">The key is the grain sentence,</text>
+        <text class="kyC" x="608" y="176">written where the database</text>
+        <text class="kyC" x="608" y="195">can enforce it.</text>
+        <text class="kyB" x="608" y="222">Risk: every child table has to</text>
+        <text class="kyB" x="608" y="241">carry both halves forward</text>
+
+        <rect x="26" y="266" width="826" height="82" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="kyN" x="46" y="290">The question is never "natural or surrogate" in the abstract. It is: does anyone outside this database</text>
+        <text class="kyN" x="46" y="310">already own this identifier, and will they keep it stable? Merchant codes, country codes and currency</text>
+        <text class="kyN" x="46" y="330">codes qualify. Email addresses, phone numbers and people's names never do.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - three key strategies, one question: who owns the identifier</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Watch the surrogate key do its job<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The argument for surrogate keys is usually made in the abstract. Here it is as a query: change a shopper's email address, which is the natural candidate key everyone reaches for first, and count what is still attached afterwards.</p>
+        <div class="sqlbox" data-seed="oltp" data-caption="M07's natural key is visible inside every SKU. Then the email changes and user 1 keeps all 19 orders and 34 carts, because identity never lived in the email.">
+          <pre class="sql-src">SELECT m.merchant_id, m.merchant_name, p.sku, p.product_name
+FROM products p
+JOIN merchants m ON m.merchant_id = p.merchant_id
+WHERE m.merchant_id = 'M07'
+ORDER BY p.product_id;
+
+-- the shopper changes their email address, which happens constantly
+UPDATE users SET email = 'newaddress001@example.com' WHERE user_id = 1;
+
+SELECT u.user_id, u.email,
+       (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.user_id) AS orders_still_attached,
+       (SELECT COUNT(*) FROM carts  c WHERE c.user_id = u.user_id) AS carts_still_attached
+FROM users u
+WHERE u.user_id = 1;</pre>
+        </div>
+        <p>Nothing broke, and nothing had to be updated anywhere else. Now imagine <code>email</code> had been the primary key: that one address change becomes a cascading update across carts, orders and every downstream table that ever copied it, and any row a cascade misses becomes an orphan. Email is still <code>UNIQUE</code> in Bazaar, because two accounts must not share one - a uniqueness rule and a primary key are different jobs, and confusing them is what produces primary keys made of people's contact details.</p>
+        <p>The first result set shows the other side of the coin. <code>M07</code> travels inside every SKU (<code>M07-1031</code>), and it appears on invoices and in support conversations. That is a natural key genuinely doing work, so Bazaar keeps it as the primary key of <code>merchants</code> rather than hiding it behind an integer nobody can read.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>A composite key is a statement about grain<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Session b1 asked you to write the grain of every table as a sentence. A composite primary key is that sentence, in a form the database enforces:</p>
+        <ul>
+          <li><strong>cart_items (cart_id, product_id)</strong> says "one row per product per cart". Adding the same product to the same cart twice is not two rows - it is one row with a bigger quantity. The key makes that a rule instead of a convention.</li>
+          <li><strong>order_items (order_id, line_no)</strong> says "one row per line on an order". Note what it does <em>not</em> say: the same product may legitimately appear on two different lines of one order, at two different prices, because that is how a promotion or a partial substitution looks. Keying on (order_id, product_id) would forbid a real business event.</li>
+        </ul>
+        <p>Those two keys are different on purpose, and the difference is a business decision rather than a stylistic one. Cart lines merge; order lines do not, because an order line is a historical record of what was charged and merging two of them would rewrite history.</p>
+        <div class="callout tip">
+          <strong>The grain test for any key</strong>
+          Read the primary key out loud as "one row per ...". If the sentence is true and complete, the key is right. If you need the word "and" in an unexpected place, or you cannot finish the sentence at all, the key is not describing the grain you actually have.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Identifiers at scale: identity columns and UUIDv7<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Bazaar writes <code>INTEGER PRIMARY KEY</code> because SQLite is what runs in your browser tab. Two honest notes for when you ship something real:</p>
+        <ul>
+          <li><strong>On Postgres, use <code>GENERATED ALWAYS AS IDENTITY</code>.</strong> It is the ANSI SQL way to say "the database owns this number", and unlike the older <code>SERIAL</code> pattern it refuses inserts that try to supply the value by hand. That refusal is the point: a surrogate key nobody outside the database may set is a surrogate key that cannot drift.</li>
+          <li><strong>With more than one writer, use UUIDv7.</strong> A single auto-increment counter needs a single source of truth, which is exactly what you do not have across shards, regions or offline clients. Random UUIDv4 solves collisions but destroys locality: inserts scatter across the index and reads that want "the newest orders" have to look everywhere. UUIDv7 puts a timestamp in the high bits, so identifiers stay roughly sortable by creation time and both problems go away at once.</li>
+        </ul>
+        <p>What does not change with scale is the reasoning. The key still has to be stable, meaningless to the business unless the business genuinely owns it, and never something a human types twice. Bigger systems change the mechanism, not the question.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DEMO 1 ============ -->
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Demo 1 of 2</span>
+      <h2>Build the associative table yourself <span class="tag demo">★ 12 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">Two steps. First measure what the composite key is claiming about Bazaar's real data, then build the same table from scratch in an empty database and watch the key refuse the row it is designed to refuse. The second editor starts with nothing in it, so you write the DDL as well as the queries.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Count three ways.</strong> Rows, distinct cart ids, distinct pairs. If distinct pairs equals rows, the pair is unique. If distinct cart ids is smaller than rows, cart_id alone is not.</p></div>
+      <div class="step"><p><strong>Look for a repeat.</strong> Ask the data whether any (cart_id, product_id) pair is stored twice. The answer is zero - that is the key doing its job before you ever declare it.</p></div>
+      <div class="step"><p><strong>Then build it.</strong> Create the table, insert two products into one cart, and try to add the first product again. Watch which rows survive.</p></div>
+    </div>
+
+    <div class="sqlbox" data-seed="oltp" data-caption="3,246 rows across 2,229 carts and 60 products. Every pair is distinct, and no pair is stored twice - so (cart_id, product_id) is a key and cart_id alone is not.">
+      <pre class="sql-src">SELECT COUNT(*)                                   AS rows_in_cart_items,
+       COUNT(DISTINCT cart_id)                     AS distinct_cart_ids,
+       COUNT(DISTINCT product_id)                  AS distinct_product_ids,
+       COUNT(DISTINCT cart_id || '-' || product_id) AS distinct_pairs
+FROM cart_items;
+
+SELECT COUNT(*) AS pairs_stored_more_than_once
+FROM (SELECT cart_id, product_id FROM cart_items
+      GROUP BY cart_id, product_id
+      HAVING COUNT(*) > 1);</pre>
+    </div>
+
+    <div class="sqlbox" data-seed="none" data-caption="An empty database. You create the associative table, then the composite key decides which of three inserts is allowed to land.">
+      <pre class="sql-src">CREATE TABLE cart_items_demo (
+  cart_id     INTEGER NOT NULL,
+  product_id  INTEGER NOT NULL,
+  quantity    INTEGER NOT NULL CHECK (quantity > 0),
+  added_ts    TEXT    NOT NULL,
+  PRIMARY KEY (cart_id, product_id)
+);
+
+-- two different products in the same cart: both allowed, the pair differs
+INSERT INTO cart_items_demo VALUES (9001, 1032, 2, '2026-06-01 10:15:00');
+INSERT INTO cart_items_demo VALUES (9001, 1033, 1, '2026-06-01 10:16:00');
+
+-- the same product again in the same cart: the pair already exists, so it is refused
+INSERT OR IGNORE INTO cart_items_demo VALUES (9001, 1032, 5, '2026-06-01 10:20:00');
+
+SELECT cart_id, product_id, quantity, added_ts
+FROM cart_items_demo
+ORDER BY product_id;</pre>
+    </div>
+
+    <p class="lede">Two rows, not three. <code>INSERT OR IGNORE</code> is what lets you watch the rejection without the whole script stopping - drop the <code>OR IGNORE</code> and re-run to see the hard error instead, which is how a real application would experience it. Either way the database, not the application, is the thing enforcing "one row per product per cart". Change the third insert to product 1034 and re-run: now three rows land, because the pair is new.</p>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The associative table that was allowed to be a bag.</strong> A retailer's basket table had no primary key at all - just cart_id, product_id and quantity, with the application "making sure" it never inserted a duplicate. A retry storm during a checkout outage inserted duplicates for about forty minutes. Nobody noticed until a merchandising report showed basket sizes had jumped, and by then the duplicates were spread through three downstream tables. The fix was one line of DDL that had been missing since the beginning, plus two weeks of cleanup. A composite primary key on an associative table is not paperwork; it is the only thing standing between a retry and a wrong number.</p>
+    </div>
+  </section>
+
+  <!-- ============ DEMO 2 ============ -->
+  <section class="section" id="demo-2">
+    <div class="section-kicker">
+      <span class="klabel">Demo 2 of 2</span>
+      <h2>Your turn: the header and its lines <span class="tag demo">★ 10 min · build your own</span></h2>
+    </div>
+    <p class="lede">The header and line pair is the shape you will meet most often in your career: orders and order lines, invoices and invoice lines, shipments and shipment lines, claims and claim lines. Get it right once and you get it right forever, so it is worth proving to yourself rather than accepting.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Q1 · What the associative table is carrying<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Take the fullest cart in Bazaar and look at what <code>cart_items</code> stores that neither <code>carts</code> nor <code>products</code> could. Then look at the quantity distribution across all 3,246 cart lines.</p>
+        <div class="sqlbox" data-seed="oltp" data-caption="quantity and added_ts belong to the pair. Neither the cart nor the product could hold them without inventing a column per product.">
+          <pre class="sql-src">SELECT ci.cart_id, ci.product_id, p.product_name, ci.quantity, ci.added_ts
+FROM cart_items ci
+JOIN products p ON p.product_id = ci.product_id
+WHERE ci.cart_id = (SELECT cart_id FROM cart_items
+                    GROUP BY cart_id
+                    ORDER BY COUNT(*) DESC, cart_id
+                    LIMIT 1)
+ORDER BY ci.product_id;
+
+SELECT quantity, COUNT(*) AS cart_lines
+FROM cart_items
+GROUP BY quantity
+ORDER BY quantity;</pre>
+        </div>
+        <p>Try the thought experiment the second result makes concrete: to store those quantities without an associative table you would need a column per product on the cart, sixty columns wide, all empty except two or three - and a schema change every time a merchant launches something. That is what "resolve the many-to-many" is buying you.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Q2 · Why quantity cannot live on the order<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The header carries what is true of the whole order: who placed it, when, where it ships, in what currency. The lines carry what is true of one product on it. Find orders where the quantities differ line by line and the argument makes itself.</p>
+        <div class="sqlbox" data-seed="oltp" data-caption="One order, three lines, three different quantities and prices. A single quantity column on orders could only hold one of them.">
+          <pre class="sql-src">SELECT oi.order_id, oi.line_no, oi.product_id, oi.quantity, oi.unit_price
+FROM order_items oi
+WHERE oi.order_id IN (SELECT order_id FROM order_items
+                      GROUP BY order_id
+                      HAVING COUNT(*) > 1 AND COUNT(DISTINCT quantity) > 1
+                      ORDER BY order_id
+                      LIMIT 3)
+ORDER BY oi.order_id, oi.line_no;
+
+SELECT COUNT(DISTINCT order_id) AS orders,
+       COUNT(*)                 AS order_lines,
+       ROUND(1.0 * COUNT(*) / COUNT(DISTINCT order_id), 2) AS avg_lines_per_order,
+       MAX(line_no)             AS most_lines_on_one_order
+FROM order_items;</pre>
+        </div>
+        <p>985 orders, 1,434 lines, about 1.5 lines per order. That ratio is small enough to tempt somebody into flattening the two tables together "because most orders only have one line" - and it is exactly the temptation that produces the dashboard from session b1's quiz, where 1,434 lines get reported as 1,434 orders. The header and the line are two grains. Two grains, two tables.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Q3 · Draw one relationship from your own schema<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>No SQL. Pick one relationship you work with daily and write it out in four lines, exactly as Bazaar's table above does it:</p>
+        <ul>
+          <li>The sentence the business says, using the business's own words for both nouns.</li>
+          <li>The cardinality: one-to-many, many-to-many, or one-to-one.</li>
+          <li>Whether each side is optional or mandatory, and therefore which column may be empty.</li>
+          <li>What identifies a row on each side, and whether that identifier belongs to the business or to the database.</li>
+        </ul>
+        <p>Then check one thing in the actual data: does the join ever fan out more than you expect? If a relationship you believe is one-to-many turns out to have two matching parents for some child, you have found an unmodelled many-to-many, and every aggregate anyone has ever run across that join has been double-counting. Bring the case to b4, where the constraints that would have prevented it get declared and enforced.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 20-30 min total</span></h2>
+    </div>
+    <ul>
+      <li>Write the eight Bazaar relationships out from memory as sentences, then check yourself against the table in Part 1. The two you get wrong are the two worth understanding.</li>
+      <li>Find a many-to-many in your own schema that has been resolved by a table with no attributes of its own. Ask whether it genuinely has nothing to store, or whether something that belongs to the pair is currently stored on one of the sides.</li>
+      <li>List every primary key in a schema you own and label each one natural, surrogate or composite. For every natural key, name the person or system outside the database that owns the identifier. If you cannot name one, it should have been a surrogate.</li>
+      <li>Read each composite primary key out loud as "one row per ...". Any key where you cannot finish the sentence is a grain problem waiting to surface in a report.</li>
+      <li>Pick one nullable foreign key in your schema and decide whether it is nullable because the business said "may", or because nobody ever asked. Bring the answer to b4.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map, including what is deliberately out of scope, in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Codd / relational fundamentals - candidate keys, primary keys, functional dependency, resolving many-to-many</span><span class="note">Parts 1 and 2 · measured on real data rather than defined</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross - grain as the first design decision</span><span class="note">Part 2 · the composite key read out loud as the grain sentence</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">ANSI SQL plus the PostgreSQL and SQLite documentation - identity columns, uniqueness versus primary key</span><span class="note">Self-study · <code>GENERATED ALWAYS AS IDENTITY</code> and UUIDv7; constraint semantics are session b4</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Fowler (<em>PoEAA</em>) and Evans (<em>DDD</em>) - ubiquitous language, naming as a modeling decision</span><span class="note">Part 1 · the verb in the business's own sentence carries the cardinality</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · A cart holds many products and a product sits in many carts. What does the model need?</p>
+      <button class="qopt" type="button">A · A list of product ids stored in a column on carts</button>
+      <button class="qopt" type="button">B · A product_id column on carts and a cart_id column on products</button>
+      <button class="qopt" type="button">C · A third table keyed on (cart_id, product_id), which can then carry quantity and added_ts</button>
+      <p class="qwhy">A many-to-many cannot be stored in two tables, because the interesting fact belongs to the pair rather than to either side. The associative table is where quantity and the time it was added finally have somewhere to live. Option A also breaks 1NF, which session b2 covered.</p>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">2 · Why is <code>merchants.merchant_id</code> a natural key while <code>orders.order_id</code> is a surrogate integer?</p>
+      <button class="qopt" type="button">A · Because text keys are faster to join than integers</button>
+      <button class="qopt" type="button">B · Because the business already owns and prints merchant codes, and nothing outside the system owns an order number</button>
+      <button class="qopt" type="button">C · Because merchants change less often than orders</button>
+      <p class="qwhy">The test is ownership and stability: does someone outside this database already own the identifier and keep it stable. Merchant codes qualify, and <code>M07</code> shows up inside every SKU and on invoices. An order number has no owner outside the system, so the system owns it.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · <code>cart_items</code> is keyed on (cart_id, product_id) but <code>order_items</code> is keyed on (order_id, line_no). Why the difference?</p>
+      <button class="qopt" type="button">A · The same product may legitimately appear on two lines of one order at two prices, so the line number is part of the identity</button>
+      <button class="qopt" type="button">B · Order tables always need a sequence number for performance</button>
+      <button class="qopt" type="button">C · It is an inconsistency left over from an earlier version of the schema</button>
+      <p class="qwhy">Cart lines merge, because adding a product twice means one line with a bigger quantity. Order lines do not, because a line is a historical record of what was charged and a promotion or substitution can produce two lines for the same product. The two keys encode two different business rules.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 3 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Cardinality is in the verb</b><span>"A shopper places orders" is one-to-many. Read the sentence, then ask how many and must there be one.</span></div>
+      <div class="cheat-item"><b>May versus must</b><span>"A cart may become an order" makes <code>orders.cart_id</code> optional. "An order must have a shopper" makes <code>orders.user_id</code> required.</span></div>
+      <div class="cheat-item"><b>Many-to-many</b><span>Cannot be stored in two tables. Resolve it with an associative table: cart_items, order_items.</span></div>
+      <div class="cheat-item"><b>The associative table earns its keep</b><span>quantity, added_ts, line_no, unit_price. If it has nothing of its own, it is only plumbing.</span></div>
+      <div class="cheat-item"><b>Header and line</b><span>Two grains, two tables. 985 orders, 1,434 lines - a single quantity column could only hold one line's worth.</span></div>
+      <div class="cheat-item"><b>Natural key</b><span>Only when the business owns and keeps the identifier stable. <code>M07</code> qualifies; an email address never does.</span></div>
+      <div class="cheat-item"><b>Surrogate key</b><span>An integer the system owns. Postgres: <code>GENERATED ALWAYS AS IDENTITY</code>. Many writers: UUIDv7, so ids stay sortable.</span></div>
+      <div class="cheat-item"><b>Composite key</b><span>The grain sentence the database enforces. Read it as "one row per ...". Next: b4, the physical layer.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 3 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b2-anomaly-lab.html">← Previous: The anomaly lab</a> &nbsp;·&nbsp; <a href="b4-physical-oltp.html">Next: Physical OLTP →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

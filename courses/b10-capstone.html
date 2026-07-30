@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 10 · Capstone: returns and refunds - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 10 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 10 of 10</div>
+    <h1>Capstone: <span class="accent">returns and refunds</span></h1>
+    <p class="sub">Session b1 promised you this: Bazaar can tell you what was ordered and what was paid, and nothing in its eight tables records what was returned. Today you take that subject area down the whole ladder yourself - entities, keys, DDL, a dimension, a fact, a mart, an agent view, three metric definitions - in five timed checkpoints. This page is a brief, not a lecture. It states the acceptance criteria up front, hands you the traps, and then gets out of the way.</p>
+    <div class="chip-row">
+      <span class="chip level">🔴 Builder track · hardest</span>
+      <span class="chip audience">Analytics engineers · DE · DS</span>
+      <span class="chip audience">Guided brief · you make the calls</span>
+      <span class="chip time">60 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · The brief</span>
+      <span class="a2" style="flex:4">3-21 · Checkpoints 1-2 · conceptual, keys</span>
+      <span class="a3" style="flex:6">21-48 · Checkpoints 3-4 · DDL, dimensional</span>
+      <span class="a4" style="flex:3">48-60 · Checkpoint 5 + validate</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>The brief, and how you will know you are done</h2>
+    </div>
+    <p class="lede">Bazaar accepts returns. A shopper requests a return on an <strong>order line</strong>, gives a reason - damaged, wrong item, changed mind, not as described - and the merchant approves or rejects it. An approved return triggers a refund, and the returned unit comes back either resellable or written off. Refunds already exist in <code>transactions</code> as negative amounts with status <code>'refunded'</code>, which is exactly the sort of half-modelled subject area you inherit in real life: the money is recorded, the event is not.</p>
+    <p class="lede">Nine sessions of patterns are your scaffolding. <code>sql/01_oltp_ddl.sql</code> is your DDL style guide, <code>sql/10</code> and <code>sql/11</code> are your dimension and fact conventions, <code>sql/40_agent_views.sql</code> is your naming and view contract, and <code>python/validate_model.py</code> is your grader. Nothing here needs a technique you have not already used. What it needs is the judgement to pick the right one, which is the whole point of a capstone.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live SQL - editable &amp; runnable</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ Acceptance criteria - read these before you write anything</strong>
+      One <code>returns</code> table in the OLTP schema at return-line grain, with a constrained reason set, a constrained status set, a composite reference to <code>(order_id, line_no)</code>, and one index on the access path you will actually query. One new dimension, <code>dim_return_reason</code>, with an unknown member. One new fact, <code>fact_return</code>, at return-line grain, reusing the existing conformed dimensions rather than inventing new ones. One mart at merchant x day grain carrying returns and return value. One agent view, <code>v_return_line</code>, following the same naming rules as the other five. Three new rows in <code>v_metric_definitions</code> - <code>return_rate</code>, <code>return_value</code>, <code>resellable_share</code> - each with a definition, an expression, a grain and an honest caveat. Two new golden questions with the SQL you expect. Then <code>python python/validate_model.py</code> and all 27 checks green.
+    </div>
+  </section>
+
+  <!-- ============ WHAT YOU ARE BUILDING ============ -->
+  <section class="section" id="building">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · the shape of the work</span>
+      <h2>What you are building <span class="tag concept">3 min live</span></h2>
+    </div>
+    <p class="lede">Four new objects and three new metric rows, bolted onto eight tables, six dimensions, three facts, four marts and five views that all stay exactly as they are. If your design forces you to change something on the left-hand side of this diagram, stop and re-read the grain sentence - it usually means you attached returns to the wrong thing.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The returns subject area bolted onto Bazaar's existing eight tables, six dimensions, three facts, four marts and five agent views">
+        <style>
+          .bmH { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+          .bmK { font: 700 12px Inter, sans-serif; fill: #22395C; }
+          .bmC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .bmT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .bmS { font: 400 11.5px Inter, sans-serif; fill: #FBF3E2; }
+          .bmN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+          .bmArr { stroke: #C08A2E; stroke-width: 2.5; fill: none; marker-end: url(#bmAh); }
+        </style>
+        <defs>
+          <marker id="bmAh" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#C08A2E"/>
+          </marker>
+        </defs>
+
+        <text class="bmH" x="26" y="26">What already exists, unchanged (b1-b9)</text>
+        <text class="bmH" x="556" y="26">What you add today</text>
+
+        <rect x="26" y="38" width="470" height="76" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="bmK" x="44" y="62">OLTP source · 8 tables</text>
+        <text class="bmC" x="44" y="82">users · merchants · products · carts · cart_items · orders</text>
+        <text class="bmC" x="44" y="102">order_items · transactions (refunds live here, unlinked)</text>
+        <path class="bmArr" d="M498,76 L548,76"/>
+        <rect x="556" y="38" width="292" height="76" rx="9" fill="#C08A2E"/>
+        <text class="bmT" x="574" y="62">returns</text>
+        <text class="bmS" x="574" y="82">one row per returned order line</text>
+        <text class="bmS" x="574" y="102">FK (order_id, line_no) · reason · status</text>
+
+        <rect x="26" y="132" width="470" height="94" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="bmK" x="44" y="156">Star · 6 dimensions, 3 facts</text>
+        <text class="bmC" x="44" y="176">dim_date · dim_time_of_day · dim_user · dim_merchant</text>
+        <text class="bmC" x="44" y="196">dim_product · dim_payment_method - all reused as they are</text>
+        <text class="bmC" x="44" y="216">fact_order_item · fact_transaction · fact_cart</text>
+        <path class="bmArr" d="M498,178 L548,178"/>
+        <rect x="556" y="132" width="292" height="42" rx="9" fill="#C08A2E"/>
+        <text class="bmT" x="574" y="158">dim_return_reason</text>
+        <rect x="556" y="184" width="292" height="42" rx="9" fill="#C08A2E"/>
+        <text class="bmT" x="574" y="203">fact_return</text>
+        <text class="bmS" x="574" y="219">one row per return line</text>
+
+        <rect x="26" y="244" width="470" height="94" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="bmK" x="44" y="268">Serve · 4 marts, 5 views, 13 metric rows</text>
+        <text class="bmC" x="44" y="288">mart_merchant_daily · mart_hourly_transactions</text>
+        <text class="bmC" x="44" y="308">mart_funnel_daily · mart_payment_health_daily</text>
+        <text class="bmC" x="44" y="328">v_sales_line · v_payment_attempt · v_cart · and two more</text>
+        <path class="bmArr" d="M498,290 L548,290"/>
+        <rect x="556" y="244" width="292" height="42" rx="9" fill="#C08A2E"/>
+        <text class="bmT" x="574" y="270">mart_returns_daily</text>
+        <rect x="556" y="296" width="292" height="42" rx="9" fill="#C08A2E"/>
+        <text class="bmT" x="574" y="315">v_return_line</text>
+        <text class="bmS" x="574" y="331">plus 3 rows in v_metric_definitions</text>
+
+        <rect x="26" y="360" width="822" height="98" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="bmN" x="46" y="386">Every dimension on the left is reused, not rebuilt. That is what conformance buys you: a brand-new</text>
+        <text class="bmN" x="46" y="406">subject area inherits dim_date, dim_merchant, dim_product and dim_user on day one, so "returns by</text>
+        <text class="bmN" x="46" y="426">merchant tier" works the moment fact_return lands. Only the reason dimension is genuinely new,</text>
+        <text class="bmN" x="46" y="446">because only the reason is genuinely new vocabulary. Adding a second dim_merchant is the failure.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four new objects, three new metric rows, nothing on the left touched</figcaption>
+    </figure>
+
+    <p class="lede">Here is the clock. Five checkpoints, each with a deliverable you can hold up and a trap that has cost somebody a quarter of bad reporting. The minutes are tight on purpose: a capstone that lets you gold-plate checkpoint 1 teaches you nothing about sequencing.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 516" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The five capstone checkpoints with their minute budgets, deliverables and traps">
+        <style>
+          .clK { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+          .clM { font: 700 12px Inter, sans-serif; fill: #FFFFFF; }
+          .clH { font: 700 12.5px Inter, sans-serif; fill: #1B2637; }
+          .clC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .clX { font: 600 11.5px Inter, sans-serif; fill: #991B1B; }
+          .clN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <text class="clK" x="26" y="26">The 60 minutes, and what each checkpoint has to produce</text>
+
+        <rect x="26" y="46" width="822" height="72" rx="8" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <rect x="40" y="58" width="112" height="28" rx="6" fill="#22395C"/>
+        <text class="clM" x="56" y="77">1 · 8 min</text>
+        <text class="clH" x="168" y="72">Conceptual - entities and relationships</text>
+        <text class="clC" x="168" y="92">Ships: an entity list, a grain sentence, and the answer to "entity or status on the line?"</text>
+        <text class="clX" x="168" y="110">Trap: modelling a return as a flag, which loses the reason, the approver and the timing.</text>
+
+        <rect x="26" y="126" width="822" height="72" rx="8" fill="#FFFFFF" stroke="#B9CBE4"/>
+        <rect x="40" y="138" width="112" height="28" rx="6" fill="#3B5B8C"/>
+        <text class="clM" x="56" y="157">2 · 10 min</text>
+        <text class="clH" x="168" y="152">Logical and keys</text>
+        <text class="clC" x="168" y="172">Ships: return_id surrogate, the composite reference to (order_id, line_no), the reason set.</text>
+        <text class="clX" x="168" y="190">Trap: storing the refund amount here as well, with nothing that reconciles the two copies.</text>
+
+        <rect x="26" y="206" width="822" height="72" rx="8" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <rect x="40" y="218" width="112" height="28" rx="6" fill="#22395C"/>
+        <text class="clM" x="56" y="237">3 · 12 min</text>
+        <text class="clH" x="168" y="232">Physical DDL</text>
+        <text class="clC" x="168" y="252">Ships: types, NOT NULL, CHECK on both sets, three foreign keys, one deliberate index.</text>
+        <text class="clX" x="168" y="270">Trap: expecting a CHECK to stop a return of 3 units against a line that sold 1. It cannot.</text>
+
+        <rect x="26" y="286" width="822" height="72" rx="8" fill="#FFFFFF" stroke="#B9CBE4"/>
+        <rect x="40" y="298" width="112" height="28" rx="6" fill="#3B5B8C"/>
+        <text class="clM" x="56" y="317">4 · 15 min</text>
+        <text class="clH" x="168" y="312">Dimensional - dim_return_reason and the fact decision</text>
+        <text class="clC" x="168" y="332">Ships: one dimension, one new fact at return-line grain, four conformed dimensions reused.</text>
+        <text class="clX" x="168" y="350">Trap: hanging return measures off fact_order_item, which makes return rate fan out.</text>
+
+        <rect x="26" y="366" width="822" height="72" rx="8" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <rect x="40" y="378" width="112" height="28" rx="6" fill="#22395C"/>
+        <text class="clM" x="56" y="397">5 · 10 min</text>
+        <text class="clH" x="168" y="392">Serve and govern</text>
+        <text class="clC" x="168" y="412">Ships: one mart, one agent view, three metric rows, two golden questions, 27 checks green.</text>
+        <text class="clX" x="168" y="430">Trap: publishing return_rate as a stored ratio, which cannot be re-aggregated by anyone.</text>
+
+        <rect x="26" y="452" width="822" height="44" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="clN" x="46" y="479">8 + 10 + 12 + 15 + 10 = 55 minutes of work, 3 for the brief and 2 to run the validator.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the deliverable and the trap for each of the five checkpoints</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Work in this order, and do not skip ahead<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The ladder is the deliverable as much as the tables are. Every time a team has skipped a rung on a subject area this size, the same thing happens: the DDL gets written first, the conceptual question ("is a return an entity?") gets answered implicitly by whoever typed fastest, and the answer turns out to be wrong three months later when somebody asks for return reasons by merchant.</p>
+        <ul>
+          <li><strong>Conceptual before columns.</strong> Eight minutes with no SQL editor open. Write the entity list and the grain sentence on paper.</li>
+          <li><strong>Keys before types.</strong> Decide what identifies a return and what it points at before you decide whether a timestamp is TEXT or INTEGER.</li>
+          <li><strong>OLTP before dimensional.</strong> The star is derived from the source. If the source cannot record the reason, no dimension can invent it.</li>
+          <li><strong>Serve last, and only what someone asked for.</strong> One mart, one view, three metrics. A capstone that ships eleven views has misunderstood the exercise.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The one rule that decides most of this page</strong>
+          A return is not a property of a sale. It is a separate event, with a separate date, a separate actor and a separate lifecycle, and it can be rejected - which means it can exist with no money and no returned unit attached to it at all. Everything else on this page follows from taking that sentence seriously.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ CHECKPOINT 1 ============ -->
+  <section class="section" id="c1">
+    <div class="section-kicker">
+      <span class="klabel">Checkpoint 1 of 5 · 8 min · you decide</span>
+      <h2>Conceptual: entities and relationships <span class="tag demo">★ deliverable: entity list + grain sentence</span></h2>
+    </div>
+    <p class="lede">No editor, no columns. Two questions, and the rest of the session inherits your answers.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Decide:</strong> is a return an <em>entity</em>, or a status on the order line? Apply session b1's test - own identity, own lifecycle, own timestamps - and then apply the question that settles it: can the thing be <em>rejected</em>?</p></div>
+      <div class="step"><p><strong>Decide the grain:</strong> one return per order, or one per line? Say the sentence out loud: "one row is one ___". If the sentence needs the word "and", you have two entities.</p></div>
+      <div class="step"><p><strong>Draw the relationships:</strong> which existing entity does a return point at, and what is the cardinality in both directions? Write the verbs, the way b1 did on the conceptual model.</p></div>
+      <div class="step"><p><strong>Name one question</strong> that becomes unanswerable if you get this wrong. That question is your regression test for the next 50 minutes.</p></div>
+    </div>
+
+    <p class="lede">Before you commit to a grain, look at the population a return has to attach to. Every one of these orders has three separate product lines, sold by one merchant, at three different prices.</p>
+
+    <div class="sqlbox" data-caption="Orders with three lines each. A shopper returns one of these lines, not the order - which is your grain answer, in data.">
+      <pre class="sql-src">SELECT order_id,
+       COUNT(*)                    AS lines_on_order,
+       COUNT(DISTINCT merchant_id) AS merchants_on_order,
+       SUM(units)                  AS units_sold,
+       ROUND(SUM(net_revenue), 2)  AS order_net_revenue
+FROM v_sales_line
+WHERE is_paid = 1
+GROUP BY order_id
+HAVING COUNT(*) &gt;= 3
+ORDER BY lines_on_order DESC, order_id
+LIMIT 8;</pre>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The answer, once you have committed to yours<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>A return is an entity.</strong> It has its own identity (a return reference the shopper quotes in support tickets), its own lifecycle (requested, then approved or rejected, then received), its own timestamps (requested at, decided at), its own actor (whoever approved it), and - decisively - <strong>it can be rejected</strong>. A status value on the order line cannot be rejected, because rejecting it would mean setting the line back to a state that erases the fact that anyone ever asked. The request itself is information the business needs to keep.</p>
+        <p><strong>The grain is one row per returned order line</strong>, not one per order. The data above shows why: a shopper who bought three things and sent one back has produced one return against one line. If your grain were the order, you would have to store which line came back somewhere else, and you would be modelling a line-level fact at order level - the same grain error session b5 diagnosed on the flat export, in a new costume.</p>
+        <ul>
+          <li><strong>returns : order_items</strong> is many-to-one. One line can be returned more than once (a partial return in April, another unit in May), and each is its own event.</li>
+          <li><strong>returns : products</strong> is many-to-one, carried on the return the same way <code>order_items</code> carries <code>merchant_id</code>: a point-in-time capture, so the return still reports the right product if the catalogue is reorganised.</li>
+          <li><strong>returns : transactions</strong> is many-to-one and <em>optional</em>. A rejected return has no refund. An order refunded in one payment can settle three approved return lines.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The trap: return as a flag<span class="mini">2 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The shortcut is <code>order_items.is_returned INTEGER DEFAULT 0</code>. It takes ten seconds, it makes "how many returns" answerable, and it destroys four things at once:</p>
+        <ul>
+          <li><strong>The reason.</strong> "Damaged" and "changed mind" are the same flag, so merchant fault and shopper preference become one number - and the merchant-quality conversation is over before it starts.</li>
+          <li><strong>The approver and the decision.</strong> A flag has no actor and no outcome. Rejected requests vanish entirely, so the rejection rate cannot be measured and disputes cannot be audited.</li>
+          <li><strong>The timing.</strong> One flag has one implicit date at best. "How long do we take to decide a return" needs two timestamps, and "returns by request week" needs the return's own date, not the order's.</li>
+          <li><strong>Partial and repeat returns.</strong> A boolean cannot hold "one of the two units came back", so quantity returned is unrecoverable.</li>
+        </ul>
+        <p>Notice the shape of that list. The flag is not wrong because it is small. It is wrong because it answers exactly one question and forecloses every follow-up, and follow-ups are the entire reason anyone builds a model.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ CHECKPOINT 2 ============ -->
+  <section class="section" id="c2">
+    <div class="section-kicker">
+      <span class="klabel">Checkpoint 2 of 5 · 10 min · you decide</span>
+      <h2>Logical and keys <span class="tag demo">★ deliverable: attributes, keys, the refund relationship</span></h2>
+    </div>
+    <p class="lede">Attributes, keys and cardinality - the rung that turns an entity list into something an analyst can read. Four decisions, and one of them is the sneakiest on this page.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Key:</strong> <code>return_id</code> as a surrogate integer. Nothing outside Bazaar owns a return number, and the shopper-facing reference can be derived - so this is the same call session b4 made for <code>order_id</code>, for the same reason.</p></div>
+      <div class="step"><p><strong>Reference:</strong> a composite <code>(order_id, line_no)</code> pointing at <code>order_items</code>, whose primary key is exactly that pair. Carry <code>product_id</code> alongside it as a point-in-time capture.</p></div>
+      <div class="step"><p><strong>Reason:</strong> a constrained set of four codes, never free text. Decide the codes now, because every dashboard, dimension and metric downstream inherits them.</p></div>
+      <div class="step"><p><strong>Refund:</strong> decide how the return relates to <code>transactions</code> - and decide where the refund <em>amount</em> lives. This is the decision people get wrong.</p></div>
+    </div>
+
+    <p class="lede">Run this before you decide. Bazaar already has refunds: negative amounts with status <code>'refunded'</code>. Look at what the refund transaction can and cannot tell you.</p>
+
+    <div class="sqlbox" data-caption="Every one of these refunds is real money already recorded. Look at order 25: three lines on the order, one refund. Which line came back?">
+      <pre class="sql-src">SELECT p.attempt_date, p.order_id, p.txn_id,
+       ROUND(p.attempt_amount, 2) AS refund_amount,
+       s.lines_on_order,
+       ROUND(s.order_net_revenue, 2) AS order_net_revenue
+FROM v_payment_attempt p
+JOIN (SELECT order_id,
+             COUNT(*)         AS lines_on_order,
+             SUM(net_revenue) AS order_net_revenue
+      FROM v_sales_line GROUP BY order_id) s
+  ON s.order_id = p.order_id
+WHERE p.is_refund = 1
+ORDER BY p.attempt_date
+LIMIT 10;</pre>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Where the refund amount lives, and why it is a trap<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The refund transaction is at <strong>payment-attempt grain</strong>. It knows an order was refunded 137.12 and it has no idea which of that order's three lines came back, or why, or whether one unit or four were sent back. So the money is recorded and the event is not, which is why this subject area needs modelling at all rather than a view over <code>transactions</code>.</p>
+        <p>That gives you two defensible designs, and one indefensible one:</p>
+        <ul>
+          <li><strong>Defensible - the return points at the refund.</strong> <code>returns.refund_txn_id</code> references <code>transactions(txn_id)</code>, nullable because a rejected return has none. The amount lives once, on the transaction. Return value is then derived by joining, and a partial refund covering several return lines needs an allocation rule you write down.</li>
+          <li><strong>Defensible - the return carries its own allocated amount.</strong> <code>returns.refund_amount</code> holds this line's share, and <code>refund_txn_id</code> holds the reconciliation key. Line-level return value becomes a simple SUM, at the cost of a copy of the money that can drift.</li>
+          <li><strong>Indefensible - both, with nothing that reconciles them.</strong> The amount on the return and the amount on the transaction, no key linking them and no check comparing them. Two numbers for the same money, and the day they disagree nobody knows which one finance quoted.</li>
+        </ul>
+        <p>Take the second option, because line-level return value is a metric the business will ask for weekly - but only if you <em>also</em> ship the reconciliation. That means the key (<code>refund_txn_id</code>) plus a validation check asserting that the return lines under one refund sum to that refund's amount. Checkpoint 5 runs exactly that check, and it either agrees to the cent or your model is lying.</p>
+        <div class="callout tip">
+          <strong>The rule for every derived or duplicated money column</strong>
+          A copy of a number is allowed. A copy with no reconciliation is not. That is the same discipline <code>validate_model.py</code> applies to <code>net_amount = gross_amount - discount_amount</code>, and it is the reason the star can be trusted against the source at all.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The reason set, and why free text is a modeling decision<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Four codes: <code>damaged</code>, <code>wrong_item</code>, <code>changed_mind</code>, <code>not_as_described</code>. Snake case, singular concept per code, no spaces, no capitals - the naming standard from session a5, applied without exception because the moment one code is <code>Damaged</code> you own a cleaning step forever.</p>
+        <ul>
+          <li><strong>A constrained set is a contract with the future.</strong> Free text gives you "damaged", "Damaged", "arrived broken", "DMG" and forty singletons, and every one of them is a row that falls out of your GROUP BY.</li>
+          <li><strong>Free text has a place, beside the code, not instead of it.</strong> Add <code>reason_note TEXT</code> if support needs the shopper's own words. It is never grouped by, and nothing downstream depends on it.</li>
+          <li><strong>Adding a fifth code is a modeling event.</strong> It changes a CHECK constraint, a dimension row and a metric's meaning. That is a feature: the friction is what stops the set silently sprawling to thirty.</li>
+          <li><strong>Never allow a NULL reason.</strong> A return with no reason is a row that cannot be grouped, cannot be attributed to merchant fault or shopper choice, and quietly disappears from every reason breakdown. If the source genuinely does not know, that is a code - <code>unknown</code> - not an absence.</li>
+        </ul>
+        <p>Also decide the status set now: <code>requested</code>, <code>approved</code>, <code>rejected</code>, <code>received</code>. Four values, one lifecycle, and a rejected return that stays in the table forever. If you find yourself wanting a fifth status called <code>refunded</code>, stop - that is the transaction's state, not the return's, and putting it here is how two tables start disagreeing about the same fact.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ CHECKPOINT 3 ============ -->
+  <section class="section" id="c3">
+    <div class="section-kicker">
+      <span class="klabel">Checkpoint 3 of 5 · 12 min · you build</span>
+      <h2>Physical DDL <span class="tag demo">★ deliverable: a CREATE TABLE that ships</span></h2>
+    </div>
+    <p class="lede">Now write it, in the style of <code>sql/01_oltp_ddl.sql</code>: every column typed, every rule that <em>can</em> be enforced enforced, and an honest comment where a rule cannot be. The editor below starts on an empty database, so you create everything you query - including the three tables your foreign keys point at.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Types and nullability.</strong> Timestamps as ISO-8601 TEXT in UTC, named <code>*_ts</code>. <code>NOT NULL</code> on everything the business always knows at insert time; nullable only where absence is genuinely meaningful - <code>decided_ts</code> before a decision, <code>refund_txn_id</code> when there is no refund.</p></div>
+      <div class="step"><p><strong>CHECK the two sets</strong> - reason and status - and CHECK <code>quantity_returned &gt; 0</code>. A constraint at the door is worth a hundred cleaning scripts.</p></div>
+      <div class="step"><p><strong>Three foreign keys:</strong> the composite <code>(order_id, line_no)</code> to <code>order_items</code>, <code>product_id</code> to <code>products</code>, and <code>refund_txn_id</code> to <code>transactions</code>.</p></div>
+      <div class="step"><p><strong>One index, chosen deliberately.</strong> What will actually be queried? Support looks up returns for an order line; reporting scans by request date. Every index costs write throughput, so name the access path before you add it.</p></div>
+      <div class="step"><p><strong>Then break it.</strong> Insert a return of 2 units against a line that sold 1, and watch it succeed. Write down where that rule has to live instead.</p></div>
+    </div>
+
+    <div class="sqlbox" data-seed="none" data-caption="Empty database: you create the parents, the returns table, and the rows. Return 3 sends back 2 units of a line that sold 1 - and the INSERT succeeds.">
+      <pre class="sql-src">-- minimal stand-ins for the three parents a return references
+CREATE TABLE products (
+  product_id   INTEGER PRIMARY KEY,
+  product_name TEXT NOT NULL
+);
+CREATE TABLE orders (
+  order_id INTEGER PRIMARY KEY,
+  order_ts TEXT NOT NULL
+);
+CREATE TABLE order_items (
+  order_id   INTEGER NOT NULL REFERENCES orders(order_id),
+  line_no    INTEGER NOT NULL,
+  product_id INTEGER NOT NULL REFERENCES products(product_id),
+  quantity   INTEGER NOT NULL CHECK (quantity &gt; 0),
+  unit_price REAL    NOT NULL CHECK (unit_price &gt;= 0),
+  PRIMARY KEY (order_id, line_no)
+);
+
+-- GRAIN: one row per returned order line.
+CREATE TABLE returns (
+  return_id         INTEGER PRIMARY KEY,
+  order_id          INTEGER NOT NULL,
+  line_no           INTEGER NOT NULL,
+  product_id        INTEGER NOT NULL REFERENCES products(product_id),
+  quantity_returned INTEGER NOT NULL CHECK (quantity_returned &gt; 0),
+  reason_code       TEXT NOT NULL CHECK (reason_code IN
+                      ('damaged','wrong_item','changed_mind','not_as_described')),
+  status            TEXT NOT NULL CHECK (status IN
+                      ('requested','approved','rejected','received')),
+  requested_ts      TEXT NOT NULL,
+  decided_ts        TEXT,                    -- NULL while status = 'requested'
+  decided_by        TEXT,                    -- the merchant who ruled on it
+  refund_txn_id     INTEGER,                 -- NULL when rejected
+  disposition       TEXT NOT NULL DEFAULT 'pending' CHECK (disposition IN
+                      ('pending','resellable','write_off','not_applicable')),
+  FOREIGN KEY (order_id, line_no) REFERENCES order_items(order_id, line_no)
+);
+CREATE INDEX idx_returns_line ON returns(order_id, line_no);
+CREATE INDEX idx_returns_req  ON returns(requested_ts);
+
+INSERT INTO products VALUES (1051,'Cold Brew Pack'), (1007,'Clay Mask');
+INSERT INTO orders   VALUES (4,'2026-04-01T13:22:00Z'), (2,'2026-04-01T09:41:00Z');
+INSERT INTO order_items VALUES (4,2,1051,1,18.50), (2,1,1007,1,32.90);
+
+INSERT INTO returns
+  (return_id, order_id, line_no, product_id, quantity_returned, reason_code,
+   status, requested_ts, decided_ts, decided_by, refund_txn_id, disposition) VALUES
+  (1, 4, 2, 1051, 1, 'damaged',      'approved', '2026-04-05T09:00:00Z',
+      '2026-04-05T14:20:00Z', 'M11', 9001, 'write_off'),
+  (2, 2, 1, 1007, 1, 'changed_mind', 'rejected', '2026-04-06T08:30:00Z',
+      '2026-04-07T10:00:00Z', 'M02', NULL, 'not_applicable'),
+  (3, 4, 2, 1051, 2, 'wrong_item',   'approved', '2026-04-08T09:10:00Z',
+      '2026-04-08T12:00:00Z', 'M11', 9002, 'resellable');
+
+-- the rule no CHECK can see: it needs the other table
+SELECT r.return_id, r.order_id, r.line_no, r.reason_code, r.status,
+       r.quantity_returned, oi.quantity AS quantity_sold,
+       CASE WHEN r.quantity_returned &gt; oi.quantity
+            THEN 'VIOLATION' ELSE 'ok' END AS single_return_check
+FROM returns r
+JOIN order_items oi ON oi.order_id = r.order_id AND oi.line_no = r.line_no
+ORDER BY r.return_id;
+
+-- and the harder version: the CUMULATIVE rule across every return on the line
+SELECT oi.order_id, oi.line_no, oi.quantity AS quantity_sold,
+       SUM(r.quantity_returned) AS approved_units_returned
+FROM order_items oi
+JOIN returns r ON r.order_id = oi.order_id AND r.line_no = oi.line_no
+WHERE r.status = 'approved'
+GROUP BY oi.order_id, oi.line_no, oi.quantity
+HAVING SUM(r.quantity_returned) &gt; oi.quantity;</pre>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Where the over-return rule actually has to live<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Both queries above found a violation, and the database accepted both rows without complaint. Be precise about why, because "add a constraint" is the wrong instinct here and knowing that is the point of the checkpoint.</p>
+        <ul>
+          <li><strong>A CHECK constraint sees one row of one table.</strong> "Returned units must not exceed units sold" needs <code>order_items.quantity</code>, which is a different table. In standard SQL the tool for this is an assertion, and essentially no engine implements assertions. So the constraint cannot be written.</li>
+          <li><strong>The cumulative version is harder still.</strong> Even with a magic cross-table CHECK, the real rule is about the <em>sum</em> of every approved return on that line, which is a set, not a row. Returns 1 and 3 above are each individually plausible and jointly impossible.</li>
+          <li><strong>Where it goes, in descending order of preference:</strong> (1) the application, inside the same transaction that inserts the return, holding a lock on the line - the only place it can be genuinely prevented; (2) a database trigger, which is closer to the data but easy to forget and awkward to test; (3) a validation check that runs on every load and fails loudly, which detects rather than prevents.</li>
+          <li><strong>Ship the detection either way.</strong> Option 3 is not a substitute for option 1, and option 1 is not an excuse to skip option 3 - the source of bad rows is usually a backfill or a support tool that never went through the application.</li>
+        </ul>
+        <div class="callout example">
+          <span class="ex-pill">Real world</span>
+          <p><strong>Declared is not enforced.</strong> SQLite ignores every foreign key in that DDL until <code>PRAGMA foreign_keys = ON</code> is set on the connection, which is session b4's favourite trap and worth re-testing here: the parents exist in this example, so nothing breaks, but a return pointing at a nonexistent line would also insert cleanly. Postgres enforces by default; MySQL depends on the storage engine; a warehouse like Snowflake or BigQuery accepts the syntax and enforces nothing at all, on purpose. Always know which of your constraints are constraints and which are comments.</p>
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Which index, and why only one or two<span class="mini">2 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The DDL above adds two, and both are justified by a named access path rather than a hunch:</p>
+        <ul>
+          <li><strong><code>(order_id, line_no)</code></strong> - support opens an order and asks "has anything here been returned?" This is also the join every load and every validation check uses, so it earns its write cost several times over.</li>
+          <li><strong><code>requested_ts</code></strong> - the reporting scan. "Returns requested last week" is a range predicate on this column, and without an index it is a full table scan every time the mart rebuilds.</li>
+        </ul>
+        <p>What is deliberately <em>not</em> indexed: <code>reason_code</code> and <code>status</code>, both of which have four values. A four-value column matches roughly a quarter of the table, so the planner will usually scan anyway and you have paid for an index nobody uses. Low cardinality plus a filter that is not selective equals a write tax with no read benefit - which is the whole of session b5's index argument, applied to your own table for the first time.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ CHECKPOINT 4 ============ -->
+  <section class="section" id="c4">
+    <div class="section-kicker">
+      <span class="klabel">Checkpoint 4 of 5 · 15 min · you build</span>
+      <h2>Dimensional: one dimension, one fact decision <span class="tag demo">★ deliverable: dim_return_reason + fact_return</span></h2>
+    </div>
+    <p class="lede">The longest checkpoint, because it contains the single decision that separates a model that answers follow-up questions from one that quietly poisons the numbers you already trust.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Build <code>dim_return_reason</code></strong> in the style of <code>dim_payment_method</code>: a surrogate key, the source code as the business key, a readable label, and a <em>modeled</em> grouping the source does not have. Include the <code>-1</code> unknown member.</p></div>
+      <div class="step"><p><strong>Decide the fact.</strong> Is <code>fact_return</code> a new fact at return-line grain, or do return measures belong as extra columns on <code>fact_order_item</code>? Decide before you read the answer, and justify it with the two questions from <code>sql/11_fact_ddl.sql</code>.</p></div>
+      <div class="step"><p><strong>List the dimensions you reuse.</strong> Which of the existing six does <code>fact_return</code> point at, and which date does <code>date_key</code> mean - the order date or the request date?</p></div>
+      <div class="step"><p><strong>Split every ratio.</strong> No rate is stored. Decide which numerator and denominator columns you need so that return rate, resellable share and refund value can all be computed at any grain.</p></div>
+    </div>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Why returns need their own fact table rather than extra columns on the sales fact, showing the fan-out on the left and the separate-grain design on the right">
+        <style>
+          .ftK { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+          .ftBad { font: 700 12.5px Inter, sans-serif; fill: #991B1B; }
+          .ftGood { font: 700 12.5px Inter, sans-serif; fill: #22395C; }
+          .ftC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .ftR { font: 700 12px Inter, sans-serif; fill: #991B1B; }
+          .ftN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <text class="ftK" x="26" y="26">The fact decision, and the fan-out it prevents</text>
+
+        <rect x="26" y="40" width="400" height="238" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="ftBad" x="44" y="66">Wrong · return columns on fact_order_item</text>
+        <text class="ftC" x="44" y="92">One sale: order 4, line 2, 1 unit, 18.50 net.</text>
+        <text class="ftC" x="44" y="112">Two return events against that one line, so the</text>
+        <text class="ftC" x="44" y="132">sales row has to be stored twice to hold both.</text>
+        <text class="ftR" x="44" y="158">SUM(net_revenue) = 37.00, not 18.50</text>
+        <text class="ftC" x="44" y="184">A rejected return is not a sale, yet it still needs</text>
+        <text class="ftC" x="44" y="204">a row - so the sales fact grows rows that never</text>
+        <text class="ftC" x="44" y="224">shipped anything and never took any money.</text>
+        <text class="ftC" x="44" y="250">One shortcut, and every revenue number built</text>
+        <text class="ftC" x="44" y="268">on b7 is now wrong. That is fan-out.</text>
+
+        <rect x="452" y="40" width="396" height="238" rx="9" fill="#EDF2F9" stroke="#3B5B8C"/>
+        <text class="ftGood" x="470" y="66">Right · fact_return at return-line grain</text>
+        <text class="ftC" x="470" y="92">One row per return line, with its own date (the</text>
+        <text class="ftC" x="470" y="112">request), its own status, its own reason.</text>
+        <text class="ftC" x="470" y="132">fact_order_item is untouched, so every revenue</text>
+        <text class="ftC" x="470" y="152">number from b7 stays exactly as it was.</text>
+        <text class="ftC" x="470" y="178">Return rate: aggregate each fact to merchant x</text>
+        <text class="ftC" x="470" y="198">day, then divide. Two sums at one grain, and</text>
+        <text class="ftC" x="470" y="218">never a fact-to-fact join.</text>
+        <text class="ftC" x="470" y="244">Rejected returns live here happily: they are</text>
+        <text class="ftC" x="470" y="262">returns, they are simply not refunds.</text>
+
+        <rect x="26" y="300" width="822" height="80" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="ftN" x="46" y="326">The test: can one row of an existing fact be made to appear twice by the new subject area? If yes, the new</text>
+        <text class="ftN" x="46" y="346">subject area is a new fact. Different grain, different date, different lifecycle - three separate reasons here,</text>
+        <text class="ftN" x="46" y="366">and any one of them on its own would be enough.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the fan-out on the left is why the answer is a new fact</figcaption>
+    </figure>
+
+    <div class="sqlbox" data-seed="none" data-caption="Empty database: build the reason dimension, a cut-down merchant dimension to prove conformance, and fact_return. Note the rejected return - a row with no units and no money.">
+      <pre class="sql-src">-- ---------------- dim_return_reason
+-- Small dimension, same shape as dim_payment_method: the source code as the
+-- business key, a readable label, and a GROUPING the source does not have.
+CREATE TABLE dim_return_reason (
+  return_reason_key INTEGER PRIMARY KEY,
+  reason_code       TEXT NOT NULL UNIQUE,
+  reason_label      TEXT NOT NULL,
+  reason_group      TEXT NOT NULL,           -- merchant_fault / shopper_choice
+  is_merchant_fault INTEGER NOT NULL CHECK (is_merchant_fault IN (0, 1))
+);
+INSERT INTO dim_return_reason VALUES
+ (-1, 'unknown',          'Unknown',            'unknown',        0),
+ (1,  'damaged',          'Damaged in transit', 'merchant_fault', 1),
+ (2,  'wrong_item',       'Wrong item shipped', 'merchant_fault', 1),
+ (3,  'not_as_described', 'Not as described',   'merchant_fault', 1),
+ (4,  'changed_mind',     'Changed mind',       'shopper_choice', 0);
+
+-- a cut-down dim_merchant, standing in for the conformed one you reuse
+CREATE TABLE dim_merchant (
+  merchant_sk   INTEGER PRIMARY KEY,
+  merchant_id   TEXT NOT NULL,
+  merchant_name TEXT NOT NULL,
+  is_current    INTEGER NOT NULL CHECK (is_current IN (0, 1))
+);
+INSERT INTO dim_merchant VALUES
+ (-1, 'unknown', 'unknown', 1), (11, 'M11', 'Orchid Grocer', 1),
+ (4, 'M04', 'Pace Athletics', 1), (1, 'M01', 'Kettle &amp; Co', 1);
+
+-- ---------------- fact_return
+-- GRAIN: one row per return line. date_key is the REQUEST date, not the order
+-- date - a different date from fact_order_item, which is one of the three
+-- reasons this is a separate fact.
+CREATE TABLE fact_return (
+  return_sk         INTEGER PRIMARY KEY,
+  date_key          INTEGER NOT NULL,
+  time_key          INTEGER NOT NULL,
+  user_sk           INTEGER NOT NULL,
+  merchant_sk       INTEGER NOT NULL REFERENCES dim_merchant(merchant_sk),
+  product_sk        INTEGER NOT NULL,
+  return_reason_key INTEGER NOT NULL REFERENCES dim_return_reason(return_reason_key),
+  return_id         INTEGER NOT NULL,        -- degenerate
+  order_id          INTEGER NOT NULL,        -- degenerate, the drill-down path
+  line_no           INTEGER NOT NULL,        -- degenerate
+  refund_txn_id     INTEGER,                 -- reconciliation key, NULL if rejected
+  units_returned    INTEGER NOT NULL,        -- additive
+  approved_units    INTEGER NOT NULL,        -- additive, 0 when rejected
+  resellable_units  INTEGER NOT NULL,        -- additive
+  write_off_units   INTEGER NOT NULL,        -- additive
+  refund_amount     REAL    NOT NULL,        -- additive, positive, 0 when rejected
+  is_approved       INTEGER NOT NULL CHECK (is_approved IN (0, 1)),
+  is_rejected       INTEGER NOT NULL CHECK (is_rejected IN (0, 1)),
+  UNIQUE (return_id)                         -- the grain, enforced
+);
+CREATE INDEX idx_fret_date     ON fact_return(date_key);
+CREATE INDEX idx_fret_merchant ON fact_return(merchant_sk);
+
+INSERT INTO fact_return VALUES
+ (1, 20260405,  9, 12, 11, 51, 1, 1,  4, 2, 9001, 1, 1, 0, 1,  18.50, 1, 0),
+ (2, 20260406,  8, 27,  4, 24, 2, 2,  7, 2, 9002, 1, 1, 1, 0, 189.00, 1, 0),
+ (3, 20260407, 15, 33,  1, 11, 4, 3, 17, 1, NULL, 1, 0, 0, 0,   0.00, 0, 1),
+ (4, 20260409, 11, 48,  1,  6, 3, 4, 15, 2, 9003, 2, 2, 0, 2,  48.00, 1, 0);
+
+-- returns by reason group: merchant fault versus shopper choice, the split the
+-- source cannot make and the dimension can
+SELECT rr.reason_group, rr.reason_label, rr.is_merchant_fault,
+       COUNT(*)                       AS return_lines,
+       SUM(f.approved_units)          AS approved_units,
+       SUM(f.resellable_units)        AS resellable_units,
+       ROUND(SUM(f.refund_amount), 2) AS return_value
+FROM fact_return f
+JOIN dim_return_reason rr ON rr.return_reason_key = f.return_reason_key
+GROUP BY rr.reason_group, rr.reason_label, rr.is_merchant_fault
+ORDER BY return_value DESC;
+
+-- and the same fact through a conformed dimension you did not have to build
+SELECT m.merchant_id, m.merchant_name,
+       SUM(f.is_approved)             AS approved_returns,
+       SUM(f.is_rejected)             AS rejected_returns,
+       SUM(f.approved_units)          AS approved_units,
+       ROUND(SUM(f.refund_amount), 2) AS return_value
+FROM fact_return f
+JOIN dim_merchant m ON m.merchant_sk = f.merchant_sk
+GROUP BY m.merchant_id, m.merchant_name
+ORDER BY return_value DESC;</pre>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The answer: a new fact, for three independent reasons<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><code>fact_return</code> is a new fact table at return-line grain. Any <em>one</em> of these three would settle it; you have all three:</p>
+        <ul>
+          <li><strong>Different grain.</strong> One order line can produce two returns, so return rows do not divide evenly into sales rows. Putting them together fans the sale out, which the diagram above prices at 37.00 instead of 18.50 - the same arithmetic as session b9's fact-to-fact double count.</li>
+          <li><strong>Different date.</strong> <code>fact_order_item.date_key</code> is when the sale happened; <code>fact_return.date_key</code> is when the return was requested, usually days later and sometimes in a different month. Two dates in one row means one of them is not the row's date, and every time-series query has to guess which.</li>
+          <li><strong>Different lifecycle, including a state with no money.</strong> A return can be rejected. A rejected return is a real event with a real reason that the business must be able to count, and it is not a sale event at all. Return 3 above is that row: units returned, zero approved, zero money.</li>
+        </ul>
+        <p><strong>Dimensions reused, not rebuilt:</strong> <code>dim_date</code> (on the request date), <code>dim_time_of_day</code>, <code>dim_user</code>, <code>dim_merchant</code> and <code>dim_product</code>. Five of the six existing dimensions carry straight over, which is the whole return on the conformance investment made in b6 - "returns by merchant tier" and "returns by product category" work the moment the fact lands, with no new dimension and no new join rules. Only <code>dim_return_reason</code> is new, because only the reason is new vocabulary.</p>
+        <p><strong>On the product and merchant keys:</strong> use the same surrogate the sale used, so a return reports the merchant tier and list price that were true at the time of sale. Resolving them as at the return date instead would attribute an April sale's return to June's tier, and the two facts would stop agreeing about the same merchant.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The accumulating-snapshot alternative, and why not today<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A return has a lifecycle with milestones: requested, decided, received, refunded. Kimball has a fact type built for exactly that shape - the <strong>accumulating snapshot</strong>, one row per process instance with a date key per milestone and a lag measure between them, updated in place as the process advances.</p>
+        <p>It is a genuinely good fit and it is the right answer for some organisations. It is not the answer here, for reasons worth being able to state:</p>
+        <ul>
+          <li><strong>It is an update-in-place fact.</strong> Rows mutate as milestones land, which is a loading pattern (and a cost model) that belongs to <code>learn-data-warehouse</code>, not to a modeling capstone.</li>
+          <li><strong>The transaction-grain fact is a strict prerequisite anyway.</strong> Build the event fact first; the snapshot is derived from it. Doing it the other way round is how teams end up unable to answer anything the snapshot did not anticipate.</li>
+          <li><strong>Bazaar has two milestones, not six.</strong> Requested and decided. An accumulating snapshot earns its complexity at five or six milestones with real lag questions between each pair, and pays for itself in shipping-and-fulfilment pipelines rather than here.</li>
+        </ul>
+        <p>Write the decision down either way. "We considered an accumulating snapshot and chose a transaction-grain fact because the lifecycle has two milestones" is the kind of sentence that stops the same debate being reopened every six months - and it belongs in <code>semantic/contract.yaml</code> under known limitations, not in somebody's memory.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ CHECKPOINT 5 ============ -->
+  <section class="section" id="c5">
+    <div class="section-kicker">
+      <span class="klabel">Checkpoint 5 of 5 · 10 min · you build</span>
+      <h2>Serve and govern <span class="tag demo">★ deliverable: mart, view, 3 metrics, 2 golden questions</span></h2>
+    </div>
+    <p class="lede">A fact nobody can query is not finished. Publish it the way b8 and b9 published the rest: one mart at the grain the question is asked at, one self-describing view, metric definitions as data, golden questions as a test suite, and the validator green.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>The mart:</strong> <code>mart_returns_daily</code> at merchant x day grain, carrying return lines, units returned, return value and resellable units - beside the units and revenue that are its denominators. No stored ratios.</p></div>
+      <div class="step"><p><strong>The view:</strong> <code>v_return_line</code>, one row per return line, grain in the name, business-readable column names, no exposed path to any other fact. Same five rules as <code>sql/40_agent_views.sql</code>.</p></div>
+      <div class="step"><p><strong>Three metric rows:</strong> <code>return_rate</code>, <code>return_value</code>, <code>resellable_share</code>, each with a definition, an expression, a source view, a grain and a caveat that is actually honest.</p></div>
+      <div class="step"><p><strong>Two golden questions,</strong> with the SQL you expect and the wrong answer an ungrounded agent would give.</p></div>
+      <div class="step"><p><strong>Then run the validator.</strong> <code>python python/validate_model.py</code>. All 27 checks green, or you are not done.</p></div>
+    </div>
+
+    <p class="lede">Prototype the mart against real orders before you write any DDL for it. The box below invents seven return lines, attributes them to real settled order lines, rolls them up to merchant x day, and then reconciles the return lines against the refund transactions that already exist in Bazaar.</p>
+
+    <div class="sqlbox" data-caption="The mart shape, prototyped on real data - then the reconciliation check. Both totals must match to the cent, or the amount on the return is fiction.">
+      <pre class="sql-src">-- seven return lines, attributed to order lines that really settled, and to the
+-- refund transactions that really exist (txn 9, 30, 71, 163)
+CREATE TABLE returns_line (
+  return_id        INTEGER PRIMARY KEY,
+  order_id         INTEGER NOT NULL,
+  line_no          INTEGER NOT NULL,
+  reason_code      TEXT    NOT NULL,
+  units_returned   INTEGER NOT NULL,
+  refund_amount    REAL    NOT NULL,
+  resellable_units INTEGER NOT NULL,
+  refund_txn_id    INTEGER NOT NULL
+);
+INSERT INTO returns_line VALUES
+ (1,   7, 1, 'damaged',          1,  56.90, 0,   9),
+ (2,   7, 2, 'wrong_item',       1, 189.00, 1,   9),
+ (3,  25, 1, 'not_as_described', 1,  29.61, 0,  30),
+ (4,  25, 2, 'changed_mind',     2,  62.51, 2,  30),
+ (5,  25, 3, 'changed_mind',     1,  45.00, 1,  30),
+ (6,  64, 1, 'wrong_item',       1, 129.00, 1,  71),
+ (7, 154, 1, 'damaged',          1,  24.00, 0, 163);
+
+-- mart_returns_daily, prototyped: merchant x SALE date, so the units sold on
+-- the same row are the right denominator for return rate
+SELECT m.activity_date AS sale_date, m.merchant_id, m.merchant_name,
+       m.orders, m.units, m.net_revenue,
+       COUNT(r.return_id)                          AS return_lines,
+       COALESCE(SUM(r.units_returned), 0)          AS units_returned,
+       ROUND(COALESCE(SUM(r.refund_amount), 0), 2) AS return_value,
+       COALESCE(SUM(r.resellable_units), 0)        AS resellable_units
+FROM mart_merchant_daily m
+LEFT JOIN (SELECT v.order_date, v.merchant_id, r.return_id,
+                  r.units_returned, r.refund_amount, r.resellable_units
+             FROM returns_line r
+             JOIN v_sales_line v
+               ON v.order_id = r.order_id AND v.line_no = r.line_no) r
+       ON r.merchant_id = m.merchant_id AND r.order_date = m.activity_date
+GROUP BY m.activity_date, m.merchant_id, m.merchant_name, m.orders, m.units, m.net_revenue
+HAVING COUNT(r.return_id) &gt; 0
+ORDER BY sale_date;
+
+-- the reconciliation the design from checkpoint 2 owes you
+SELECT ROUND((SELECT SUM(refund_amount) FROM returns_line), 2) AS return_line_total,
+       ROUND((SELECT -SUM(amount) FROM fact_transaction
+               WHERE is_refund = 1
+                 AND order_id IN (SELECT DISTINCT order_id FROM returns_line)), 2)
+                                                              AS refund_txn_total;</pre>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The date decision the mart forces you to make<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The prototype above joins returns to the mart on the <strong>sale</strong> date, not the request date, and that is a modeling decision you have to make explicitly rather than by accident:</p>
+        <ul>
+          <li><strong>By sale date (cohort attribution).</strong> "Of the units we sold on 3 April, what share came back?" The numerator and the denominator describe the same units, so the ratio means something. The cost is that the number for recent days keeps rising as returns arrive - it is not final for weeks.</li>
+          <li><strong>By request date (operational load).</strong> "How many returns landed on the desk on 9 April?" Final the moment the day ends, and the right number for staffing a returns team. But dividing it by the same day's sales is meaningless, because those are different units.</li>
+        </ul>
+        <p>Both are legitimate metrics. Shipping one and calling it "return rate" without saying which is how two teams end up with two numbers and a meeting. Pick the cohort version for <code>return_rate</code> because it is the one leadership means, keep the request-date count as a separate measure, and put the distinction in the caveat column where an agent and a new analyst will both read it.</p>
+        <div class="callout tip">
+          <strong>Two facts, two grains, one ratio</strong>
+          Return rate has its numerator in <code>fact_return</code> and its denominator in <code>fact_order_item</code>. Never join them. Aggregate each to merchant x day first, then divide - which works precisely because both were built from the same conformed dimensions. This is the same rule as b9's forbidden fact-to-fact join, and the reason the mart exists at all.
+        </div>
+      </div>
+    </details>
+
+    <p class="lede">Now extend the semantic layer. <code>v_metric_definitions</code> has 13 rows; you are adding three. Each caveat should be the sentence you would otherwise have to repeat in Slack every month.</p>
+
+    <div class="sqlbox" data-caption="Three rows added to the metric table, then the row count. Metrics as data means the definition cannot drift out of sync with what is queryable.">
+      <pre class="sql-src">INSERT INTO v_metric_definitions VALUES
+ ('return_rate',
+  'Share of units sold that were returned and approved, attributed to the sale date.',
+  'SUM(approved_units) * 1.0 / SUM(units_sold)',
+  'v_return_line + v_sales_line', 'merchant x sale date',
+  'Two facts, two grains: aggregate each to merchant x day BEFORE dividing. Never join the facts.'),
+
+ ('return_value',
+  'Refund money attributed to approved return lines, as a positive amount.',
+  'SUM(refund_amount) WHERE is_approved = 1',
+  'v_return_line', 'return line',
+  'Sign flipped from fact_transaction, where refunds are negative. Reconcile on refund_txn_id.'),
+
+ ('resellable_share',
+  'Share of returned units that came back fit to sell again.',
+  'SUM(resellable_units) * 1.0 / SUM(approved_units)',
+  'v_return_line', 'return line',
+  'Rejected returns have no units, so they leave both sides - they are not counted as zero.');
+
+SELECT metric_name, source_view, grain, caveat
+FROM v_metric_definitions
+WHERE metric_name IN ('return_rate', 'return_value', 'resellable_share')
+ORDER BY metric_name;
+
+SELECT COUNT(*) AS metric_rows FROM v_metric_definitions;</pre>
+    </div>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Your two new golden questions<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The golden set is a test suite for your model's answerability, so a good new question is one that <em>fails</em> without the artifacts you just shipped. Add these two to <code>semantic/golden_questions.jsonl</code> as q21 and q22, each with the SQL you believe is correct and the wrong answer you expect from an ungrounded agent:</p>
+        <table class="clean">
+          <thead><tr><th>Question</th><th>The SQL you expect</th><th>The ungrounded failure</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>q21</strong> - "Which return reason costs us the most, and is it our fault?"</td>
+              <td><code>SELECT reason_group, reason_label, SUM(approved_units), SUM(refund_amount) FROM v_return_line WHERE is_approved = 1 GROUP BY reason_group, reason_label ORDER BY 4 DESC</code></td>
+              <td>Sums <code>refund_amount</code> over every row, including rejected returns, and reports a reason ranking that includes returns nobody ever refunded.</td>
+            </tr>
+            <tr>
+              <td><strong>q22</strong> - "What is our return rate by merchant for May?"</td>
+              <td>Two aggregates to merchant grain - approved units from <code>v_return_line</code>, units sold from <code>v_sales_line</code> - joined on <code>merchant_id</code>, then divided.</td>
+              <td>Joins the two facts on <code>order_id</code>, fans the sales lines out by the number of returns, and reports a rate that is wrong in both the numerator and the denominator.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Then extend <code>semantic/schema_card.md</code> with <code>v_return_line</code> and its grain sentence, and <code>semantic/contract.yaml</code> with the new forbidden join, the three metric definitions, the synonyms the business actually says ("RMA", "refund rate", "send-backs") and the known limitation you wrote down in checkpoint 4. Grade with execution match, exactly as b9 did: run both queries, compare result sets to the cent.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The validation checks your subject area has to add<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The 27 checks in <code>python/validate_model.py</code> are grouped by the order things actually go wrong, and every group has an obvious returns equivalent. Write yours to the same shape - one row, one column, zero means pass - and add them to the <code>CHECKS</code> list:</p>
+        <ul>
+          <li><strong>grain</strong> - no duplicate <code>return_id</code> in <code>fact_return</code>; no duplicate <code>(activity_date, merchant_id)</code> in <code>mart_returns_daily</code>.</li>
+          <li><strong>keys</strong> - <code>dim_return_reason.reason_code</code> unique and never NULL. This is the check that catches a free-text reason sneaking back in.</li>
+          <li><strong>integrity</strong> - every <code>fact_return.return_reason_key</code> resolves in <code>dim_return_reason</code>; every <code>merchant_sk</code>, <code>product_sk</code> and <code>date_key</code> resolves too. An orphan return silently disappears from every inner join.</li>
+          <li><strong>additivity</strong> - <code>approved_units + rejected units = units_returned</code>; <code>resellable_units + write_off_units</code> never exceeds <code>approved_units</code>; <code>refund_amount = 0</code> whenever <code>is_rejected = 1</code>; no row both approved and rejected.</li>
+          <li><strong>reconcile</strong> - the row count matches <code>returns</code> in the source, and the sum of <code>refund_amount</code> per <code>refund_txn_id</code> equals that transaction's amount. This is the checkpoint-2 promise, enforced.</li>
+          <li><strong>the cross-table rule</strong> - approved units returned per order line never exceed units sold. The rule no CHECK could express, detected on every load.</li>
+          <li><strong>nulls</strong> - no NULL attributes in <code>dim_return_reason</code>, and no NULL <code>reason_code</code> anywhere.</li>
+          <li><strong>gauge</strong> - unknown-member rate on <code>fact_return</code>. It should be 0.0%, the same as every other fact.</li>
+        </ul>
+        <p>Then re-run the whole file. All 27 existing checks must still pass, because you did not touch anything they cover - and if one of them broke, that is the most useful failure of the whole session: it means the new subject area reached into the old model somewhere it should not have.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ ACCEPTANCE ============ -->
+  <section class="section" id="accept">
+    <div class="section-kicker">
+      <span class="klabel">The grader</span>
+      <h2>How to know you got it right <span class="tag exercise">◐ 2 min</span></h2>
+    </div>
+    <p class="lede">Nine things, checkable by someone else without asking you a single question. That last property is the real test: a model whose correctness depends on its author being in the room is not finished.</p>
+    <table class="clean">
+      <thead><tr><th>Check</th><th>What passing looks like</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1 · Grain sentence</strong></td><td>"One row of <code>returns</code> is one returned line on one order." No "and", no "or".</td></tr>
+        <tr><td><strong>2 · Rejection survives</strong></td><td>You can list rejected returns with their reason and their decision time. Nothing about them is inferred.</td></tr>
+        <tr><td><strong>3 · Sets are constrained</strong></td><td>An INSERT with <code>reason_code = 'Damaged'</code> or <code>status = 'refunded'</code> fails at the door.</td></tr>
+        <tr><td><strong>4 · The impossible rule is documented</strong></td><td>A comment in the DDL says the over-return rule lives in the application, plus a validation check that detects it.</td></tr>
+        <tr><td><strong>5 · Sales numbers unchanged</strong></td><td><code>SUM(net_amount)</code> on <code>fact_order_item</code> is still 111,906.48 on settled lines. Adding returns moved nothing.</td></tr>
+        <tr><td><strong>6 · Conformance used</strong></td><td>"Returns by merchant tier" and "returns by product category" work with no new dimension, on the surrogate the sale used.</td></tr>
+        <tr><td><strong>7 · No stored ratio</strong></td><td>Nothing anywhere holds a return rate. Numerators and denominators only, dividing at read time.</td></tr>
+        <tr><td><strong>8 · Reconciliation agrees</strong></td><td>Return lines under one refund sum to that refund's amount, to the cent, and a check asserts it on every load.</td></tr>
+        <tr><td><strong>9 · The validator is green</strong></td><td>All 27 original checks pass, your new checks pass, and the unknown-member rate on <code>fact_return</code> is 0.0%.</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Common wrong turns<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Four failures account for almost every version of this exercise that goes wrong. Each one runs cleanly, produces numbers, and is discovered months later by an argument in a meeting.</p>
+        <ul>
+          <li><strong>Return as a flag.</strong> <code>order_items.is_returned</code>. Loses the reason, the approver, the timing, the quantity and every rejected request. Cheap to write, impossible to unwind once six dashboards read it.</li>
+          <li><strong>The refund amount stored twice with nothing reconciling it.</strong> An amount on the return and an amount on the transaction, no key between them and no check comparing them. The day they disagree, both numbers are suspect and neither can be defended.</li>
+          <li><strong><code>return_rate</code> stored as a ratio.</strong> A stored rate cannot be re-aggregated: averaging daily rates to a month weights a Tuesday with four sales the same as a Saturday with four hundred. Store the two counts and divide at read time, every time.</li>
+          <li><strong>A NULL reason.</strong> One nullable column, and every reason breakdown quietly drops rows while still looking complete. <code>unknown</code> is a code with a dimension row and a surrogate key; NULL is an absence that inner joins delete.</li>
+        </ul>
+        <div class="callout example">
+          <span class="ex-pill">Real world</span>
+          <p><strong>The fifth wrong turn is scope.</strong> The most common way a capstone like this actually fails is not a bad decision - it is eleven views, a second merchant dimension, an accumulating snapshot and a half-finished exchange subject area, none of it validated. The brief asked for four objects, three metric rows and two golden questions. Ship exactly that, green, and then stop. Knowing what to leave out is the senior half of this skill, and no tool will do it for you.</p>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - beyond this session <span class="tag exercise">◐ 40-60 min total</span></h2>
+    </div>
+    <ul>
+      <li>Add <strong>exchanges</strong> as a second subject area. A shopper returns one item and receives another, which is two events and possibly zero money. Decide whether that is a new entity, a status on the return, or a pair of linked returns - and write down why, in the contract, before you write DDL.</li>
+      <li>Build the <strong>accumulating snapshot</strong> version of the return lifecycle beside your transaction-grain fact, with a date key per milestone and a <code>days_to_decision</code> lag measure. Then answer "has our decision time improved?" from each of the two facts and compare how hard each was.</li>
+      <li>Take the <strong>returns model to your own warehouse</strong>, or the nearest equivalent subject area your model does not cover, and run the same five checkpoints on it with the same minute budget. The clock is the lesson.</li>
+      <li>Write the <strong>breaking-change policy</strong> for <code>v_return_line</code>: what you may add without warning, what needs a deprecation window, and who gets told. Then add a fifth reason code and follow your own policy end to end.</li>
+      <li>Take one metric your organisation reports as a <strong>stored ratio</strong> and split it into numerator and denominator. Re-aggregate it to a month both ways and measure how far apart the two answers are. That gap is what this whole track has been about.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">The capstone re-applies the whole map rather than adding to it, which is the point of a capstone. Full source map in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - grain, conformed dimensions, a new fact at a new grain, additivity, degenerate dimensions</span><span class="note">Checkpoint 4 · the fact decision and the five dimensions reused unchanged</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Codd / relational theory - entity versus attribute, and 3NF applied to a subject area from scratch</span><span class="note">Checkpoints 1-2 · entity or flag, and the constrained reason set</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">ANSI SQL + SQLite / PostgreSQL documentation - CHECK semantics, composite foreign keys, declared versus enforced</span><span class="note">Checkpoint 3 · the cross-table rule no CHECK can express</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">dbt model contracts and the semantic-layer pattern - metrics as data, tests that run on every load</span><span class="note">Checkpoint 5 · three metric rows, two golden questions, 27 checks green</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Kimball - the accumulating snapshot fact and milestone lag measures</span><span class="note">Checkpoint 4 self-study · compared honestly, deferred with a reason</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Dehghani, <em>Data Mesh</em> - the contract as the product interface, breaking-change policy</span><span class="note">Homework · the deprecation policy for your own view</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Warehouse load mechanics - applying a type-2 change, incremental loads, update-in-place facts</span><span class="note">Out of scope by design - <code>learn-data-warehouse</code> builder sessions 4-6</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Which single fact about a return most decisively makes it an entity rather than a status on the order line?</p>
+      <button class="qopt" type="button">A · It has a quantity, and quantities belong in tables</button>
+      <button class="qopt" type="button">B · It happens after the sale, and later events need their own rows</button>
+      <button class="qopt" type="button">C · It can be rejected - so the request itself is information the business must keep even when nothing comes back</button>
+      <p class="qwhy">A status value cannot be rejected: rejecting it would mean putting the line back to a state that erases the fact anyone ever asked. Rejected requests carry a reason, an approver and a decision time, and the rejection rate is a real metric. Own identity, own lifecycle and own timestamps all point the same way, but rejectability is the one that settles it.</p>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">2 · Why do return measures go in a new <code>fact_return</code> rather than extra columns on <code>fact_order_item</code>?</p>
+      <button class="qopt" type="button">A · Because the sales fact already has too many columns to query efficiently</button>
+      <button class="qopt" type="button">B · Different grain, different date and a lifecycle that includes rejection - so sharing a row would fan the sale out and add rows that are not sales</button>
+      <button class="qopt" type="button">C · Because returns are owned by a different team, so they need their own table</button>
+      <p class="qwhy">One line can be returned twice, so the sales row would have to be stored twice and <code>SUM(net_revenue)</code> would double for that line. The return's date is the request date, not the order date. And a rejected return is a real event with no sale attached to it. Any one of the three would be enough; all three together make it obvious.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Where does "approved units returned must never exceed units sold" have to live?</p>
+      <button class="qopt" type="button">A · Not in a CHECK - it needs another table and a SUM, so it belongs in the application transaction, with a validation check that detects violations on every load</button>
+      <button class="qopt" type="button">B · In a CHECK constraint on the returns table, comparing to the order line</button>
+      <button class="qopt" type="button">C · Nowhere - the application will not generate invalid returns</button>
+      <p class="qwhy">A CHECK sees one row of one table, and this rule needs <code>order_items.quantity</code> plus the sum of every approved return on that line. Prevention belongs in the transaction that inserts the return; detection belongs in the validator, because backfills and support tools bypass the application. Ship both, and say in the DDL comment which one you relied on.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>The whole builder track on one card <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>The ladder</b><span>Conceptual → logical → physical → dimensional → serve. Five rungs, once per subject area, in that order. b10 proves you can walk it alone.</span></div>
+      <div class="cheat-item"><b>Grain first</b><span>"One row is one ___." If the sentence needs "and", you have two tables. Every fan-out, double count and unsummable ratio starts as a missing grain sentence.</span></div>
+      <div class="cheat-item"><b>Entity or attribute</b><span>Own identity, own lifecycle, own timestamps - and can it be rejected? A flag answers one question and forecloses every follow-up.</span></div>
+      <div class="cheat-item"><b>Keys</b><span>Surrogate for internal identity, natural where the business owns and prints it, composite where the grain genuinely is the pair.</span></div>
+      <div class="cheat-item"><b>Constraints</b><span>CHECK enforces single-row rules. Cross-table and cross-row rules live in the transaction, plus a test that detects them. Declared is not enforced.</span></div>
+      <div class="cheat-item"><b>Conformance pays later</b><span>One dim_date, one dim_merchant, one dim_product. A new subject area then inherits every slice on day one - and a second copy of a dimension is the failure.</span></div>
+      <div class="cheat-item"><b>New fact, not new columns</b><span>Different grain, different date, different lifecycle. Any one is enough. Facts meet through conformed dimensions, never through each other.</span></div>
+      <div class="cheat-item"><b>Publish, then prove it</b><span>Numerator and denominator, never a stored ratio. Metrics as data with an honest caveat. Golden questions as a test suite. 27 checks green before anyone reads a number.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 10 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b9-agent-ready.html">← Previous: Agent-ready modeling</a> &nbsp;·&nbsp; <a href="../index.html">← All sessions</a></span>
+    <span style="flex-basis:100%">🏁 That is the builder track finished - ten sessions, one marketplace, a schema you designed, validated and extended yourself. The obvious next step is <a href="https://phoebefu6.github.io/learn-data-warehouse-with-phoebe/">learn-data-warehouse-with-phoebe ↗</a>, which takes a star like this one and operates it: staging layers, SCD load mechanics, incremental builds, the lakehouse and what it all costs.</span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

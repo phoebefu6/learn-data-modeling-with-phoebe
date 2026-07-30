@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 4 · Physical OLTP - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 4 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 4 of 10</div>
+    <h1>Physical <span class="accent">OLTP</span></h1>
+    <p class="sub">The logical model becomes DDL. Types, NOT NULL, CHECK, foreign keys, and the first few indexes - each one a rule you are moving out of somebody's head and into the database, where it gets enforced at 3am without being asked. This session ships the file the whole track runs on, plus the generator that fills it with 90 days of deterministic marketplace data.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Builder track</span>
+      <span class="chip audience">Analysts · analytics engineers · DE · DS</span>
+      <span class="chip audience">Runs in your browser · real SQLite</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Types, constraints, indexes</span>
+      <span class="a3" style="flex:5">18-42 · Build-along: write the DDL, break it, enforce it</span>
+      <span class="a4" style="flex:1">42-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where the rules finally live</h2>
+    </div>
+    <p class="lede">Sessions b1 to b3 produced a logical model: entities, attributes, cardinality, keys. None of it is enforced yet. Today every one of those decisions becomes a line of DDL, and the difference matters more than it looks: a rule in a document is a hope, a rule in the application is a hope with a deployment schedule, and a rule in the schema is a fact. A backfill script, a manual fix and a second service all have to obey it.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live SQL - editable &amp; runnable</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      Bazaar's real schema shipped as <code>sql/01_oltp_ddl.sql</code>, the deterministic generator in <code>python/gen_bazaar_data.py</code>, and the habit of asking of every column: what type, what is forbidden, and what is enforcing it.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: TYPES ============ -->
+  <section class="section" id="types">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers ANSI SQL, PostgreSQL and SQLite documentation</span>
+      <h2>Types carry meaning, not just storage <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">A type is the first constraint. It decides what can be stored, what comparisons mean, and how badly things go wrong at scale. Three choices matter more than all the others in a transactional schema: money, time, and identifiers.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 296" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three type decisions in a transactional schema: money, time and identifiers, with the course choice and the production choice for each">
+        <style>
+          .tyT { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .tyH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .tyC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .tyB { font: 600 11.5px Inter, sans-serif; fill: #991B1B; }
+          .tyN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <rect x="26" y="30" width="256" height="44" rx="8" fill="#22395C"/>
+        <text class="tyT" x="44" y="58">Money</text>
+        <text class="tyH" x="44" y="98">In production: NUMERIC(12,2)</text>
+        <text class="tyC" x="44" y="118">Exact decimal arithmetic.</text>
+        <text class="tyB" x="44" y="142">Never a binary float:</text>
+        <text class="tyC" x="44" y="162">0.10 is not representable,</text>
+        <text class="tyC" x="44" y="182">so a ledger drifts by cents.</text>
+
+        <rect x="312" y="30" width="256" height="44" rx="8" fill="#3B5B8C"/>
+        <text class="tyT" x="330" y="58">Time</text>
+        <text class="tyH" x="330" y="98">TIMESTAMP WITH TIME ZONE</text>
+        <text class="tyC" x="330" y="118">storing UTC, always.</text>
+        <text class="tyB" x="330" y="142">Naming carries the grain:</text>
+        <text class="tyC" x="330" y="162">order_ts is a moment,</text>
+        <text class="tyC" x="330" y="182">joined_date is a day.</text>
+
+        <rect x="598" y="30" width="256" height="44" rx="8" fill="#22395C"/>
+        <text class="tyT" x="616" y="58">Identifiers</text>
+        <text class="tyH" x="616" y="98">GENERATED AS IDENTITY</text>
+        <text class="tyC" x="616" y="118">for a single writer.</text>
+        <text class="tyB" x="616" y="142">UUIDv7 when distributed:</text>
+        <text class="tyC" x="616" y="162">still sortable by time,</text>
+        <text class="tyC" x="616" y="182">unlike UUIDv4.</text>
+
+        <rect x="26" y="208" width="828" height="66" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="tyN" x="46" y="232">This course stores money as REAL and time as ISO-8601 text, because SQLite in a browser has</text>
+        <text class="tyN" x="46" y="252">no decimal or timestamp type. That is a teaching compromise, written down in the DDL itself -</text>
+        <text class="tyN" x="46" y="272">which is what an honest model does with every compromise it makes.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the three type decisions that cost the most when rushed</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Naming a column is a typing decision<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Bazaar uses two suffixes consistently, and the consistency is the point: <code>*_ts</code> is a moment in time (<code>order_ts</code>, <code>created_ts</code>, <code>txn_ts</code>), <code>*_date</code> is a calendar day (<code>joined_date</code>, <code>launched_date</code>). Anybody reading a query knows whether comparing to <code>'2026-06-10'</code> is going to behave.</p>
+        <ul>
+          <li><strong>Booleans say what they mean:</strong> <code>is_guest</code>, not <code>flag</code>. A boolean named after its meaning can be summed into a numerator later, which session b7 relies on.</li>
+          <li><strong>Amounts say which amount:</strong> <code>list_price</code> on the product, <code>unit_price</code> on the order line, <code>discount_amt</code> beside it. Session b2 argued these are different facts; the naming is what stops them being treated as one.</li>
+          <li><strong>Signed amounts say so in a comment:</strong> <code>transactions.amount</code> is negative for refunds. A sign convention nobody documented is a bug waiting for a SUM.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The 3am test</strong>
+          If someone woken at 3am has to guess what a column holds, the name is wrong. This is the same discipline session a5 turns into an organisational standard, and the same discipline that makes the model queryable by an AI agent in b9.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Reading Bazaar's DDL as a set of decisions<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Open <code>sql/01_oltp_ddl.sql</code> in the repo. Every table carries a comment saying which session owns the decision above it, so the file doubles as a map of the track. Three worth reading closely:</p>
+        <ul>
+          <li><strong><code>orders</code> stores no amount.</strong> An order total is derivable from its lines, and a stored total that disagrees with its lines is the most common ecommerce data bug there is. Derive it, or store it as an explicitly reconciled snapshot - never as a casually maintained copy.</li>
+          <li><strong><code>order_items</code> carries <code>merchant_id</code>,</strong> which <code>products</code> already knows. That is point-in-time capture, not redundancy: a product can be transferred between merchants, and the sale belongs to whoever sold it.</li>
+          <li><strong><code>transactions.decline_reason</code> is nullable,</strong> and it is the only nullable column that earns it: the reason genuinely does not exist for an approved payment. Every other absence in this schema is either forbidden or given a real value.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: CONSTRAINTS ============ -->
+  <section class="section" id="constraints">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · the cheapest data quality you can buy</span>
+      <h2>Four constraints, four bad rows stopped <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">Constraints are data quality that costs nothing to run and cannot be forgotten. Each one stops a specific bad row at the door instead of surfacing it as a dashboard mystery three months later.</p>
+
+    <table class="clean">
+      <thead><tr><th>Constraint</th><th>Bazaar example</th><th>The bad row it stops</th></tr></thead>
+      <tbody>
+        <tr><td><strong>NOT NULL</strong></td><td><code>users.email</code>, <code>orders.order_ts</code></td><td>an order that happened at no particular time, which silently drops out of every date filter</td></tr>
+        <tr><td><strong>UNIQUE</strong></td><td><code>users.email</code>, <code>products.sku</code>, <code>transactions.psp_ref</code></td><td>the same payment recorded twice, which double-counts revenue</td></tr>
+        <tr><td><strong>CHECK</strong></td><td><code>quantity &gt; 0</code>, <code>list_price &gt; 0</code>, <code>tier IN (...)</code>, <code>status IN (...)</code></td><td>a negative quantity, a free product, and a status nobody's code handles</td></tr>
+        <tr><td><strong>FOREIGN KEY</strong></td><td><code>order_items.product_id</code> → <code>products</code></td><td>a sale of a product that does not exist, which becomes an orphan row and a missing row in every report</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>A declared constraint is not an enforced one<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>This is the trap that catches experienced teams. SQLite parses and stores <code>REFERENCES</code> clauses but does not enforce them unless foreign keys are switched on for the connection. A schema can be full of relationships that enforce nothing, and the only symptom is orphan rows appearing months later.</p>
+        <div class="sqlbox" data-seed="none" data-caption="Foreign keys OFF: the orphan is accepted. This is the default in SQLite, and this is how orphan rows get in.">
+          <pre class="sql-src">PRAGMA foreign_keys = OFF;
+
+CREATE TABLE merchants (merchant_id TEXT PRIMARY KEY, merchant_name TEXT NOT NULL);
+CREATE TABLE products (
+  product_id  INTEGER PRIMARY KEY,
+  merchant_id TEXT NOT NULL REFERENCES merchants(merchant_id),
+  sku         TEXT NOT NULL UNIQUE,
+  list_price  REAL NOT NULL CHECK (list_price > 0)
+);
+INSERT INTO merchants VALUES ('M07', 'Nimbus Audio');
+
+-- M99 does not exist. With foreign keys off, this is accepted.
+INSERT INTO products VALUES (1, 'M99', 'M99-1', 129.00);
+
+SELECT p.product_id, p.merchant_id, m.merchant_name AS resolves_to
+FROM products p
+LEFT JOIN merchants m ON m.merchant_id = p.merchant_id;</pre>
+        </div>
+        <p>The <code>resolves_to</code> column comes back NULL: an orphan. Now switch enforcement on and watch the same INSERT get rejected.</p>
+        <div class="sqlbox" data-seed="none" data-caption="Foreign keys ON: the same INSERT is refused, and the error names the constraint.">
+          <pre class="sql-src">PRAGMA foreign_keys = ON;
+
+CREATE TABLE merchants (merchant_id TEXT PRIMARY KEY, merchant_name TEXT NOT NULL);
+CREATE TABLE products (
+  product_id  INTEGER PRIMARY KEY,
+  merchant_id TEXT NOT NULL REFERENCES merchants(merchant_id),
+  sku         TEXT NOT NULL UNIQUE,
+  list_price  REAL NOT NULL CHECK (list_price > 0)
+);
+INSERT INTO merchants VALUES ('M07', 'Nimbus Audio');
+
+-- Same statement, now rejected. Comment it out to see the rest run.
+INSERT INTO products VALUES (1, 'M99', 'M99-1', 129.00);
+
+SELECT 'never reached' AS note;</pre>
+        </div>
+        <div class="callout tip">
+          <strong>Check yours today</strong>
+          In SQLite, <code>PRAGMA foreign_keys;</code> returns 0 or 1. In Postgres, constraints are always enforced but can be declared <code>NOT VALID</code>, so query <code>pg_constraint.convalidated</code>. Either way, the question is the same: is this rule enforced, or just written down?
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What a CHECK cannot do<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A CHECK constraint sees one row of one table. That makes it perfect for <code>quantity &gt; 0</code> and useless for anything cross-row or cross-table:</p>
+        <ul>
+          <li><strong>"A return cannot exceed the quantity sold"</strong> needs the order line as well as the return. A CHECK cannot express it, so the rule has to live in application logic, a trigger, or a validation job - and wherever you put it, write down that you put it there. The capstone in b10 makes you make this exact call.</li>
+          <li><strong>"An order's total equals the sum of its lines"</strong> is cross-row. This is precisely why <code>orders</code> stores no total: the safest way to enforce an invariant is to remove the ability to violate it.</li>
+          <li><strong>"Only one current version per merchant"</strong> is cross-row too, which is why session b6's slowly-changing dimension gets a validation check in <code>python/validate_model.py</code> rather than a constraint.</li>
+        </ul>
+        <p>The pattern: constraints for what a single row can prove, tests for everything else. A model with no tests is trusting the parts of itself that constraints cannot reach.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DEMO 1 ============ -->
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Demo 1 of 2</span>
+      <h2>Write a table properly, then try to put bad data in it <span class="tag demo">★ 12 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">Build Bazaar's <code>order_items</code> from scratch - composite primary key, CHECK constraints, two foreign keys - then attack it. Every rejection you get is a bad row that will never reach a dashboard.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Create</strong> the parents and the line table, with the composite key <code>(order_id, line_no)</code> that says what one row is.</p></div>
+      <div class="step"><p><strong>Insert</strong> two good lines. They go in without comment, which is what correct data looks like.</p></div>
+      <div class="step"><p><strong>Attack it.</strong> Uncomment one violation at a time and read the error. Each error message names the rule that saved you.</p></div>
+    </div>
+
+    <div class="sqlbox" data-seed="none" data-caption="Uncomment ONE violation at a time and re-run. The database explains itself in the error message.">
+      <pre class="sql-src">PRAGMA foreign_keys = ON;
+
+CREATE TABLE orders (
+  order_id  INTEGER PRIMARY KEY,
+  order_ts  TEXT NOT NULL,
+  status    TEXT NOT NULL
+);
+CREATE TABLE products (
+  product_id INTEGER PRIMARY KEY,
+  sku        TEXT NOT NULL UNIQUE,
+  list_price REAL NOT NULL CHECK (list_price > 0)
+);
+CREATE TABLE order_items (
+  order_id     INTEGER NOT NULL REFERENCES orders(order_id),
+  line_no      INTEGER NOT NULL,
+  product_id   INTEGER NOT NULL REFERENCES products(product_id),
+  quantity     INTEGER NOT NULL CHECK (quantity > 0),
+  unit_price   REAL    NOT NULL CHECK (unit_price >= 0),
+  discount_amt REAL    NOT NULL DEFAULT 0 CHECK (discount_amt >= 0),
+  PRIMARY KEY (order_id, line_no)
+);
+
+INSERT INTO orders   VALUES (9001, '2026-06-01 12:04:11', 'paid');
+INSERT INTO products VALUES (1, 'M07-1', 189.00), (2, 'M07-2', 129.00);
+
+INSERT INTO order_items VALUES (9001, 1, 1, 1, 189.00, 0);
+INSERT INTO order_items VALUES (9001, 2, 2, 2, 129.00, 12.90);
+
+-- INSERT INTO order_items VALUES (9001, 2, 1, 1, 189.00, 0);   -- duplicate (order_id, line_no)
+-- INSERT INTO order_items VALUES (9001, 3, 1, 0, 189.00, 0);   -- quantity must be > 0
+-- INSERT INTO order_items VALUES (9001, 4, 42, 1, 189.00, 0);  -- product 42 does not exist
+-- INSERT INTO order_items VALUES (9002, 1, 1, 1, 189.00, 0);   -- order 9002 does not exist
+
+SELECT order_id, line_no, quantity, unit_price, discount_amt,
+       ROUND(quantity * unit_price - discount_amt, 2) AS net_amount
+FROM order_items
+ORDER BY order_id, line_no;</pre>
+    </div>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Every constraint here was once an incident somewhere.</strong> The composite key exists because a retry once wrote the same line twice and revenue was 4% high for a quarter. The <code>quantity &gt; 0</code> check exists because a returns process wrote negative quantities into sales and nobody could work out why one merchant appeared to be paying customers. Constraints are institutional memory that survives the people who learned it.</p>
+    </div>
+  </section>
+
+  <!-- ============ DEMO 2 ============ -->
+  <section class="section" id="demo-2">
+    <div class="section-kicker">
+      <span class="klabel">Demo 2 of 2</span>
+      <h2>Your turn: read the physical layer of the real schema <span class="tag demo">★ 10 min · build your own</span></h2>
+    </div>
+    <p class="lede">These run against Bazaar's actual source database - the one <code>sql/01_oltp_ddl.sql</code> and the generator produced.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Q1 · List the indexes, and ask why each one exists<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <div class="sqlbox" data-seed="oltp" data-caption="Seven indexes, each one following an access path the application actually uses. Every index costs write throughput, so the list is deliberately short.">
+          <pre class="sql-src">SELECT name AS index_name, tbl_name AS on_table
+FROM sqlite_master
+WHERE type = 'index' AND name NOT LIKE 'sqlite_%'
+ORDER BY tbl_name, name;</pre>
+        </div>
+        <p>Read them as questions the application asks: orders by time, orders by user, lines by product, lines by merchant, payments by order, payments by time, cart items by product. Nothing indexed speculatively. Analytical access paths get solved by the star schema in b6 and b7, not by adding indexes here.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Q2 · Prove the NOT NULL and UNIQUE promises hold<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <div class="sqlbox" data-seed="oltp" data-caption="Every count should be zero. On a schema without these constraints, at least one of them would not be.">
+          <pre class="sql-src">SELECT 'users with no email'          AS check_name, COUNT(*) AS offending_rows FROM users        WHERE email IS NULL
+UNION ALL SELECT 'orders with no timestamp',       COUNT(*) FROM orders       WHERE order_ts IS NULL
+UNION ALL SELECT 'duplicate emails',               COUNT(*) - COUNT(DISTINCT email) FROM users
+UNION ALL SELECT 'duplicate SKUs',                 COUNT(*) - COUNT(DISTINCT sku) FROM products
+UNION ALL SELECT 'duplicate payment references',   COUNT(*) - COUNT(DISTINCT psp_ref) FROM transactions
+UNION ALL SELECT 'non-positive quantities',        COUNT(*) FROM order_items  WHERE quantity <= 0
+UNION ALL SELECT 'decline reason on an approval',  COUNT(*) FROM transactions WHERE status = 'approved' AND decline_reason IS NOT NULL;</pre>
+        </div>
+        <p>This is the shape of every data test worth writing: name the promise, count the rows that break it, expect zero. <code>python/validate_model.py</code> is 27 of these, run over the analytical model, and it exits non-zero when any of them fails.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Q3 · Why the generator is deterministic<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>No SQL. <code>python/gen_bazaar_data.py</code> seeds its random generator with 42 and never calls the clock. That single decision is what makes every number on every page of this course reproducible: 985 orders, 1,434 lines, 111,906.48 SGD of settled net revenue, the same on your laptop as in the browser lab.</p>
+        <p>It also makes the four buried stories teachable. A demand shock on 2026-06-18, a checkout incident on 2026-06-10, one merchant's collapse and a stockout are all deliberate, and they land on the same dates every time you regenerate - so session b8 can ask you to find them and then tell you whether you were right.</p>
+        <p>The habit to steal: test data with a fixed seed, a documented story, and no wall-clock dependency. Random test data that changes every run cannot be reasoned about, and a model you cannot reason about is a model you cannot trust.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 20-30 min total</span></h2>
+    </div>
+    <ul>
+      <li>Run <code>PRAGMA foreign_keys;</code> (or the Postgres equivalent) against a database you own. If the answer is 0, every relationship in that schema is currently a comment.</li>
+      <li>Pick one table you own and write the four constraints it is missing. For each, name the bad row you have actually seen in production.</li>
+      <li>Find a money column stored as a float. Work out the annual value flowing through it, then decide whether cent-level drift is something you can defend.</li>
+      <li>Audit your timestamp columns: are they all UTC, and does the name tell you whether it is a moment or a day? Rename the ones that lie.</li>
+      <li>Write the promise-and-count test from Q2 for your own schema - five promises, five counts, all expected zero. Run it on a schedule. Bring the first failure to b5.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">ANSI SQL with the PostgreSQL and SQLite documentation - constraint semantics, type selection, <code>PRAGMA foreign_keys</code></span><span class="note">Parts 1-2 + both demos · declared versus enforced</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Codd / relational fundamentals - keys and integrity as schema-level guarantees</span><span class="note">Part 2 · composite keys and referential integrity in DDL</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Identifier strategy at scale - IDENTITY columns, UUIDv7 sortability</span><span class="note">Part 1 · named with the trade-off; distributed writers are out of scope</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Index and query tuning</span><span class="note">Demo 2 Q1 · access-path indexes only; execution plans and partitioning are out of scope by design</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · A SQLite schema declares <code>REFERENCES products(product_id)</code> on every line table, and orphan rows keep appearing. Why?</p>
+      <button class="qopt" type="button">A · SQLite does not support foreign keys</button>
+      <button class="qopt" type="button">B · The application must be writing to the wrong table</button>
+      <button class="qopt" type="button">C · Foreign keys are only enforced when <code>PRAGMA foreign_keys = ON</code> is set for the connection - the declarations are being parsed and ignored</button>
+      <p class="qwhy">SQLite parses and stores the clause but enforces it only per connection, so a schema full of relationships can enforce nothing. A constraint you declared but never enabled is a comment. Check it before you trust it.</p>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">2 · Why does Bazaar's <code>orders</code> table store no order total?</p>
+      <button class="qopt" type="button">A · To save storage</button>
+      <button class="qopt" type="button">B · Because a stored total can drift out of agreement with its own lines, and removing the column removes the ability to violate the invariant</button>
+      <button class="qopt" type="button">C · Because totals belong in the reporting layer only</button>
+      <p class="qwhy">A total that disagrees with its lines is the most common ecommerce data bug there is, and no CHECK constraint can catch it because the rule is cross-row. Derive it, or store it as an explicitly reconciled snapshot - never as a casually maintained copy.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Which rule can a CHECK constraint NOT enforce?</p>
+      <button class="qopt" type="button">A · "A return cannot exceed the quantity originally sold" - it needs a second table</button>
+      <button class="qopt" type="button">B · "Quantity must be greater than zero"</button>
+      <button class="qopt" type="button">C · "Tier must be one of bronze, silver, gold, platinum"</button>
+      <p class="qwhy">A CHECK sees one row of one table. Single-row rules belong in constraints; cross-row and cross-table rules belong in application logic, a trigger, or a validation test - and wherever you put them, document where. That is the call the b10 capstone makes you make.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 4 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Money</b><span>NUMERIC/DECIMAL in production. Never binary floats - 0.10 is not representable and ledgers drift.</span></div>
+      <div class="cheat-item"><b>Time</b><span>TIMESTAMP WITH TIME ZONE, store UTC. Name it *_ts for a moment, *_date for a day.</span></div>
+      <div class="cheat-item"><b>Identifiers</b><span>IDENTITY for one writer, UUIDv7 when distributed so ids stay sortable.</span></div>
+      <div class="cheat-item"><b>Four constraints</b><span>NOT NULL, UNIQUE, CHECK, FOREIGN KEY. Each stops one bad row at the door.</span></div>
+      <div class="cheat-item"><b>Declared ≠ enforced</b><span>PRAGMA foreign_keys = ON in SQLite; NOT VALID constraints in Postgres. Verify, do not assume.</span></div>
+      <div class="cheat-item"><b>CHECK sees one row</b><span>Cross-row and cross-table rules need logic or tests. Write down where you put them.</span></div>
+      <div class="cheat-item"><b>Index the access paths</b><span>Only what the app queries. Every index taxes writes; analytics gets a star, not more indexes.</span></div>
+      <div class="cheat-item"><b>Ships</b><span>sql/01_oltp_ddl.sql + python/gen_bazaar_data.py (seed 42, reproducible). Next: b5, why analysts cannot query this.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 4 of 10 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b3-er-and-keys.html">← Previous: ER, cardinality and keys</a> &nbsp;·&nbsp; <a href="b5-why-analysts-cant-query-oltp.html">Next: Why analysts cannot query OLTP →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

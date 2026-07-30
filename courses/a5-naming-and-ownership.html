@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leader session 5 · Naming standards and ownership - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Leader session 5 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Leader track · Session 5 of 6</div>
+    <h1>Naming standards and <span class="accent">ownership</span></h1>
+    <p class="sub">Conventions that survive team turnover, who may change a table, and how a data contract turns a model into something other teams can depend on. This is the governance session, and it is deliberately not a policy document. A policy nobody reads changes nothing; a convention that carries information and an owner with a name change everything, because they keep working after the person who wrote them has left.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Leader track</span>
+      <span class="chip audience">C-level · heads of data · stakeholders</span>
+      <span class="chip audience">No code to write</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-17 · One concept, one word</span>
+      <span class="a3" style="flex:3">17-27 · Conventions and named owners</span>
+      <span class="a4" style="flex:5">27-45 · Discussion: sign the contract or send it back</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Governance that outlives the people who wrote it</h2>
+    </div>
+    <p class="lede">Most data governance fails the same way. Someone writes a naming standard, circulates it, gets nodding in a meeting, and eighteen months later half the estate follows it and half does not, because the three people who cared have moved on and nothing in the system ever enforced it. The document was never the mechanism. The mechanism is a convention that is <em>cheaper to follow than to ignore</em>, an owner whose name is on a specific object, and a contract that makes a change visible to everyone it affects before it happens.</p>
+    <p class="lede">This session covers three things you can actually decide: how many words your organisation is allowed to have for one concept, what a name is required to tell a reader, and what the interface between a team that produces data and the teams that consume it must state in writing. The examples come from this course's own running dataset - a marketplace called <strong>Bazaar</strong>, 12 merchants, 985 orders and 1,060 payment attempts across 2026-04-01 to 2026-06-29, in SGD - and its published contract, which is a real file you can read at <code>semantic/contract.yaml</code>.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">◆ Discussion exercise - run it with your own team</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      A one-afternoon artifact you can commission this week (the synonym map), a test for whether a naming convention is worth its migration cost, a definition of ownership that survives a resignation, and the ten blocks you should refuse to accept a data model without.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: ONE CONCEPT ONE WORD ============ -->
+  <section class="section" id="one-word">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Fowler/Evans on ubiquitous language, Dehghani on data as a product</span>
+      <h2>One concept, one word, everywhere <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">Bazaar's business says <strong>merchant</strong>. So nothing anywhere in the estate is allowed to say vendor, seller, partner or supplier for the same thing. This sounds like a style preference and is not. Every extra word for one concept is a place where two teams can build two different numbers and both be right, and a place where a new analyst has to ask a question that should never have existed.</p>
+    <p class="lede">The word you standardise on is the word the business already uses out loud, not the word the source system happened to use and not the word the engineer preferred. That direction matters: you are renaming the data to match the business, never the other way round.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 372" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four different words for one concept across four systems, collapsing into the single business word merchant, with the cost of not doing it">
+        <style>
+          .n1H { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .n1T { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .n1S { font: 400 10.5px Inter, sans-serif; fill: #B9CBE4; }
+          .n1C { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .n1G { font: 700 12px Inter, sans-serif; fill: #22395C; }
+          .n1N { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+          .n1V { font: 600 10.5px Inter, sans-serif; fill: #5C6B80; }
+          .n1L { stroke: #6C8CBC; stroke-width: 2; fill: none; }
+        </style>
+
+        <text class="n1H" x="26" y="24">What four systems call the same thing today</text>
+
+        <rect x="26" y="36" width="196" height="50" rx="8" fill="#991B1B"/>
+        <text class="n1T" x="42" y="60">vendor</text>
+        <text class="n1S" x="42" y="78">in the finance mart</text>
+
+        <rect x="242" y="36" width="196" height="50" rx="8" fill="#991B1B"/>
+        <text class="n1T" x="258" y="60">seller</text>
+        <text class="n1S" x="258" y="78">in the portal database</text>
+
+        <rect x="458" y="36" width="196" height="50" rx="8" fill="#991B1B"/>
+        <text class="n1T" x="474" y="60">partner</text>
+        <text class="n1S" x="474" y="78">in the CRM export</text>
+
+        <rect x="674" y="36" width="178" height="50" rx="8" fill="#991B1B"/>
+        <text class="n1T" x="690" y="60">supplier</text>
+        <text class="n1S" x="690" y="78">in the ops sheet</text>
+
+        <path class="n1L" d="M124,86 L124,118 L440,118 L440,148"/>
+        <path class="n1L" d="M340,86 L340,118"/>
+        <path class="n1L" d="M556,86 L556,118"/>
+        <path class="n1L" d="M763,86 L763,118 L440,118"/>
+        <text class="n1V" x="452" y="138">one concept</text>
+
+        <rect x="306" y="148" width="268" height="54" rx="9" fill="#22395C"/>
+        <text class="n1T" x="326" y="172">merchant</text>
+        <text class="n1S" x="326" y="190">the word the business says</text>
+
+        <rect x="26" y="222" width="826" height="62" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="n1G" x="46" y="246">Four words means four joins that half-work, four dashboards nobody can reconcile, and one new hire</text>
+        <text class="n1C" x="46" y="268">per quarter asking which one is real. The map that fixes it is about twelve lines long.</text>
+
+        <rect x="26" y="300" width="826" height="56" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="n1N" x="46" y="324">The synonym map is the cheapest artifact in data governance: an afternoon of work, no migration, no</text>
+        <text class="n1N" x="46" y="346">downtime, and every future rename becomes one owner's decision instead of a four-way argument.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - one concept, four words, and the twelve lines that end the argument</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The synonym map, and why it is the cheapest thing you will ever fund<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A synonym map is a short list with two columns: what the business says, and which defined thing in the model answers it. Bazaar's version lives in its contract and is roughly a dozen entries long. It maps <em>revenue</em>, <em>sales</em> and <em>topline</em> to one metric; <em>GMV</em> to a different one; <em>basket size</em> and <em>average basket</em> to average order value; <em>take rate</em> to commission; <em>failure rate</em> to decline rate; <em>lost revenue</em> to abandoned cart value.</p>
+        <ul>
+          <li><strong>It costs nothing to build.</strong> No migration, no downtime, no renaming of anything already in production. You are documenting a mapping that already exists implicitly in people's heads, badly.</li>
+          <li><strong>It pays out immediately in three places.</strong> New joiners stop asking. Analysts stop guessing which column a stakeholder meant. And a text-to-SQL tool stops guessing too, which is the entire subject of session <a href="a6-agent-ready-data.html">a6</a>.</li>
+          <li><strong>It surfaces the real disagreements.</strong> The hard part is not writing the map, it is discovering that two people wanted <em>revenue</em> pointed at two different metrics. That discovery is the value. It was always true; the map just makes it a decision with a date instead of a recurring meeting.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The test for whether you need one</strong>
+          Ask four people in four functions to define your top-line revenue number in one sentence, separately, in writing. If you get more than two distinct answers, you are already paying for the absence of this artifact - you just pay in reconciliation meetings rather than in a line item.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>What to do about the words already in production<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>You will not be renaming a production column this quarter, and you should not pretend otherwise. The realistic sequence, in order of cost:</p>
+        <ul>
+          <li><strong>Freeze the vocabulary going forward.</strong> Everything new uses the business word. This is free and stops the problem growing, which is most of the win.</li>
+          <li><strong>Publish the map over the mess.</strong> The old names stay; the map tells everyone which one is canonical and which are legacy. A reader can now navigate the estate without a guide.</li>
+          <li><strong>Rename only at the published layer.</strong> The tables consumers actually read get the business word. Deep internal tables can keep their history. You get 80% of the clarity for 10% of the migration.</li>
+          <li><strong>Retire a legacy name only when you already have a reason to touch that object.</strong> Renaming for its own sake buys clarity and spends trust; renaming during work you were doing anyway buys clarity for free.</li>
+        </ul>
+        <p>The one thing not to do is run a big-bang estate-wide rename as its own project. It has a long, invisible payback, it breaks things for people who did not ask for it, and it is the classic way a data team spends a quarter and comes out with nothing a stakeholder can see.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: CONVENTIONS AND OWNERSHIP ============ -->
+  <section class="section" id="conventions">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers dbt layering conventions, Kimball on conformance</span>
+      <h2>Conventions that carry meaning, and an owner with a name <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">There is a simple test for whether a naming convention deserves to exist: <strong>does it tell a reader something they did not already know?</strong> A rule that every table name starts with <code>tbl_</code> passes no test. It is decoration, it tells you a table is a table, and it still costs a migration to remove. A suffix that tells you whether a column is a moment or a calendar day prevents a whole class of wrong number. Fund the second kind and refuse the first.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 348" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three naming conventions that carry information - suffix for grain, prefix for layer, flag named for meaning - plus what ownership actually means">
+        <style>
+          .n2H { font: 700 12px Inter, sans-serif; fill: #FFFFFF; }
+          .n2C { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .n2K { font: 700 11.5px Inter, sans-serif; fill: #22395C; }
+          .n2G { font: 700 12px Inter, sans-serif; fill: #22395C; }
+          .n2N { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+          .n2B { font: 700 11.5px Inter, sans-serif; fill: #991B1B; }
+        </style>
+
+        <rect x="26" y="26" width="262" height="40" rx="8" fill="#22395C"/>
+        <text class="n2H" x="42" y="51">Suffix carries the grain</text>
+        <text class="n2K" x="42" y="92">order_ts - a moment</text>
+        <text class="n2K" x="42" y="112">order_date - a whole day</text>
+        <text class="n2B" x="42" y="136">Not: created, when, dt</text>
+        <text class="n2C" x="42" y="160">So nobody quietly groups a</text>
+        <text class="n2C" x="42" y="178">moment as if it were a day</text>
+
+        <rect x="308" y="26" width="262" height="40" rx="8" fill="#3B5B8C"/>
+        <text class="n2H" x="324" y="51">Prefix carries the layer</text>
+        <text class="n2K" x="324" y="92">stg_ - raw shape, untrusted</text>
+        <text class="n2K" x="324" y="112">dim_ / fact_ - modelled</text>
+        <text class="n2K" x="324" y="132">mart_ - published, owned</text>
+        <text class="n2C" x="324" y="160">So a name tells you its blast</text>
+        <text class="n2C" x="324" y="178">radius before you touch it</text>
+
+        <rect x="590" y="26" width="262" height="40" rx="8" fill="#22395C"/>
+        <text class="n2H" x="606" y="51">A flag says what it means</text>
+        <text class="n2K" x="606" y="92">is_declined - counts itself</text>
+        <text class="n2B" x="606" y="116">Not: flag3, status_2, col_b</text>
+        <text class="n2C" x="606" y="140">So the meaning lives in the</text>
+        <text class="n2C" x="606" y="158">name, not in a wiki page the</text>
+        <text class="n2C" x="606" y="176">author took with them</text>
+
+        <rect x="26" y="200" width="826" height="66" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="n2G" x="46" y="224">Ownership is not a team name on a wiki. It is a named human per published object, a named deputy, and a</text>
+        <text class="n2C" x="46" y="246">written rule for who may change it. If an owner leaves and that name does not change inside a week, you</text>
+        <text class="n2C" x="46" y="262">never had an owner - you had a label.</text>
+
+        <rect x="26" y="282" width="826" height="52" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="n2N" x="46" y="306">A convention earns its migration cost only if it carries information. Test every rule you are asked to</text>
+        <text class="n2N" x="46" y="326">approve by asking what wrong number it prevents. If the answer is none, it is decoration - say no.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - three conventions that pay, and what an owner actually is</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Ownership: a name, a deputy, and a stated change policy<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>"The data team owns it" is not ownership, because nobody in a team of nine feels personally accountable for a table and no consumer knows who to call. Ownership that works has three parts, and all three are decisions you can make without writing any code:</p>
+        <ul>
+          <li><strong>A named human per published object.</strong> Not per schema, not per domain - per object that somebody outside the team reads. If the list of owners is shorter than the list of published objects, the gap is where incidents come from.</li>
+          <li><strong>A named deputy.</strong> One person is a single point of failure and a bottleneck during leave. Two names cost nothing and remove both.</li>
+          <li><strong>A stated policy for who may change it.</strong> The owner approves. Anyone may propose. Nobody changes a published object without the owner knowing, and the mechanism for that is the contract in Part 3, not goodwill.</li>
+        </ul>
+        <p>Two things this buys you that are hard to get any other way. First, an escalation path that is a person rather than a queue, which is what stakeholders actually want during an incident. Second, and less obvious: it makes the size of your published surface visible. When a head of data has to write 140 names next to 140 objects, the conversation immediately becomes "why do we publish 140 things", which is usually the better conversation.</p>
+        <div class="callout tip">
+          <strong>Where this comes from</strong>
+          This is the operating core of the data-as-a-product argument in Dehghani's <em>Data Mesh</em>: the team that produces data is accountable for its quality and its interface, rather than a central team being accountable for data it did not create. You do not need to reorganise into a mesh to take the useful half - a named owner and a published contract per object is the useful half.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Three conventions worth mandating, and two worth refusing<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Worth mandating,</strong> because each one prevents a specific wrong number:</p>
+        <ul>
+          <li><strong>Time suffixes that state the granularity.</strong> A column ending in a timestamp marker is a moment; one ending in a date marker is a calendar day. Mixing them is how a report ends up double-counting a day boundary, and the fix is free at naming time and expensive later.</li>
+          <li><strong>Layer prefixes that state trustworthiness.</strong> Raw-shape objects, modelled objects and published objects should be distinguishable from the name alone. This is the dbt layering convention, and its real value is that a reader can tell what they are allowed to depend on without asking.</li>
+          <li><strong>Booleans named for their meaning, not their position.</strong> A flag whose name states the condition can be counted directly and read correctly by a human, an analyst and a tool. A flag named after where it sits in a legacy file cannot.</li>
+        </ul>
+        <p><strong>Worth refusing,</strong> because they cost migration and carry no information:</p>
+        <ul>
+          <li><strong>Type prefixes and object-kind prefixes.</strong> Marking a table as a table, or a string column as a string, tells a reader nothing the catalog does not already show them.</li>
+          <li><strong>Version numbers in names.</strong> The moment a published object is called <em>v2_final</em>, you have moved your change history into the naming layer, where it cannot be queried, cannot be deprecated cleanly, and will eventually produce a <em>v2_final_new</em>. Versioning belongs in the contract, which is where Part 3 puts it.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 3: THE CONTRACT ============ -->
+  <section class="section" id="contract">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers dbt model contracts, Dehghani on the contract as interface</span>
+      <h2>The data contract is the interface <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">A schema tells you what columns exist. A contract tells you what they mean, who owns them, what is guaranteed, and what breaks if they change. That difference is the whole reason another team can build on your model without asking you first, and the reason you can change your model without breaking them by accident. It is an interface in exactly the sense a software team would mean it.</p>
+    <p class="lede">Bazaar's contract is a real file - <code>semantic/contract.yaml</code> - and it is short. You do not need a governance platform to have one. You need ten blocks and someone whose name is on it.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The data contract as an interface between the producing team and its named consumers, with the three classes of change: free, needs notice, and most dangerous">
+        <style>
+          .n3H { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .n3S { font: 400 10.5px Inter, sans-serif; fill: #B9CBE4; }
+          .n3T { font: 700 12px Inter, sans-serif; fill: #22395C; }
+          .n3K { font: 400 11.5px Inter, sans-serif; fill: #1B2637; }
+          .n3C { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .n3V { font: 600 10.5px Inter, sans-serif; fill: #5C6B80; }
+          .n3A { font: 700 12px Inter, sans-serif; fill: #C08A2E; }
+          .n3R { font: 700 12px Inter, sans-serif; fill: #991B1B; }
+          .n3G { font: 700 12px Inter, sans-serif; fill: #22395C; }
+          .n3L { stroke: #6C8CBC; stroke-width: 2.5; fill: none; marker-end: url(#n3ah); }
+        </style>
+        <defs>
+          <marker id="n3ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#6C8CBC"/>
+          </marker>
+        </defs>
+
+        <rect x="26" y="40" width="200" height="112" rx="9" fill="#22395C"/>
+        <text class="n3H" x="42" y="66">Producing team</text>
+        <text class="n3S" x="42" y="88">owner: data platform</text>
+        <text class="n3S" x="42" y="108">one named human</text>
+        <text class="n3S" x="42" y="128">plus a named deputy</text>
+        <text class="n3S" x="42" y="146">makes every change</text>
+
+        <rect x="286" y="40" width="250" height="176" rx="9" fill="#EDF2F9" stroke="#3B5B8C"/>
+        <text class="n3T" x="302" y="64">The contract states</text>
+        <text class="n3K" x="302" y="88">owner and deputy</text>
+        <text class="n3K" x="302" y="108">consumers, by name</text>
+        <text class="n3K" x="302" y="128">freshness and completeness</text>
+        <text class="n3K" x="302" y="148">breaking-change policy</text>
+        <text class="n3K" x="302" y="168">grain of every object</text>
+        <text class="n3K" x="302" y="188">allowed and forbidden joins</text>
+        <text class="n3K" x="302" y="208">metrics, synonyms, limits</text>
+
+        <rect x="596" y="40" width="256" height="176" rx="9" fill="#FFFFFF" stroke="#6C8CBC"/>
+        <text class="n3T" x="612" y="64">Consumers who depend</text>
+        <text class="n3K" x="612" y="90">BI dashboards</text>
+        <text class="n3K" x="612" y="110">the finance close</text>
+        <text class="n3K" x="612" y="130">the merchant portal</text>
+        <text class="n3K" x="612" y="150">an AI analyst</text>
+        <text class="n3C" x="612" y="180">Each one is a name you are</text>
+        <text class="n3C" x="612" y="198">obliged to notify.</text>
+
+        <path class="n3L" d="M226,96 L282,96"/>
+        <text class="n3V" x="232" y="88">publishes</text>
+        <path class="n3L" d="M536,128 L592,128"/>
+        <text class="n3V" x="546" y="120">read by</text>
+
+        <rect x="26" y="240" width="266" height="112" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="n3G" x="42" y="264">Free</text>
+        <text class="n3K" x="42" y="288">Add a column.</text>
+        <text class="n3K" x="42" y="308">Add a view.</text>
+        <text class="n3C" x="42" y="332">No notice, no version bump.</text>
+
+        <rect x="306" y="240" width="266" height="112" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="n3A" x="322" y="264">Needs notice</text>
+        <text class="n3K" x="322" y="288">Rename. Remove. Retype.</text>
+        <text class="n3K" x="322" y="308">Change the grain of anything.</text>
+        <text class="n3C" x="322" y="332">Two weeks, both versions live.</text>
+
+        <rect x="586" y="240" width="266" height="112" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="n3R" x="602" y="264">Most dangerous</text>
+        <text class="n3K" x="602" y="288">Change what a metric MEANS</text>
+        <text class="n3K" x="602" y="308">without renaming it.</text>
+        <text class="n3C" x="602" y="332">Every past number shifts at once.</text>
+
+        <rect x="26" y="368" width="826" height="52" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="n3G" x="46" y="392">The block that builds trust is known limitations. A model that documents its own compromises gets believed;</text>
+        <text class="n3C" x="46" y="412">a model that claims to have none does not, and the first person to find one stops trusting all of it.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the contract as an interface, and the three classes of change a leader must be able to tell apart</figcaption>
+    </figure>
+
+    <p class="lede">Here are the blocks to insist on. The right-hand column is the point of the table: each block exists because it prevents something specific that has already gone wrong somewhere. If a proposed contract is missing a row, ask what stops that failure instead.</p>
+
+    <table class="clean">
+      <thead><tr><th>Block</th><th>What it states</th><th>What it prevents</th></tr></thead>
+      <tbody>
+        <tr><td><strong>owner</strong></td><td>a named human, plus a deputy</td><td>the incident with no escalation path, and the object nobody dares change or retire</td></tr>
+        <tr><td><strong>consumers</strong></td><td>who depends on this, by name - dashboards, the finance close, the portal, an AI analyst</td><td>the change that broke something nobody knew was downstream, discovered by a customer</td></tr>
+        <tr><td><strong>freshness SLO</strong></td><td>what "current" means, in words: loaded daily by a stated hour, in a stated timezone</td><td>the executive reading yesterday's number as today's, and the argument about whether the pipeline is late or the number is wrong</td></tr>
+        <tr><td><strong>completeness SLO</strong></td><td>which records are guaranteed present, and within how long</td><td>a partial load being read as a business decline</td></tr>
+        <tr><td><strong>breaking-change policy</strong></td><td>which changes are free, which need notice and how much, and what happens during the deprecation window</td><td>silent breakage - and, more importantly, teams refusing to depend on your model at all because they cannot predict it</td></tr>
+        <tr><td><strong>grain, per object</strong></td><td>one sentence each: "one row is one payment attempt", "one row is one merchant per day"</td><td>the single most common analytics error in existence: counting rows of the wrong thing</td></tr>
+        <tr><td><strong>allowed joins</strong></td><td>the join paths that are sanctioned</td><td>the creative join that produces a number nobody can reproduce</td></tr>
+        <tr><td><strong>forbidden joins, with the reason</strong></td><td>the paths that look valid and are not - and why, in one sentence each</td><td>the confident wrong answer. Bazaar's sales-to-payments join runs cleanly and inflates revenue from 111,906 to 121,003 SGD, about 8% too high</td></tr>
+        <tr><td><strong>metric definitions</strong></td><td>for each metric: the expression, the grain it is computed at, and the caveat</td><td>three teams reporting three revenue numbers and all three being defensible</td></tr>
+        <tr><td><strong>synonyms</strong></td><td>the words the business says, mapped to the metric that answers them</td><td>the guess - by a new analyst, and by any tool writing a query on request</td></tr>
+        <tr><td><strong>known limitations</strong></td><td>the modelling compromises a reader could mistake for facts</td><td>the credibility collapse that follows someone else finding one first</td></tr>
+        <tr><td><strong>agent access</strong></td><td>which objects a tool may read, read-only, and when it must refuse to answer</td><td>an automated confident wrong answer at machine speed, which is session <a href="a6-agent-ready-data.html">a6</a></td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Known limitations: the block that buys you trust<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>This is the counterintuitive one, and the one most teams leave out because it feels like admitting weakness. It is the opposite. <strong>A model that documents its own compromises gets believed. A model that claims to have none does not.</strong></p>
+        <p>Bazaar's contract lists five limitations in plain language. Two of them are worth reading out loud in a leadership meeting, because they are the shape every real model has:</p>
+        <ul>
+          <li><strong>"A cart is attributed to the merchant on its highest-value line."</strong> So a mixed basket credits all of its abandonment to one merchant. That is a defensible modelling decision and also a real distortion, and a merchant-facing report that does not say so will eventually be challenged by a merchant who is right.</li>
+          <li><strong>"Merchant-day and method-day slices routinely have fewer than 30 observations, so rates at those slices are not decision-grade."</strong> In Bazaar's own data there is a decline rate of 18.2% that rests on 11 payment attempts. It is arithmetically correct and worthless, and the only thing standing between it and a slide is this sentence.</li>
+        </ul>
+        <p>The economics are simple. If your model has ten compromises and you publish them, you have ten known caveats and a reputation for candour. If you publish none, you have ten landmines, and the first one somebody else steps on costs you the credibility of the other nine too - because now nobody knows what else you did not mention. Publishing limitations is not a confession. It is the cheapest trust you will ever buy, and it is the block that most distinguishes a model people build on from a model people work around.</p>
+        <div class="callout tip">
+          <strong>What to ask for</strong>
+          When a team presents a new model, ask for the limitations block first, before the architecture. If it is empty, the model is not finished - the thinking is. Every real model has compromises; a blank list means they have not been found yet, and they will be found by a stakeholder rather than by you.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The breaking-change policy, in leader terms<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>You do not need to read the schema to govern change. You need to be able to sort a proposed change into one of three buckets, and to know that the third one exists.</p>
+        <ul>
+          <li><strong>Adding is free.</strong> A new column, a new view, a new metric. Nothing downstream breaks, because nothing downstream was using it. This should require no ceremony at all - and if your process makes adding expensive, your process is why your data team is slow.</li>
+          <li><strong>Renaming and removing need notice.</strong> Rename a column, drop one, change its type, or change the grain of an object, and somebody's dashboard stops working or - worse - keeps working with a different meaning. Bazaar's policy is a version bump, two weeks of notice to every named consumer, and a window where old and new coexist so consumers can move on their own schedule rather than yours.</li>
+          <li><strong>Silently changing what a metric MEANS is the most dangerous change of all.</strong> Redefine revenue to exclude a fee, or start filtering out unsettled orders, and keep the name: nothing errors, no dashboard breaks, and every historical number in the organisation changes meaning at the same instant. Last quarter is no longer comparable to this one, and nobody knows, because the only visible symptom is a number that moved.</li>
+        </ul>
+        <p>The rule that follows is short enough to state as policy: <strong>a change in definition requires a change in name, or an announcement with a date attached, and preferably both.</strong> Treat a redefinition with the same seriousness as a removal, because functionally it is one - you removed the old metric and put a different one in its place under the same label.</p>
+        <p>The leader's job here is not to approve schemas. It is to make sure the third category is named in the policy, has a notification path, and cannot be done quietly by someone acting in good faith on a Tuesday.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Forbidden joins: why the model should tell you what not to do<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Most documentation says what you can do. The block that saves the most money says what you cannot, and why. Bazaar's contract forbids three join paths, and the reasoning generalises to any organisation:</p>
+        <ul>
+          <li><strong>The sales table joined to the payments table.</strong> Both have an order reference, so the join runs. But one row of the first is a product line and one row of the second is a payment attempt, so an order with three lines and two attempts produces six rows and revenue inflated twofold. In Bazaar this turns 111,906 SGD of settled revenue into 121,003 - about 8% too high, and in exactly the direction a leadership team wants to believe.</li>
+          <li><strong>The sales table joined to the carts table.</strong> Different grains again, and worse, they measure different things: cart value is list price, order revenue is discounted. They will never reconcile to the cent, and that mismatch is real rather than a bug to be joined away.</li>
+          <li><strong>Two pre-aggregated summaries at different grains.</strong> One is per merchant per day, one is per hour. Joining them fans every merchant across every hour and silently multiplies everything.</li>
+        </ul>
+        <p>Note the pattern: <em>every one of these joins executes without error.</em> There is no warning, no null, no failed pipeline. The output is a number, and it is wrong. That is why the prohibition has to be written down and, better, engineered away - which is the design move session <a href="a6-agent-ready-data.html">a6</a> asks you to fund.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DISCUSSION EXERCISE ============ -->
+  <section class="section" id="discussion">
+    <div class="section-kicker">
+      <span class="klabel">Discussion exercise · 15 min · run this in the room</span>
+      <h2>Sign the contract, or send it back <span class="tag demo">◆ no code - a conversation with an outcome</span></h2>
+    </div>
+    <p class="lede">Nothing to install and nothing to run. This is a structured 15 minutes that produces a decision, and both halves of it are portable to your own next team meeting. Work in pairs if the room is larger than six.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Pick one published number your organisation argues about.</strong> Top-line revenue, active customers, conversion rate - whichever one has been re-explained more than once this quarter. Write it on the board.</p></div>
+      <div class="step"><p><strong>Fill in six blocks against it, out loud.</strong> Owner (a name, not a team). Consumers (list them). Grain ("one row is one ___"). Freshness. The metric expression in one sentence. One known limitation. Someone writes as you go.</p></div>
+      <div class="step"><p><strong>Notice which blocks the room cannot fill.</strong> That is the finding. An empty owner field and an empty grain sentence are the two that predict the next incident, and they are usually the two that are empty.</p></div>
+      <div class="step"><p><strong>Decide one thing before you leave the room.</strong> A name against that number, and a date by which the other five blocks are written. Fifteen minutes is enough for exactly that, and it is more than most organisations have.</p></div>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Exercise A · The six-block walkthrough<span class="mini">8 min · run it in your next team meeting</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <h4>The prompt, read out as written</h4>
+        <p>"Take the number at the top of our weekly pack. In the next eight minutes I want six things on the board about it, and I do not want any of them to be a tool name. One: whose name is on it - a person, not a team. Two: who reads it, listed. Three: what one row of the underlying thing is, in a sentence that starts 'one row is one'. Four: how fresh it is, as a time of day. Five: how it is calculated, in one sentence, including what is excluded. Six: one thing about it that is a modelling choice rather than a fact. If we cannot fill a block, we write the word BLANK and move on."</p>
+        <h4>What a good answer sounds like</h4>
+        <p>Specific and slightly uncomfortable. "Priya owns it, Marcus is deputy. It goes to the board pack, the regional weekly and the finance close. One row is one settled order line. Loaded by 07:00 local. It is charged value after line discounts, excluding orders whose payment never settled and excluding refunds. And it attributes a mixed basket entirely to one merchant, which we know overstates our biggest merchant a little."</p>
+        <p>The tell of a good answer is that the last two blocks contain an exclusion and an admission. People who genuinely know a number can always tell you what it leaves out.</p>
+        <h4>The failure mode to listen for</h4>
+        <p>Fluent vagueness. "It comes out of the warehouse, it is the standard revenue metric, finance signed off on it last year." None of that is any of the six blocks - it is provenance offered in place of definition, and it is the sound of a number nobody currently understands. The second tell is the room answering block three with a system name instead of a sentence: if "one row is one" gets answered with "it is from the sales table", nobody in the room knows the grain, and every reconciliation meeting you have had about this number is explained.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Exercise B · Sort three changes into three buckets<span class="mini">7 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <h4>The prompt</h4>
+        <p>"Here are three changes a team wants to make next sprint. Sort each into free, needs notice, or most dangerous - and say who you would tell. (1) Add a product-category column to the published sales view. (2) Rename a column from <code>amt</code> to <code>net_revenue</code>. (3) Change the revenue metric to exclude marketplace fees, keeping the name the same."</p>
+        <h4>What a good answer sounds like</h4>
+        <p>"One is free - nothing depends on a column that does not exist yet, ship it today. Two needs notice: it is cosmetically an improvement and functionally a breakage, so it needs a version bump, the named consumers told, and both names alive for two weeks. Three is the dangerous one, and it is dangerous precisely because it looks smallest. Nothing errors, every dashboard keeps rendering, and every historical figure changes meaning at once. That one needs a new name, an announcement with an effective date, and a restated history - or we do not do it."</p>
+        <h4>The failure mode to listen for</h4>
+        <p>The room ranking these by engineering effort rather than by consumer impact - which puts number three last, because it is a one-line change. That inversion is the whole point of the exercise. The most dangerous change in a data estate is almost always the cheapest one to make, and a governance process built around effort will wave it straight through. Listen also for "we will just tell people": a verbal heads-up in a standup is not a notification path, and it is not repeatable after the person who gave it changes team.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The redefinition nobody announced.</strong> A subscription business changed its active-customer definition from "billed in the last 31 days" to "billed in the last 30 days" during a routine cleanup. One day. No column renamed, no dashboard broken, no error anywhere. Growth appeared to slow by roughly a point and a half, three teams spent a fortnight investigating a market shift, and the answer was in a commit message. The team that made the change had done nothing careless by their own standards - it was a tidy-up, and their standard did not have a category for "changing what a word means". That category is what a breaking-change policy is for, and it is why the third bucket has to be named explicitly rather than left to judgement.</p>
+    </div>
+  </section>
+
+  <!-- ============ QUESTIONS TO ASK ============ -->
+  <section class="section" id="questions">
+    <div class="section-kicker">
+      <span class="klabel">Take this to your own team</span>
+      <h2>Six questions to ask your data team <span class="tag concept">◐ use them this week</span></h2>
+    </div>
+    <p class="lede">These are diagnostic rather than rhetorical. Each one is answerable in under a minute by a team that has done the work, and each one is revealing in a specific way when it is not.</p>
+
+    <div class="grid-2">
+      <div class="d-card">
+        <h4><span class="lead-letter">Q1 ·</span> Who is the named person - not the team - on our three most-read tables, and who is their deputy?</h4>
+        <p><strong>Why it works:</strong> it cannot be answered with a process. Either six names come back in ten seconds, or you have just discovered that your most important objects have no accountable human. The follow-up is better still: when did those names last change, and what happened to the objects when the previous owner left?</p>
+      </div>
+      <div class="d-card">
+        <h4><span class="lead-letter">Q2 ·</span> How many words does our estate currently use for the same commercial concept, and which one is canonical?</h4>
+        <p><strong>Why it works:</strong> it converts a vague sense of mess into a countable number, and it sets up the cheapest artifact in this session. A team that says "four, and none of them is marked canonical" has just scoped an afternoon of work with a large payoff. A team that says "one" is either exemplary or has not looked.</p>
+      </div>
+      <div class="d-card">
+        <h4><span class="lead-letter">Q3 ·</span> Show me the grain sentence for every published object. One line each, starting "one row is one".</h4>
+        <p><strong>Why it works:</strong> it is the fastest audit in data. A team that can produce this list has almost certainly avoided the whole family of counting errors; a team that cannot has them and does not yet know where. It also takes ten minutes to fix, which makes it a rare governance ask with immediate closure.</p>
+      </div>
+      <div class="d-card">
+        <h4><span class="lead-letter">Q4 ·</span> Which joins are explicitly forbidden in our model, and what is the wrong number each one produces?</h4>
+        <p><strong>Why it works:</strong> it tests whether the team has thought about misuse rather than just use. The strong answer names a path and quantifies the damage. "None are forbidden" almost never means the model is safe - it means nobody has written down the paths that run cleanly and lie, so everyone is free to find them independently.</p>
+      </div>
+      <div class="d-card">
+        <h4><span class="lead-letter">Q5 ·</span> What is in our known-limitations list, and when did we last add to it?</h4>
+        <p><strong>Why it works:</strong> the answer tells you about the culture, not just the model. A list that is growing means people are finding compromises and recording them. An empty list, or one last touched at launch, means either a perfect model or a team that does not think publishing weaknesses is safe - and the second is far more common and much more expensive.</p>
+      </div>
+      <div class="d-card">
+        <h4><span class="lead-letter">Q6 ·</span> If someone changed the definition of our top-line metric tomorrow without renaming it, how would I find out?</h4>
+        <p><strong>Why it works:</strong> it targets the most dangerous change class directly, and the honest answer is usually "you probably would not". That is the gap worth funding: a notification path with named consumers on it, plus a policy that treats redefinition like removal. Any answer involving someone remembering to mention it in a meeting is a no.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 30-40 min total, no tools</span></h2>
+    </div>
+    <ul>
+      <li>Commission the synonym map. One page, two columns: what the business says, and the one metric that answers it. Cap it at fifteen rows and give it a two-week deadline - it is an afternoon of work and it is the highest-return governance spend available to you.</li>
+      <li>Ask four people in four functions to write down the definition of your top-line number, separately and in one sentence. Compare the four answers yourself, without commentary. Whatever the spread is, that is the size of the problem this session is about.</li>
+      <li>Write the owner list for your published objects, personally, with names and deputies. If it takes more than twenty minutes because there are too many objects, you have found a second, better conversation.</li>
+      <li>Add the third bucket to your change policy in writing: a change of definition requires a change of name or a dated announcement, and preferably both. One sentence, but it has to exist before the change does.</li>
+      <li>Ask for the known-limitations list on your most-used model. If it is empty, send it back and ask for three entries. You will get them, and you will trust the model more afterwards, not less.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">This is the working core of the naming and contract literature, stated as decisions a leader makes rather than as conventions a team follows. Full source map, including what is deliberately out of scope, in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Dehghani, <em>Data Mesh</em> - data as a product, domain ownership, the contract as the interface</span><span class="note">Parts 2 and 3 · a named owner per object, consumers listed by name, contract as interface rather than documentation</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">dbt model contracts and layering conventions</span><span class="note">Parts 2 and 3 · layer prefixes as trustworthiness signals, the contract blocks, the breaking-change classes</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Fowler (<em>PoEAA</em>) and Evans (<em>DDD</em>) - ubiquitous language</span><span class="note">Part 1 · one concept, one word, taken from the business rather than the source system</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - grain and conformed dimensions</span><span class="note">Part 3 · grain as a contract block. Conformance is designed hands-on in builder session <a href="b6-dimension-design.html">b6</a></span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Contract enforcement in a pipeline - tests, CI, catalog integration</span><span class="note">Named as a mechanism only. Built as a real file in builder session <a href="b9-agent-ready.html">b9</a>; operated in <code>learn-dataops</code></span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · A team asks to approve two naming rules: every table name must begin with a marker saying it is a table, and every time column must end in a marker saying whether it is a moment or a calendar day. Which do you approve?</p>
+      <button class="qopt" type="button">A · Both - consistency is the point of a standard</button>
+      <button class="qopt" type="button">B · Neither - naming rules cost migration and buy nothing measurable</button>
+      <button class="qopt" type="button">C · Only the second - it prevents a specific wrong number, while the first tells a reader nothing they did not know</button>
+      <p class="qwhy">The test is whether a convention carries information. A marker saying a table is a table is decoration that still costs a migration to change later. A suffix that distinguishes a moment from a calendar day stops a whole family of double-counting errors at day boundaries. Approve conventions that prevent wrong numbers; refuse the rest.</p>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">2 · Three changes land on your desk. Which one deserves the most scrutiny?</p>
+      <button class="qopt" type="button">A · Dropping a column that two dashboards read</button>
+      <button class="qopt" type="button">B · Redefining the revenue metric to exclude a fee, keeping the same name</button>
+      <button class="qopt" type="button">C · Adding a new category column to a published view</button>
+      <p class="qwhy">Dropping a column breaks things loudly, which means it gets found and fixed. Adding is free. Redefining without renaming breaks nothing visibly and changes the meaning of every historical number at the same instant, so nobody notices until a trend is misread. The cheapest change to make is the most expensive to get wrong.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · A team presents a new model with an empty known-limitations block. What is the right reading?</p>
+      <button class="qopt" type="button">A · The compromises exist but have not been found yet, and will be found by a stakeholder instead - send it back and ask for three</button>
+      <button class="qopt" type="button">B · The model is unusually well built and can be approved faster</button>
+      <button class="qopt" type="button">C · Limitations are an engineering concern and do not belong in a document leaders read</button>
+      <p class="qwhy">Every real model contains attribution choices, exclusions and small-sample slices that a reader could mistake for facts. A blank list means they are undiscovered, not absent. Publishing them is what makes a model believed - the first limitation somebody else finds costs you the credibility of everything you did document.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 5 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>One concept, one word</b><span>The business says merchant, so nothing says vendor, seller or partner. Take the word from the business, never from the source system.</span></div>
+      <div class="cheat-item"><b>The synonym map</b><span>Twelve lines, one afternoon, no migration. The cheapest artifact in data governance and the fastest payback.</span></div>
+      <div class="cheat-item"><b>The convention test</b><span>Does it tell a reader something they did not know? A suffix for grain, yes. A marker saying a table is a table, no.</span></div>
+      <div class="cheat-item"><b>Ownership</b><span>A named human per published object, a named deputy, and a written rule for who may change it. A team name is a label, not an owner.</span></div>
+      <div class="cheat-item"><b>Contract, not schema</b><span>A schema says what exists. A contract says what it means, who owns it, what is guaranteed, and what breaks. It is an interface.</span></div>
+      <div class="cheat-item"><b>Three change classes</b><span>Adding is free. Renaming and removing need notice and a deprecation window. Redefining a metric quietly is the dangerous one.</span></div>
+      <div class="cheat-item"><b>Forbidden joins</b><span>Write down the paths that run cleanly and lie. Bazaar's sales-to-payments join turns 111,906 SGD into 121,003, about 8% high.</span></div>
+      <div class="cheat-item"><b>Known limitations</b><span>The block that buys trust. A model documenting its own compromises gets believed; one claiming none does not. Next: a6, agent-ready data.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Leader session 5 of 6 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a4-tooling-landscape.html">← Previous: The tooling landscape</a> &nbsp;·&nbsp; <a href="a6-agent-ready-data.html">Next: Agent-ready data →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

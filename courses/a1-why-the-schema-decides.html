@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leader session 1 · Why the schema decides everything - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Leader session 1 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Leader track · Session 1 of 6</div>
+    <h1>Why the <span class="accent">schema</span> decides everything</h1>
+    <p class="sub">Every recurring argument about a number traces back to a modeling choice somebody made in a hurry, usually years earlier, usually undocumented. This session shows you where those choices live, who owns each one, why they outlive every tool you will ever buy, and the six-word question that ends most of those arguments inside a minute. No code, no query, no DDL to read.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Leader track</span>
+      <span class="chip audience">C-level · heads of data · stakeholders</span>
+      <span class="chip audience">No code to write</span>
+      <span class="chip time">45 min</span>
+      <span class="chip time">▶ Leaders start here</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-15 · Three artifacts, three owners</span>
+      <span class="a4" style="flex:4">15-26 · Why the model outlives the tools</span>
+      <span class="a3" style="flex:5">26-40 · Group exercise: the six-word audit</span>
+      <span class="a1" style="flex:2">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>How this track works</h2>
+    </div>
+    <p class="lede">Six sessions, 45 minutes each, and nothing to install. This is the track for the people who will never write SQL but who approve the roadmap, referee the arguments about revenue, and sign off the rework when a model turns out to be wrong. You will not read DDL and you will not run a query. You will leave each session with a small number of questions that change what your data team tells you.</p>
+    <p class="lede">The running illustration is <strong>Bazaar</strong>, a multi-merchant ecommerce marketplace: 60 shoppers, 12 merchants, 60 products, 985 orders, 1,434 order lines, 2,229 carts and 1,060 payment attempts across 2026-04-01 to 2026-06-29, in SGD. It is the same marketplace the builder track designs table by table, so if you read both tracks you are looking at one case from two heights. <strong>Every number quoted on this page comes from that dataset</strong>, which the course generates and ships; they are illustrations from a teaching case, not industry benchmarks.</p>
+    <div class="legend">
+      <span class="pill solid">Live - discussed in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">◆ Discussion exercise - run it in your own meeting</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      One sentence you can say in any meeting to find out whether two people are describing the same number ("one row is one what?"), a clear picture of which of the three modeling artifacts you have actually been shown for each project you funded, and the reason a warehouse migration will not fix a disagreement that lives in the grain.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: THREE ARTIFACTS ============ -->
+  <section class="section" id="artifacts">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Fowler / Evans on modeling, Inmon on who owns change</span>
+      <h2>Three artifacts, three owners <span class="tag concept">12 min live</span></h2>
+    </div>
+    <p class="lede">A schema is a business decision wearing technical clothes. The clothes are the reason it never reaches your desk as a business decision: by the time anyone shows you a diagram, the choices that matter have already been made and translated into a language you are not expected to argue with.</p>
+    <p class="lede">There are three artifacts, not one. The <strong>conceptual</strong> model says what the business has and how those things relate, in the words the business already uses. The <strong>logical</strong> model adds attributes, keys and grain. The <strong>physical</strong> model is the DDL for one specific engine: types, constraints, indexes. Each one has a different natural owner, and each one has a different chance of ever being shown to you.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The three modeling artifacts, conceptual, logical and physical, with the owner of each and how often a leader is shown it">
+        <style>
+          .arT { font: 700 14px Inter, sans-serif; fill: #FFFFFF; }
+          .arTd { font: 700 14px Inter, sans-serif; fill: #1B2637; }
+          .arS { font: 400 10.5px Inter, sans-serif; fill: #B9CBE4; }
+          .arSd { font: 400 10.5px Inter, sans-serif; fill: #1B2637; }
+          .arH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .arB { font: 700 12px Inter, sans-serif; fill: #22395C; }
+          .arC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .arR { font: 700 12px Inter, sans-serif; fill: #991B1B; }
+          .arA { font: 700 12px Inter, sans-serif; fill: #C08A2E; }
+          .arN { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+          .arArr { stroke: #6C8CBC; stroke-width: 2.5; fill: none; marker-end: url(#arAh); }
+        </style>
+        <defs>
+          <marker id="arAh" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#6C8CBC"/>
+          </marker>
+        </defs>
+
+        <text class="arH" x="26" y="22">One decision, written down three times, by three different people</text>
+
+        <rect x="26" y="38" width="250" height="58" rx="10" fill="#22395C"/>
+        <text class="arT" x="46" y="62">Conceptual</text>
+        <text class="arS" x="46" y="82">what the business has</text>
+
+        <rect x="315" y="38" width="250" height="58" rx="10" fill="#3B5B8C"/>
+        <text class="arT" x="335" y="62">Logical</text>
+        <text class="arS" x="335" y="82">attributes, keys, grain</text>
+
+        <rect x="604" y="38" width="244" height="58" rx="10" fill="#6C8CBC"/>
+        <text class="arTd" x="624" y="62">Physical</text>
+        <text class="arSd" x="624" y="82">types, indexes, one engine</text>
+
+        <path class="arArr" d="M276,67 L311,67"/>
+        <path class="arArr" d="M565,67 L600,67"/>
+
+        <text class="arH" x="46" y="126">Owner: the business</text>
+        <text class="arC" x="46" y="146">merchandising, finance, ops</text>
+        <text class="arH" x="46" y="176">Written as: nouns, verbs</text>
+        <text class="arC" x="46" y="196">"a cart holds products"</text>
+        <text class="arR" x="46" y="226">Shown to leaders: rarely</text>
+
+        <text class="arH" x="335" y="126">Owner: the data team</text>
+        <text class="arC" x="335" y="146">analytics engineers, DE</text>
+        <text class="arH" x="335" y="176">Written as: tables, keys</text>
+        <text class="arC" x="335" y="196">"one row is one order line"</text>
+        <text class="arA" x="335" y="226">Shown to leaders: sometimes</text>
+
+        <text class="arH" x="624" y="126">Owner: the engine</text>
+        <text class="arC" x="624" y="146">whoever runs the platform</text>
+        <text class="arH" x="624" y="176">Written as: DDL, indexes</text>
+        <text class="arC" x="624" y="196">unit_price DECIMAL(12,2)</text>
+        <text class="arB" x="624" y="226">Shown to leaders: always</text>
+
+        <rect x="26" y="252" width="822" height="54" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="arN" x="46" y="276">Leaders are shown the third column, where every choice already looks technical and settled.</text>
+        <text class="arN" x="46" y="296">The choices that get argued about for years were made in the first two, often in one afternoon.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - three artifacts, three owners, and three very different chances of reaching your desk</figcaption>
+    </figure>
+
+    <table class="clean">
+      <thead><tr><th>The artifact</th><th>What it says</th><th>Who owns it</th><th>What a leader usually sees</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Conceptual</strong></td><td>the things Bazaar has and how they relate: shopper, merchant, product, cart, order, payment attempt</td><td>the business - merchandising, finance, ops</td><td>almost never, because in most companies it was never written down at all</td></tr>
+        <tr><td><strong>Logical</strong></td><td>attributes, keys and grain: one row of the order-line table is one product on one order</td><td>the data team - analytics engineers and data engineers</td><td>sometimes, as a diagram in an appendix that nobody reads out loud</td></tr>
+        <tr><td><strong>Physical</strong></td><td>types, constraints, indexes, the DDL for one particular engine</td><td>whoever operates the platform</td><td>always, because it is the only one with a screenshot and a cost line</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What goes wrong when you only ever see the third one<span class="mini">5 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>If the only artifact that reaches you is the physical one, three things happen, and none of them look like your problem at the time.</p>
+        <ul>
+          <li><strong>You approve a schema shaped like an export.</strong> When nobody writes down the business's own version, the tables end up mirroring whatever file arrived first: a payment provider's CSV, a spreadsheet tab, an app's internal event log. That shape is an accident of who emailed what, and it becomes the shape of every number you are given for the next five years.</li>
+          <li><strong>Disagreements become invisible.</strong> Two people can agree completely on <code>DECIMAL(12,2)</code> and disagree completely on what a sale is. The physical model has no vocabulary for that argument, so the argument gets postponed to a meeting where it looks like a reporting bug.</li>
+          <li><strong>Ownership drifts to the wrong place.</strong> The conceptual model is the business's to own, and when the business does not own it the data team invents it by inference. They are guessing at your intent, kindly and quietly, in a language you never see. Inmon's argument about the normalized core is really an argument about this: <em>who is allowed to change the meaning of a thing</em>. Session a5 turns that into named owners and a contract.</li>
+        </ul>
+        <p>The fix is not that you learn DDL. It is that you insist on being shown the first artifact, in the business's own words, before the third one exists. Two paragraphs and a whiteboard photo are enough. If nobody can produce them, that is the finding.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The choice is business judgement, not engineering taste<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Take one real decision from Bazaar and watch it change hands. A cart is where a shopper puts things they might buy. Does the cart deserve to be a thing the company keeps, or is it screen state that gets thrown away at checkout?</p>
+        <ul>
+          <li><strong>Engineering has no stake in the answer.</strong> Either version ships. Keeping carts costs a little storage; throwing them away costs nothing today.</li>
+          <li><strong>You have an enormous stake in it.</strong> Bazaar's carts convert at 44.19%. Keep the carts and you can tell the difference between "fewer people wanted to buy" and "checkout broke". Throw them away and both look identical in the revenue line, which means the next bad month sends you to argue with the wrong team.</li>
+          <li><strong>The decision looks technical when it is written down.</strong> "Do we persist cart state?" is a sprint-planning sentence. "Do we want to be able to tell demand collapse apart from checkout failure?" is a board sentence. They are the same decision.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The translation habit</strong>
+          Whenever a modeling question arrives in engineering language, ask what business question becomes unanswerable if the answer is no. If the honest reply is "none", let the team decide it and move on. If the reply names a question you ask every quarter, it is your decision and you should make it out loud.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>One word, one meaning: why naming is part of the model<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Evans and Fowler make an argument that sounds like style advice and is not: the words in the model must be the words the business says out loud, and each concept gets exactly one of them. Bazaar's people say <em>merchant</em>. So nothing anywhere is allowed to say vendor, seller, supplier or partner.</p>
+        <p>The cost of breaking that rule is not aesthetic. Every synonym is a place where two teams can build two slightly different populations and both be sure they are right. "Active sellers" and "merchants with sales" sound like the same group in a meeting and are almost never the same group in a query. You cannot police this from a dashboard; it has to be a standard, with an owner, which is what session a5 builds.</p>
+        <p>Domain ownership is the other half of the same idea. Dehghani's <em>Data Mesh</em> argues that the team closest to a business domain should own its model and publish it as a product, precisely because meaning degrades every time it is translated by someone further away. You do not need to buy a mesh to take the point: the further your conceptual model travels from the people who live the process, the more of it arrives as guesswork.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: MODEL OUTLIVES TOOLS ============ -->
+  <section class="section" id="outlives">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers Inmon on the durable core, Kimball on grain as the fixed point</span>
+      <h2>The model outlives every tool <span class="tag concept">11 min live</span></h2>
+    </div>
+    <p class="lede">Here is the pattern nobody puts on a roadmap. Over seven years a company replaces its warehouse, replaces its BI vendor, and replaces its pipeline framework. Each of those is a funded programme with a business case, a migration plan and a celebration. Through all three, the grain of the sales table stays exactly as it was decided in the first month, by whoever wrote the first load script, because no migration ever forces anyone to revisit it.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing warehouse, BI tool and pipeline framework all being replaced while the grain of the sales table stays unchanged">
+        <style>
+          .mgH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .mgY { font: 400 10.5px Inter, sans-serif; fill: #5C6B80; }
+          .mgL { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .mgSub { font: 400 10.5px Inter, sans-serif; fill: #5C6B80; }
+          .mgSd { font: 400 10.5px Inter, sans-serif; fill: #1B2637; }
+          .mgSw { font: 600 10.5px Inter, sans-serif; fill: #FFFFFF; }
+          .mgBig { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+          .mgBigS { font: 400 11px Inter, sans-serif; fill: #B9CBE4; }
+          .mgN { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+        </style>
+
+        <text class="mgH" x="26" y="18">What changed, and what did not, in seven years</text>
+
+        <text class="mgY" x="180" y="36">2019</text>
+        <text class="mgY" x="352" y="36">2021</text>
+        <text class="mgY" x="524" y="36">2023</text>
+        <text class="mgY" x="696" y="36">2025</text>
+        <text class="mgY" x="812" y="36">2026</text>
+        <line x1="180" y1="44" x2="850" y2="44" stroke="#B9CBE4" stroke-width="1"/>
+
+        <text class="mgL" x="26" y="79">Warehouse</text>
+        <rect x="180" y="58" width="176" height="34" rx="6" fill="#B9CBE4"/>
+        <text class="mgSd" x="192" y="79">on-prem SQL Server</text>
+        <rect x="362" y="58" width="176" height="34" rx="6" fill="#6C8CBC"/>
+        <text class="mgSd" x="374" y="79">Redshift</text>
+        <rect x="544" y="58" width="306" height="34" rx="6" fill="#3B5B8C"/>
+        <text class="mgSw" x="556" y="79">Snowflake</text>
+
+        <text class="mgL" x="26" y="125">BI and reporting</text>
+        <rect x="180" y="104" width="140" height="34" rx="6" fill="#B9CBE4"/>
+        <text class="mgSd" x="192" y="125">Excel and Access</text>
+        <rect x="326" y="104" width="250" height="34" rx="6" fill="#6C8CBC"/>
+        <text class="mgSd" x="338" y="125">Tableau</text>
+        <rect x="582" y="104" width="268" height="34" rx="6" fill="#3B5B8C"/>
+        <text class="mgSw" x="594" y="125">Power BI</text>
+
+        <text class="mgL" x="26" y="171">Pipeline framework</text>
+        <rect x="180" y="150" width="212" height="34" rx="6" fill="#B9CBE4"/>
+        <text class="mgSd" x="192" y="171">hand-written cron jobs</text>
+        <rect x="398" y="150" width="216" height="34" rx="6" fill="#6C8CBC"/>
+        <text class="mgSd" x="410" y="171">Airflow</text>
+        <rect x="620" y="150" width="230" height="34" rx="6" fill="#3B5B8C"/>
+        <text class="mgSw" x="632" y="171">dbt plus Airflow</text>
+
+        <text class="mgL" x="26" y="230">The data model</text>
+        <text class="mgSub" x="26" y="248">never on an agenda</text>
+        <rect x="180" y="206" width="670" height="48" rx="8" fill="#22395C"/>
+        <text class="mgBig" x="200" y="228">Grain of the sales table: one row is one order line</text>
+        <text class="mgBigS" x="200" y="246">Decided once, in the first month. Never revisited, because nothing forced it.</text>
+
+        <rect x="26" y="278" width="822" height="54" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="mgN" x="46" y="302">Three vendor decisions got revisited, budgeted and celebrated. The fourth decision was never on an agenda.</text>
+        <text class="mgN" x="46" y="322">It is the one every number on every dashboard still depends on.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - tools churn on a funded cycle; the model persists by default</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Why migrations carry the mistake across<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A migration is judged on fidelity. The test everybody agrees on before it starts is "the new system returns the same numbers as the old one". That test is exactly the mechanism that preserves a bad model: if the old warehouse counted order lines and called them orders, then a migration that <em>corrects</em> the grain will fail its own acceptance criteria on day one.</p>
+        <ul>
+          <li><strong>Fidelity beats correctness in every migration plan.</strong> Nobody wants to explain a 47% change in the June order count during a cutover, so the wrong definition gets faithfully reproduced and inherits fresh credibility from a new logo.</li>
+          <li><strong>The tools get better; the meaning does not.</strong> A semantic layer will happily serve a wrong definition to more people faster, with better caching. Session a4 covers what tooling genuinely buys you here, and what it cannot buy.</li>
+          <li><strong>The one decision with no natural review point is the one worth reviewing.</strong> Contracts get renewed, licences get re-tendered, frameworks get deprecated. Grain has no renewal date. If you do not put one in the calendar, there is not one.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The two questions that separate tool from model<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>When a proposal arrives, it is usually a mix of tool change and model change, presented as one thing. Two questions pull them apart:</p>
+        <ul>
+          <li><strong>"If we did nothing about the tool, would this problem still exist?"</strong> If yes, you have a model problem, and buying the tool will move the cost rather than remove it.</li>
+          <li><strong>"If we replaced this platform next year, which of these decisions would we have to make again?"</strong> The ones you would have to make again are tool decisions. The ones that would just carry over are model decisions, and they deserve more of your attention than they are getting, not less.</li>
+        </ul>
+        <p>This is not an argument against tooling. Bazaar's builder track ships real DDL and real transformations, and the platform matters. It is an argument about attention: the tool decision arrives with a vendor, a demo and a deadline, and the model decision arrives with nobody.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 3: THE SIX-WORD TEST ============ -->
+  <section class="section" id="sixword">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers Kimball on grain, touched only</span>
+      <h2>The six-word test <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">You do not need to read a schema to find the fault line in it. You need one question, and it fits in six words: <strong>"one row is one what?"</strong> Ask it about the table behind any number and one of three things happens. Someone answers in one clean sentence, and the number is probably safe. Two people answer differently, and you have found the disagreement in about ten seconds. Or nobody answers, and you have found something worse.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The question one row is one what applied to four Bazaar tables, each with a different row count">
+        <style>
+          .swQ { font: 700 19px Inter, sans-serif; fill: #FFFFFF; }
+          .swQs { font: 400 11.5px Inter, sans-serif; fill: #B9CBE4; }
+          .swT { font: 700 12.5px Inter, sans-serif; fill: #22395C; }
+          .swL { font: 400 10.5px Inter, sans-serif; fill: #5C6B80; }
+          .swA { font: 700 11.5px Inter, sans-serif; fill: #1B2637; }
+          .swC { font: 700 12px Inter, sans-serif; fill: #3B5B8C; }
+          .swN { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+        </style>
+
+        <rect x="26" y="34" width="822" height="54" rx="10" fill="#22395C"/>
+        <text class="swQ" x="46" y="68">"One row is one what?"</text>
+        <text class="swQs" x="330" y="68">six words, and the meeting stops guessing</text>
+
+        <rect x="26" y="104" width="190" height="104" rx="9" fill="#EDF2F9" stroke="#6C8CBC"/>
+        <text class="swT" x="40" y="128">orders</text>
+        <text class="swL" x="40" y="148">one row is</text>
+        <text class="swA" x="40" y="168">one order header</text>
+        <text class="swC" x="40" y="198">985 rows</text>
+
+        <rect x="237" y="104" width="190" height="104" rx="9" fill="#EDF2F9" stroke="#6C8CBC"/>
+        <text class="swT" x="251" y="128">order_items</text>
+        <text class="swL" x="251" y="148">one row is</text>
+        <text class="swA" x="251" y="168">one product line on</text>
+        <text class="swA" x="251" y="184">one order</text>
+        <text class="swC" x="251" y="198">1,434 rows</text>
+
+        <rect x="448" y="104" width="190" height="104" rx="9" fill="#EDF2F9" stroke="#6C8CBC"/>
+        <text class="swT" x="462" y="128">transactions</text>
+        <text class="swL" x="462" y="148">one row is</text>
+        <text class="swA" x="462" y="168">one payment attempt</text>
+        <text class="swC" x="462" y="198">1,060 rows</text>
+
+        <rect x="659" y="104" width="190" height="104" rx="9" fill="#EDF2F9" stroke="#6C8CBC"/>
+        <text class="swT" x="673" y="128">carts</text>
+        <text class="swL" x="673" y="148">one row is</text>
+        <text class="swA" x="673" y="168">one cart, converted</text>
+        <text class="swA" x="673" y="184">or not</text>
+        <text class="swC" x="673" y="198">2,229 rows</text>
+
+        <rect x="26" y="228" width="822" height="54" rx="8" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="swN" x="46" y="252">Same marketplace, same 90 days, four honest counts. None of them is "sales" until somebody writes down which one is.</text>
+        <text class="swN" x="46" y="272">Bazaar's own figures, from the dataset this course ships. Ask the question about your own tables and watch the room pause.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four counts of the same 90 days, all correct, all different</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The two questions to ask about any new dashboard<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A dashboard lands in your inbox with a nice headline number. You have about ninety seconds of attention and no ability to inspect the query. Spend it on two questions, in this order.</p>
+        <ul>
+          <li><strong>"What is one row of the table behind this?"</strong> This tests whether the number has a definition or a vibe. In Bazaar, if the answer to "how many orders in June" is 481, somebody counted order lines; the answer at order grain is 327. That is a 47% overstatement produced without a single mistake in the SQL, and it is invisible on the tile.</li>
+          <li><strong>"Who may change this table, and who finds out when they do?"</strong> This tests whether the number has an owner. A table anyone may change is a number nobody can promise. Note the second half of the question: an owner who cannot detect a change is not an owner, they are a name in a wiki.</li>
+        </ul>
+        <p>Those two questions cover the two ways dashboards fail leaders: the number never meant what you thought, or the number quietly stopped meaning it last Tuesday. Neither is a BI problem. Both are modeling problems.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>What a good answer sounds like, and what an evasion sounds like<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A good answer is one sentence, has no "and" in the middle, and mentions a single thing. "One row is one payment attempt." Done.</p>
+        <ul>
+          <li><strong>"One row is one order and its payment"</strong> is two things wearing one row. In Bazaar, gluing the sales and payment facts together reports 121,003 SGD instead of the settled 111,906 SGD, because orders that needed a retry get counted twice. That is 9,097 SGD of revenue that does not exist, from a join that looks completely reasonable in a query.</li>
+          <li><strong>"It depends on the filter"</strong> means the grain is unstable, which means every comparison across time is suspect.</li>
+          <li><strong>"I would have to check"</strong> is a perfectly honest answer and a useful finding: the definition is not published anywhere a human can read it. That is the gap session a5 closes with a contract, and the gap session a6 shows is fatal for anything automated.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>Do not stop at the first answer</strong>
+          Ask the same six words of the second person in the room. The failure you are hunting is not ignorance, it is two confident and incompatible answers. You will only find it by asking twice.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DISCUSSION EXERCISE ============ -->
+  <section class="section" id="discussion">
+    <div class="section-kicker">
+      <span class="klabel">Group exercise · no code</span>
+      <h2>The six-word audit <span class="tag demo">◆ 14 min · everyone talks</span></h2>
+    </div>
+    <p class="lede">This is the whole session made portable. It takes fourteen minutes here and about ten minutes in your own next team meeting, and it needs nothing but the dashboards you already have open.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Name three numbers</strong> your leadership team looked at in the last month. Not three dashboards, three specific numbers: the revenue figure in the monthly pack, the conversion rate in the growth review, the one metric in your own objectives.</p></div>
+      <div class="step"><p><strong>Ask the six words</strong> for each one: "one row is one what?" Write down the answer verbatim, including the hesitations. Then ask a second person in the room the same question about the same number.</p></div>
+      <div class="step"><p><strong>Ask who may change it</strong> and who would find out. If the answer is a team rather than a person, or a person who has left, mark it.</p></div>
+      <div class="step"><p><strong>Sort the three</strong> into one clean answer, two different answers, or no answer. You now have a one-page finding that is more actionable than most data audits, and you produced it without opening a query editor.</p></div>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Exercise 1 · Run the audit on your own numbers<span class="mini">8 min · run this in your next team meeting</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The prompt, word for word:</strong> "Before we discuss the number, I want to understand the row. One row of the table behind this figure is one what? And who is allowed to change that table?"</p>
+        <p><strong>What a good answer sounds like:</strong> one sentence, one noun, no conjunction. "One row is one settled order." Then, without being pushed: "Finance owns the definition, the analytics engineering team owns the table, and it is in the metric doc." A good answer often comes with a caveat volunteered rather than extracted: "note that refunds are handled at the payment grain, not here". Volunteered caveats are the strongest signal you will get that someone has actually thought about the grain.</p>
+        <p><strong>The failure mode to listen for:</strong> the confident restatement. You ask what one row is and you get the metric's name back in a longer sentence ("one row is one revenue record for the period"). That is not a grain, it is a synonym, and it is the single most common way this question gets deflected without anyone intending to deflect. The second failure mode is a room where two people answer differently and then both say "well, same thing really". It is not the same thing; in Bazaar the same "same thing really" is the difference between an average order value of 116.93 and 80.68, a 31% understatement, and both of those numbers came off the same dataset.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Exercise 2 · Which artifact were you shown?<span class="mini">6 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The prompt:</strong> "Take the last data project you personally approved. Which of the three artifacts did you actually see: the business's own model in business words, the logical model with grain and keys, or the physical schema? If you only saw the third, who wrote the first one down, and where is it?"</p>
+        <p><strong>What a good answer sounds like:</strong> someone can point at an artifact - even a whiteboard photo, a one-page list of entities, a paragraph in a project brief - and name the business person who signed it off. The version of this answer that should reassure you most is unglamorous: "we spent the first two hours listing the things we have and arguing about what a merchant is, and here are those notes".</p>
+        <p><strong>The failure mode to listen for:</strong> "the ERD is the model". An ERD is a picture of the second and third artifacts. It cannot tell you whether the business agreed that a cart is a thing worth keeping, because it only shows the tables that survived that conversation. Also listen for "the model is in the code" or "dbt is the source of truth". Those statements are true about implementation and irrelevant to the question of who decided what a sale means.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The two-year argument that was a one-afternoon decision.</strong> A marketplace spent two years with finance and growth reporting different revenue every month. Finance was right about the total and growth was right about the trend, and both sides gradually built their own pipeline to defend their own number. The root cause, found eventually, was a load script written on day nine of the company's life: it wrote one row per order line into a table someone named <code>sales</code>. Nothing after that was wrong. Every dashboard, every export and every board slide correctly reported the wrong grain, through two warehouse migrations and a BI replacement, for eight years. The person who wrote the script had left before the first argument happened, and had no idea they were making a decision about anything other than a script.</p>
+    </div>
+  </section>
+
+  <!-- ============ QUESTIONS TO ASK ============ -->
+  <section class="section" id="ask">
+    <div class="section-kicker">
+      <span class="klabel">Take this with you</span>
+      <h2>Questions to ask your data team <span class="tag concept">use them this week</span></h2>
+    </div>
+    <p class="lede">Six questions. None of them requires you to understand the answer's implementation, and each one is hard to answer vaguely without the vagueness being obvious.</p>
+    <ul>
+      <li><strong>"One row of this table is one what?"</strong><br>Why it works: it forces the grain into a sentence a non-technical person can check. If two people answer differently, you have located a disagreement that would otherwise surface as a reporting bug in six months.</li>
+      <li><strong>"Who may change this table, and who finds out when they do?"</strong><br>Why it works: it separates ownership from access. Plenty of tables have twelve people who can change them and nobody who is accountable when the meaning shifts. The second half is the part that gets skipped and the part that matters.</li>
+      <li><strong>"Show me the business's own version of this model, not the ERD."</strong><br>Why it works: it asks for the artifact that is usually missing. If it does not exist, you have just learned that your schema was inferred from an export rather than decided.</li>
+      <li><strong>"Which of our reported numbers depend on this table?"</strong><br>Why it works: it turns an abstract risk into a blast radius you can size. It is also the question that tells you whether a fix is a two-day job or a quarter, which is exactly what session a2 prices.</li>
+      <li><strong>"If we replaced this platform next year, which of these decisions would we have to make again?"</strong><br>Why it works: it sorts tool decisions from model decisions in one pass, and it usually reveals that the decisions nobody is reviewing are the durable ones.</li>
+      <li><strong>"What question can we not answer today because something is missing from the model?"</strong><br>Why it works: it invites your team to tell you about the entity that was dropped years ago. In Bazaar, that is the cart: without it you cannot separate falling demand from broken checkout, and no amount of dashboard work invents the data after the fact.</li>
+    </ul>
+    <div class="callout tip">
+      <strong>Ask them in this order</strong>
+      Grain first, ownership second, blast radius third. Grain tells you whether the number means anything; ownership tells you whether it will still mean it next month; blast radius tells you what a fix costs. Asking about cost first is how a conversation about meaning turns into a conversation about budget, and stops.
+    </div>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 20-30 min total, all of it conversation</span></h2>
+    </div>
+    <ul>
+      <li>Pick the one number you personally quote most often outside the company. Ask your team what one row of the table behind it is. Write their answer down word for word, and keep it.</li>
+      <li>Ask a second person the same question about the same number, on a different day, without mentioning the first answer. Compare.</li>
+      <li>For the last data project you approved, find out which of the three artifacts exists in writing. If only the physical one does, ask who would write the first one, and how long it would take. The honest answer is usually "an afternoon".</li>
+      <li>Find one word your company uses two ways - customer, active, sale, merchant, seller - and ask which one the tables use. Bring the answer to session a5, which turns this into a naming standard with an owner.</li>
+      <li>Name one question you have asked twice and never had answered from data. Bring it to session a3; it is usually a grain problem wearing a reporting-request costume.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">The leader track teaches the judgement half of the standard modeling literature: the decisions and their owners, without the build. The full source map, including what is deliberately out of scope for the whole course, is in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Fowler (<em>PoEAA</em>) and Evans (<em>DDD</em>) - conceptual, logical and physical as three distinct artifacts; ubiquitous language</span><span class="note">Parts 1 and 3 · the ladder, the owners, and one word per concept. The naming <em>standard</em> is session a5</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - grain, one meaning per number</span><span class="note">Part 3 · the six-word test only. The workshop that agrees a definition is a3; the build is builder b5-b7</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Inmon, <em>Building the Data Warehouse</em> - who owns change</span><span class="note">Part 1 · owners of each artifact. The normalized-core argument itself is builder b5</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Dehghani, <em>Data Mesh</em> - domain ownership, data as a product</span><span class="note">Part 1 · named as the reason meaning degrades at distance. Contracts and ownership are session a5</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · A new dashboard arrives with a headline revenue number. You have ninety seconds. Which two questions do you ask?</p>
+      <button class="qopt" type="button">A · Which BI tool built it, and can we standardise on that tool</button>
+      <button class="qopt" type="button">B · What is one row of the table behind it, and who may change that table</button>
+      <button class="qopt" type="button">C · What is the refresh schedule, and who signed off the visual design</button>
+      <p class="qwhy">Grain tells you whether the number means what you think; ownership tells you whether it will still mean that next month. Tooling and refresh are real operational questions and neither of them can save a number whose definition was never written down.</p>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">2 · Two teams have disagreed about revenue for a year. You are replacing the warehouse next quarter. What is the honest expectation?</p>
+      <button class="qopt" type="button">A · The migration fixes it, because a modern engine enforces stricter types and constraints</button>
+      <button class="qopt" type="button">B · It fixes it as long as you also move both teams onto the same BI tool</button>
+      <button class="qopt" type="button">C · The disagreement survives the migration, because it lives in the grain, and migrations are graded on reproducing the old numbers</button>
+      <p class="qwhy">Migrations are accepted when the new system returns the same numbers as the old one. That acceptance test is precisely what carries a wrong grain across, with fresh credibility attached to a new logo. Fixing meaning has to be its own decision, with its own approval.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · For every data project this year, the only artifact you were shown was the physical schema. What is the real risk?</p>
+      <button class="qopt" type="button">A · You are approving schemas shaped by whichever export arrived first, because the business's own version was never written down</button>
+      <button class="qopt" type="button">B · The tables may be under-indexed, so dashboards will be slow</button>
+      <button class="qopt" type="button">C · No real risk: DDL is the authoritative artifact, so seeing it is enough</button>
+      <p class="qwhy">The physical model faithfully implements whatever the logical model said, and the logical model faithfully implements whatever the conceptual model said - or, if nobody wrote one, whatever shape the first file happened to have. Performance is fixable later. A schema shaped like an accident is not.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 1 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>The six words</b><span>"One row is one what?" Ask it about any number, then ask a second person the same thing.</span></div>
+      <div class="cheat-item"><b>Three artifacts</b><span>Conceptual (the business owns it), logical (the data team owns it), physical (the platform owns it).</span></div>
+      <div class="cheat-item"><b>The asymmetry</b><span>You are always shown the third and almost never the first. The arguments come from the first.</span></div>
+      <div class="cheat-item"><b>Two dashboard questions</b><span>What is one row, and who may change this table. Ninety seconds, both answerable without SQL.</span></div>
+      <div class="cheat-item"><b>Models outlive tools</b><span>Warehouse, BI vendor and pipeline framework all get replaced. The grain of the sales table does not.</span></div>
+      <div class="cheat-item"><b>Why migrations preserve it</b><span>"Same numbers as before" is the acceptance test, so a wrong grain passes and gains credibility.</span></div>
+      <div class="cheat-item"><b>Bazaar's four counts</b><span>985 orders, 1,434 order lines, 1,060 payment attempts, 2,229 carts. All correct, all different.</span></div>
+      <div class="cheat-item"><b>Next</b><span>a2 prices what a bad model bills you, and when to fix, ringfence or live with it.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Leader session 1 of 6 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="../index.html">← All sessions</a> &nbsp;·&nbsp; <a href="a2-cost-of-a-bad-model.html">Next: The cost of a bad model →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Builder session 6 · Dimension design - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Builder session 6 of 10</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Builder track · Session 6 of 10</div>
+    <h1>Dimension <span class="accent">design</span></h1>
+    <p class="sub">Session b5 proved the source schema cannot answer a business question cheaply. This session builds the half of the fix that answers "by what?" - six dimensions, governed by four rules, each rule preventing a specific failure you have probably already lived through. This is the session that ships <code>sql/10_dim_ddl.sql</code>, and the four numbered rules at the top of that file are the spine of the next 45 minutes.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Builder track · hands-on</span>
+      <span class="chip audience">Analysts · analytics engineers · DE · DS</span>
+      <span class="chip audience">Ships sql/10 · real SQLite</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-16 · The four rules, and what each prevents</span>
+      <span class="a3" style="flex:6">16-40 · Build-along: read the DDL, apply a type-2 change</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Dimensions answer "by what?"</h2>
+    </div>
+    <p class="lede">A star schema is two kinds of table doing two jobs. Facts answer <strong>how much</strong>: revenue, units, attempts, carts. Dimensions answer <strong>sliced how</strong>: by merchant, by product, by shopper, by date, by hour, by payment method. The test is embarrassingly simple and it holds up: <em>if a business question contains the word "by", the word after it is a dimension.</em> b5's worksheet already collected them, so today you build them and b7 builds the facts that hang off them.</p>
+    <p class="lede">Bazaar gets six dimensions. Four rules govern all six, and none of them is a style preference - each one exists because a specific, expensive failure happens without it. History that rewrites itself. A join count that grows with every question. A dashboard that reports today's commission rate against April's sales. And a quarter of revenue reporting that is quietly 4% short because one attribute was NULL.</p>
+    <div class="legend">
+      <span class="pill solid">Live - presented in session</span>
+      <span class="pill light">Self-study - read after class</span>
+      <span class="pill peach">▶ Live SQL - editable &amp; runnable</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      <code>sql/10_dim_ddl.sql</code>, shipped and running: six dimensions with surrogate keys, flat-and-wide attributes, type-2 history where it matters, and not one NULL. Plus the reflex to ask, of any dimension you are handed, "what happens to old facts when this attribute changes?"
+    </div>
+  </section>
+
+  <!-- ============ PART 1: THE STAR AND RULES 1 & 2 ============ -->
+  <section class="section" id="star">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers Kimball on surrogate keys and snowflaking</span>
+      <h2>Rule 1 and rule 2: keys, then flatness <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">Here is the shape. One fact in the middle, six dimensions around it, one join from the fact to each. Nothing joins a dimension to another dimension, and that absence is a design decision rather than an omission.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bazaar star schema: fact_order_item in the centre surrounded by six dimensions, one join each">
+        <style>
+          .stT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .stS { font: 400 10.5px Inter, sans-serif; fill: #B9CBE4; }
+          .stF { font: 700 15px Inter, sans-serif; fill: #FFFFFF; }
+          .stG { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+          .stL { stroke: #6C8CBC; stroke-width: 2; fill: none; }
+        </style>
+
+        <rect x="60" y="40" width="200" height="58" rx="9" fill="#22395C"/>
+        <text class="stT" x="78" y="64">dim_date</text>
+        <text class="stS" x="78" y="84">215 rows · generated</text>
+
+        <rect x="340" y="40" width="200" height="58" rx="9" fill="#22395C"/>
+        <text class="stT" x="358" y="64">dim_time_of_day</text>
+        <text class="stS" x="358" y="84">24 rows · generated</text>
+
+        <rect x="620" y="40" width="200" height="58" rx="9" fill="#22395C"/>
+        <text class="stT" x="638" y="64">dim_user</text>
+        <text class="stS" x="638" y="84">61 rows · SCD type 1</text>
+
+        <rect x="290" y="150" width="300" height="86" rx="11" fill="#C08A2E"/>
+        <text class="stF" x="312" y="180">fact_order_item</text>
+        <text class="stS" x="312" y="202" fill="#FBF3E2">one product line on one order</text>
+        <text class="stS" x="312" y="222" fill="#FBF3E2">1,434 rows · 5 surrogate keys</text>
+
+        <rect x="60" y="290" width="200" height="58" rx="9" fill="#3B5B8C"/>
+        <text class="stT" x="78" y="314">dim_merchant</text>
+        <text class="stS" x="78" y="334">13 rows · SCD type 2</text>
+
+        <rect x="340" y="290" width="200" height="58" rx="9" fill="#3B5B8C"/>
+        <text class="stT" x="358" y="314">dim_product</text>
+        <text class="stS" x="358" y="334">61 rows · SCD type 2</text>
+
+        <rect x="620" y="290" width="200" height="58" rx="9" fill="#6C8CBC"/>
+        <text class="stT" x="638" y="314">dim_payment_method</text>
+        <text class="stS" x="638" y="334">7 rows · SCD type 1</text>
+
+        <path class="stL" d="M160,98 L330,150"/>
+        <path class="stL" d="M440,98 L440,150"/>
+        <path class="stL" d="M720,98 L550,150"/>
+        <path class="stL" d="M160,290 L330,236"/>
+        <path class="stL" d="M440,290 L440,236"/>
+        <path class="stL" d="M720,290 L550,236"/>
+
+        <rect x="26" y="366" width="826" height="82" rx="9" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="stG" x="46" y="390">Six dimensions, one fact, one join each. Every line is a surrogate key on the fact pointing at</text>
+        <text class="stG" x="46" y="410">a dimension's *_sk. No line runs dimension to dimension - that would be a snowflake, and it is</text>
+        <text class="stG" x="46" y="430">exactly what rule 2 chooses against. b7 designs the two other facts that share these dimensions.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - Bazaar's star. dim_payment_method is lighter because fact_order_item does not use it; fact_transaction does.</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Rule 1 · A surrogate key on every dimension, with the business key riding along<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Every dimension gets an integer key that means nothing: <code>merchant_sk</code>, <code>product_sk</code>, <code>user_sk</code>. The real business identifier stays on the row as an ordinary column you can still read and still join on: <code>merchant_id = 'M07'</code>, <code>product_id = 1001</code>. Two keys, two jobs.</p>
+        <p><strong>The failure it prevents:</strong> history that cannot change without breaking old facts. If <code>fact_order_item</code> stored <code>merchant_id = 'M07'</code> directly, then there is exactly one row in the world describing M07, and the moment its tier or commission changes you have to choose between overwriting the past or refusing the change. With a surrogate key, M07 can have as many versions as it needs and every fact keeps pointing at the version that was true when it happened. Rule 3 is only possible because rule 1 came first.</p>
+        <ul>
+          <li><strong>Meaningless on purpose.</strong> A surrogate key must carry no information - no embedded date, no source-system prefix, no check digit. The instant it means something, somebody parses it, and now you cannot change it.</li>
+          <li><strong>Narrow and integer.</strong> Fact tables are the big tables, and every dimension key is a column on every fact row. An integer beats a 36-character UUID on scan cost, join cost and storage, at hundreds of millions of rows.</li>
+          <li><strong>Keep the business key visible.</strong> A dimension whose natural key is hidden is unusable for reconciliation. When finance asks why M07's number differs from their ledger, you need to be able to say <code>WHERE merchant_id = 'M07'</code> out loud.</li>
+          <li><strong>The business key is not unique on a type-2 dimension.</strong> <code>dim_merchant.merchant_id</code> deliberately has no UNIQUE constraint, because versions are rows. Only <code>(merchant_id, is_current = 1)</code> is unique, which is why <code>sql/10</code> indexes exactly that pair.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Rule 2 · Flat and wide, not snowflaked - and yes, this contradicts b2<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><code>dim_product</code> carries <code>merchant_name</code> and the merchant's <code>category</code> as columns, even though <code>dim_merchant</code> already has both. In session b2 that duplication was a textbook third-normal-form violation and the lab scored it as a bug. Here it is the product. The reversal is deliberate, and knowing <em>why</em> it reverses is the difference between following a rule and understanding one.</p>
+        <ul>
+          <li><strong>In OLTP, duplication is a bug</strong> because the table is written to constantly and two copies will eventually disagree. The update anomaly is real and it costs money.</li>
+          <li><strong>In a dimension, duplication is safe</strong> because the table is written by exactly one process, on a schedule, from one source of truth. There is no second writer to disagree with. The anomaly needs two writers, and a load job is one.</li>
+          <li><strong>And the duplication buys something concrete:</strong> it removes a join from every single analyst query, and from every query an AI agent generates. "Revenue by merchant name" is one join instead of two. Snowflaking - normalizing the dimension back out into <code>dim_product</code> plus <code>dim_merchant</code> plus <code>dim_category</code> - would add a hop per attribute, and every hop is a chance to pick the wrong key or drop rows.</li>
+          <li><strong>Where snowflaking is defensible:</strong> a genuinely enormous dimension with a huge, rarely-used attribute group hanging off it, or an attribute set governed by a different team on a different cadence. Both are real, both are rare, and both should be argued rather than assumed.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The reconciling principle</strong>
+          Normalization protects <em>writers</em>. Denormalization serves <em>readers</em>. b2 and b6 are not in conflict because they are optimising for different people: the source schema has thousands of concurrent writers, and the star has one writer and every reader in the company.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The two dimensions you generate rather than source<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong><code>dim_date</code> is the one dimension you always generate and never source.</strong> No application owns the calendar, so no application can hand it to you. Generate it, cover a range wider than your data (Bazaar's data runs 2026-04-01 to 2026-06-29; the dimension runs 2026-03-01 to 2026-09-30, 215 rows including an unknown member), and put every calendar attribute anyone will ever group by into columns: year, quarter, month, month name, day of month, day of week, day name, week of year, and a weekend flag. That last column is why two dashboards can no longer disagree about whether Saturday is a weekend day.</p>
+        <p><code>date_key</code> is a readable integer, 20260610 rather than a meaningless sequence, which is the one sanctioned exception to "surrogate keys mean nothing". It earns the exception because it makes a fact table scannable by eye and partitionable by prefix, and because the calendar is the one thing that genuinely never gets restated.</p>
+        <p><strong><code>dim_time_of_day</code> is kept separate from <code>dim_date</code>, and that is the whole point.</strong> Folding hours into the date dimension would multiply it by 24 for no benefit. Keeping them apart means "when is our peak hour?" groups across all 90 days at once, on 24 rows, instead of needing an expression over 2,160 date-hour combinations. Bazaar's answer, which b8 chases properly: 21:00 leads with 96 attempts, then 19:00 with 94, then 13:00 and 20:00 tied at 89.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: RULES 3 AND 4 ============ -->
+  <section class="section" id="history">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers Kimball SCD types 1 and 2</span>
+      <h2>Rule 3 and rule 4: history, and never NULL <span class="tag concept">6 min live</span></h2>
+    </div>
+    <p class="lede">Two dimensions carry attributes whose history somebody will eventually ask about, and four do not. Getting that split right is the highest-value decision in this session, because type 2 is not free and applying it everywhere is as wrong as applying it nowhere.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 442" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="An SCD type 2 row pair in dim_merchant with validity windows, and how a fact in April joins to the earlier version">
+        <style>
+          .scH { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+          .scD { font: 700 10.5px Inter, sans-serif; fill: #22395C; }
+          .scV { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+          .scW { font: 600 11.5px Inter, sans-serif; fill: #FFFFFF; }
+          .scT { font: 400 10.5px Inter, sans-serif; fill: #5C6B80; }
+          .scG { font: 600 11.5px Inter, sans-serif; fill: #1B2637; }
+        </style>
+
+        <text class="scH" x="26" y="22">dim_merchant, SCD type 2: one merchant, two rows, two validity windows</text>
+
+        <text class="scD" x="30" y="52">merchant_sk</text>
+        <text class="scD" x="120" y="52">merchant_id</text>
+        <text class="scD" x="220" y="52">tier</text>
+        <text class="scD" x="330" y="52">commission_pct</text>
+        <text class="scD" x="446" y="52">valid_from</text>
+        <text class="scD" x="586" y="52">valid_to</text>
+        <text class="scD" x="726" y="52">is_current</text>
+
+        <rect x="26" y="60" width="826" height="40" rx="7" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="scV" x="30" y="86">4</text>
+        <text class="scV" x="120" y="86">M05</text>
+        <text class="scV" x="220" y="86">bronze</text>
+        <text class="scV" x="330" y="86">0.18</text>
+        <text class="scV" x="446" y="86">2025-09-18</text>
+        <text class="scV" x="586" y="86">2026-06-15</text>
+        <text class="scV" x="726" y="86">0</text>
+
+        <rect x="26" y="104" width="826" height="40" rx="7" fill="#FBF3E2" stroke="#C08A2E"/>
+        <text class="scV" x="30" y="130">12</text>
+        <text class="scV" x="120" y="130">M05</text>
+        <text class="scV" x="220" y="130">gold</text>
+        <text class="scV" x="330" y="130">0.13</text>
+        <text class="scV" x="446" y="130">2026-06-16</text>
+        <text class="scV" x="586" y="130">9999-12-31</text>
+        <text class="scV" x="726" y="130">1</text>
+
+        <text class="scH" x="26" y="176">Where a fact lands</text>
+
+        <rect x="26" y="188" width="500" height="36" rx="7" fill="#3B5B8C"/>
+        <text class="scW" x="46" y="211">Sales before 2026-06-16 keep merchant_sk 4: bronze, 0.18</text>
+
+        <rect x="526" y="188" width="326" height="36" rx="7" fill="#C08A2E"/>
+        <text class="scW" x="546" y="211">After: merchant_sk 12, gold, 0.13</text>
+
+        <text class="scT" x="26" y="242">2025-09-18</text>
+        <text class="scT" x="452" y="242">2026-06-15</text>
+        <text class="scT" x="782" y="242">9999-12-31</text>
+
+        <text class="scH" x="26" y="276">dim_user, SCD type 1, for comparison</text>
+        <rect x="26" y="288" width="826" height="62" rx="9" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="scG" x="46" y="312">One row per shopper, overwritten in place. Change a city and last month's report changes with</text>
+        <text class="scG" x="46" y="332">it. That is the right trade here: nobody has ever asked for the history of a shopper's city.</text>
+
+        <rect x="26" y="366" width="826" height="62" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="scG" x="46" y="390">Type 2 is not free: the dimension grows a row per change, and every query must either say</text>
+        <text class="scG" x="46" y="410">is_current = 1 or supply a date. Use it only where somebody would notice the difference.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the row pair, the two windows, and the type-1 alternative side by side</figcaption>
+    </figure>
+
+    <table class="clean">
+      <thead><tr><th>Dimension</th><th>One row is</th><th>Rows</th><th>Type</th><th>What it is for</th></tr></thead>
+      <tbody>
+        <tr><td><strong>dim_date</strong></td><td>one calendar day</td><td>215</td><td>generated, never sourced</td><td>every "by month / weekday / quarter / weekend" question, defined once</td></tr>
+        <tr><td><strong>dim_time_of_day</strong></td><td>one hour of the day</td><td>24</td><td>generated, never sourced</td><td>peak-hour questions that group across all 90 days at once</td></tr>
+        <tr><td><strong>dim_user</strong></td><td>one shopper</td><td>61</td><td>SCD type 1 (overwrite)</td><td>slicing by country, city, acquisition channel and tenure band</td></tr>
+        <tr><td><strong>dim_merchant</strong></td><td>one merchant, per version</td><td>13</td><td>SCD type 2 (tier, commission_pct)</td><td>revenue and commission by the tier and rate in force at time of sale</td></tr>
+        <tr><td><strong>dim_product</strong></td><td>one product, per version</td><td>61</td><td>SCD type 2 (list_price, status)</td><td>slicing by category, price band and status, with the merchant flattened in</td></tr>
+        <tr><td><strong>dim_payment_method</strong></td><td>one payment method</td><td>7</td><td>SCD type 1 (overwrite)</td><td>saying "cards versus wallets versus bank" in one GROUP BY</td></tr>
+      </tbody>
+    </table>
+    <p class="lede">The last four counts each include one unknown member at key <code>-1</code>, and <code>dim_date</code>'s 215 includes one too. That is rule 4, and it is the reason every fact in this warehouse has a 0.0% unknown-member rate rather than a silent hole.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Rule 3 · Type 2 on the two dimensions whose history matters<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Two dimensions get slowly-changing type 2 treatment, and the choice is driven entirely by whether a real person would ever notice the difference.</p>
+        <ul>
+          <li><strong><code>dim_merchant</code>: tier and commission_pct.</strong> Bazaar's take rate is a contractual number that changes. A sale in April must report April's tier and April's commission, not today's. Get this wrong and the marketplace restates its own historic take every time it renegotiates a contract - which is a finance conversation you cannot win.</li>
+          <li><strong><code>dim_product</code>: list_price and status.</strong> A product's list price moves and its status flips between active and out of stock. Session b8 explains half a revenue drop using product status at the time, which is only possible if that status was versioned rather than overwritten.</li>
+          <li><strong><code>dim_user</code>: type 1, on purpose.</strong> Nobody has ever asked for the history of a shopper's city. Type 2 here would double the row count for a question no one asks, and slow down every join for nothing.</li>
+        </ul>
+        <p>The mechanics are three columns. <code>valid_from</code> and <code>valid_to</code> bound the version, <code>is_current</code> flags the live one, and the current row uses <code>valid_to = '9999-12-31'</code> rather than NULL so that a date-range predicate never has to special-case it. A fact stores the <code>*_sk</code> of the version that was true when the event happened, so the fact never needs updating again.</p>
+        <div class="callout tip">
+          <strong>The scope line, stated plainly</strong>
+          This session designs the type-2 <em>structure</em> and loads it once, with one current version per merchant and product. Applying a type-2 change on every run - detecting the change, closing the old row, inserting the new one, handling late-arriving facts - is a loading problem, and it belongs to <a href="https://phoebefu6.github.io/learn-data-warehouse-with-phoebe/">learn-data-warehouse-with-phoebe</a> (builder sessions 4 to 6). The build-along below applies one change by hand so you can see what the loader will automate, and that is as far as this course goes.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Rule 4 · No NULLs in dimension attributes, ever<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Every attribute column in every Bazaar dimension is <code>NOT NULL DEFAULT 'unknown'</code>, and every dimension has a member at key <code>-1</code> whose attributes are all the string <code>'unknown'</code>. Two devices, one purpose.</p>
+        <ul>
+          <li><strong>A NULL attribute silently drops rows from every inner join and every predicate.</strong> <code>WHERE city &lt;&gt; 'Singapore'</code> excludes the NULL cities. So does <code>WHERE city = 'Singapore'</code>. So does a GROUP BY that a BI tool wrote for you. The row does not error, it does not warn, it just is not there. The string <code>'unknown'</code> is a value, so it groups, filters and totals like any other.</li>
+          <li><strong>A missing key does the same thing, worse.</strong> If a fact's <code>merchant_sk</code> is NULL and the query inner-joins to the dimension, the whole fact row vanishes - money included. Pointing it at <code>-1</code> instead keeps the row, keeps the revenue in the total, and puts it in a bucket literally labelled "unknown" so somebody notices.</li>
+          <li><strong>That is why the load uses LEFT JOIN plus COALESCE to -1</strong> for every dimension lookup, never an inner join. Silently-missing revenue is the worst failure mode in this whole course, and an inner join in a fact load is how you get it.</li>
+        </ul>
+        <p>The arithmetic of the failure is what makes it dangerous. Four percent of rows missing is not a number anyone spots in a trend chart, and it is a big enough number to change a decision. The demo below reproduces the whole thing in twelve rows of SQL, and it goes from 400 to 300 to 200 and back to 400.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Modeled attributes: where a dimension earns its keep<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Copying source columns into a dimension is transport, not modeling. The columns that make a dimension worth building are the ones that do not exist anywhere in the source:</p>
+        <ul>
+          <li><strong><code>price_tier</code></strong> on <code>dim_product</code>: budget / mid / premium. The source has a number. The business thinks in bands. Defining the band once in the dimension is what stops three dashboards from disagreeing about what "premium" means.</li>
+          <li><strong><code>tenure_bucket</code></strong> on <code>dim_user</code>: new / 3-12m / 1y+. The source has a signup timestamp. Every analyst who bands it writes a slightly different CASE expression and gets a slightly different answer.</li>
+          <li><strong><code>daypart</code></strong> on <code>dim_time_of_day</code>: overnight / morning / lunch / afternoon / evening / late. Derived from nothing at all - it is pure business vocabulary, and it is the word a person says out loud instead of "hours 11 through 13".</li>
+          <li><strong><code>method_family</code></strong> on <code>dim_payment_method</code>: card / wallet / bank. Grouping by the raw source string <code>card_visa</code> is not the grouping anyone wants, and the alternative is a CASE statement that differs per analyst.</li>
+        </ul>
+        <p>All four share one property: they turn a decision that used to be made in every query into a decision made once, in one place, reviewable in a pull request. That is the actual product of dimension design. The columns are cheap; the agreement is the asset.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ DEMO 1 ============ -->
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Demo 1 of 2</span>
+      <h2>Build-along: read what you just shipped <span class="tag demo">★ 14 min · everyone builds</span></h2>
+    </div>
+    <p class="lede">Every editor below has the source tables, all six dimensions, all three facts, the four marts and the agent views loaded - the same objects <code>sql/10_dim_ddl.sql</code> and <code>sql/12_oltp_to_star.sql</code> create when you run them on your laptop. Read the DDL alongside these queries; the SQL and the file are the same lesson twice.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Count the six.</strong> Confirm the dimension inventory and its types match the table above, then check the numbers against <code>sql/10</code>.</p></div>
+      <div class="step"><p><strong>Look at rule 1 in the data.</strong> Surrogate key, business key, validity window and <code>is_current</code>, all on one row, including the <code>-1</code> member.</p></div>
+      <div class="step"><p><strong>Count the joins rule 2 removed.</strong> Two source tables to get a merchant name onto a product, versus zero.</p></div>
+      <div class="step"><p><strong>See where the modeled columns come from.</strong> Four attributes with no source column, and the source thing each was derived from.</p></div>
+    </div>
+
+    <div class="sqlbox" data-caption="The dimension inventory. Six tables, three of the four counts include an unknown member, and the types match the table above.">
+      <pre class="sql-src">SELECT 'dim_date' AS dimension, 'one calendar day' AS one_row_is,
+       'generated'  AS scd_type, COUNT(*) AS row_count FROM dim_date
+UNION ALL SELECT 'dim_time_of_day',    'one hour of the day',       'generated', COUNT(*) FROM dim_time_of_day
+UNION ALL SELECT 'dim_user',           'one shopper',               'type 1',    COUNT(*) FROM dim_user
+UNION ALL SELECT 'dim_merchant',       'one merchant per version',  'type 2',    COUNT(*) FROM dim_merchant
+UNION ALL SELECT 'dim_product',        'one product per version',   'type 2',    COUNT(*) FROM dim_product
+UNION ALL SELECT 'dim_payment_method', 'one payment method',        'type 1',    COUNT(*) FROM dim_payment_method;</pre>
+    </div>
+
+    <div class="sqlbox" data-caption="Rule 1 and rule 3 on one screen: the meaningless surrogate key, the readable business key, the validity window, and the unknown member at -1.">
+      <pre class="sql-src">SELECT merchant_sk, merchant_id, merchant_name, tier, commission_pct,
+       valid_from, valid_to, is_current
+FROM dim_merchant
+ORDER BY merchant_sk;</pre>
+    </div>
+
+    <div class="sqlbox" data-caption="Rule 2, measured. The first query needs a join to put a merchant name next to a product. The second needs none, forever, for every analyst and every generated query.">
+      <pre class="sql-src">-- snowflaked path: the merchant's name is one table away from the product
+SELECT p.product_id, p.product_name, m.merchant_name, m.category AS merchant_category
+FROM products p
+JOIN merchants m ON m.merchant_id = p.merchant_id
+ORDER BY p.product_id
+LIMIT 5;
+
+-- flat and wide: the same columns, zero joins, plus a modeled price_tier
+SELECT product_id, product_name, category, merchant_id, merchant_name,
+       list_price, price_tier, status, is_current
+FROM dim_product
+WHERE product_sk >= 0
+ORDER BY product_sk
+LIMIT 5;</pre>
+    </div>
+
+    <div class="sqlbox" data-caption="The four attributes that exist only because somebody modeled them. Each distinct-value count includes the 'unknown' value carried by the -1 member.">
+      <pre class="sql-src">SELECT 'price_tier'    AS modeled_attribute, 'dim_product'        AS lives_in,
+       'list_price, a number'          AS derived_from,
+       COUNT(DISTINCT price_tier)      AS distinct_values FROM dim_product
+UNION ALL SELECT 'tenure_bucket', 'dim_user',           'signup_ts, a timestamp',
+       COUNT(DISTINCT tenure_bucket) FROM dim_user
+UNION ALL SELECT 'daypart',       'dim_time_of_day',    'nothing - pure business vocabulary',
+       COUNT(DISTINCT daypart)       FROM dim_time_of_day
+UNION ALL SELECT 'method_family', 'dim_payment_method', 'payment_method, a raw string',
+       COUNT(DISTINCT method_family) FROM dim_payment_method;</pre>
+    </div>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>How a dashboard loses 4% of revenue for a quarter.</strong> A retailer added a new fulfilment partner. The partner's code was not in the dimension yet, so the fact load's inner join dropped every line it touched: about 4% of orders, invisibly. The daily revenue chart dipped by less than its own noise band, nobody queried it, and the gap was found eleven weeks later during an audit - by which time the weekly business review had made three decisions on the short number. Two one-line changes would have prevented it: a LEFT JOIN with COALESCE to <code>-1</code> in the load, and a validation check that fails the build when the unknown-member rate rises above zero. Bazaar has both, which is why <code>validate_model.py</code> runs 27 checks and reports 0.0% unknown on every fact.</p>
+    </div>
+  </section>
+
+  <!-- ============ DEMO 2 ============ -->
+  <section class="section" id="demo-2">
+    <div class="section-kicker">
+      <span class="klabel">Demo 2 of 2</span>
+      <h2>Your turn: change history, then break a join <span class="tag demo">★ 10 min · build your own</span></h2>
+    </div>
+    <p class="lede">Two experiments you should run yourself, because both are things people describe in words and then get wrong in code. Each editor starts from a fresh copy of the warehouse, so nothing you do here survives into the next box.</p>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Q1 · Promote a merchant, and prove April did not move<span class="mini">5 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Tiny Fern (M05) renegotiates: bronze at 18% becomes gold at 13%, effective 2026-06-16. Apply it the type-2 way - close the old version, open a new one - then check what happens to the sales that already happened.</p>
+        <div class="sqlbox" data-caption="Two statements, two results. First the row pair with its validity windows. Then the fact still reporting bronze at 0.18, because it points at merchant_sk 4 and always will.">
+          <pre class="sql-src">-- close the current version at the last day it was true
+UPDATE dim_merchant
+   SET valid_to = '2026-06-15', is_current = 0
+ WHERE merchant_id = 'M05' AND is_current = 1;
+
+-- open the new version; it gets a brand new surrogate key
+INSERT INTO dim_merchant (merchant_id, merchant_name, category, country, tier,
+                          commission_pct, joined_date, valid_from, valid_to, is_current)
+SELECT merchant_id, merchant_name, category, country, 'gold', 0.13, joined_date,
+       '2026-06-16', '9999-12-31', 1
+FROM dim_merchant
+WHERE merchant_id = 'M05' AND is_current = 0;
+
+SELECT merchant_sk, merchant_id, merchant_name, tier, commission_pct,
+       valid_from, valid_to, is_current
+FROM dim_merchant
+WHERE merchant_id = 'M05'
+ORDER BY valid_from;
+
+-- and the sales that already happened: untouched, still bronze, still 18%
+SELECT m.tier         AS tier_on_the_fact,
+       m.commission_pct AS rate_used,
+       COUNT(*)       AS lines,
+       ROUND(SUM(f.net_amount), 2)       AS net_revenue,
+       ROUND(SUM(f.commission_amount), 2) AS commission
+FROM fact_order_item f
+JOIN dim_merchant m ON m.merchant_sk = f.merchant_sk
+WHERE m.merchant_id = 'M05'
+GROUP BY m.tier, m.commission_pct;</pre>
+        </div>
+        <p>That second result is the payoff. No fact row was updated, no historic commission was restated, and "revenue by merchant tier" for April still says bronze. Try the same thing with a type-1 dimension - just <code>UPDATE dim_merchant SET tier = 'gold'</code> - and every April sale silently becomes a gold-tier sale, at a commission rate that did not exist in April.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Q2 · Watch a NULL eat revenue, then fix it with -1<span class="mini">5 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Four fact rows, 400 dollars, one dimension with a NULL in it. Watch the total fall twice and then come back.</p>
+        <div class="sqlbox" data-caption="Expect 400, then 300, then 200, then 400. Nothing errors at any step. Then the same unknown-member check run against the real facts: 0.0% on all three.">
+          <pre class="sql-src">CREATE TABLE dim_channel_bad  (channel_sk INTEGER PRIMARY KEY, channel TEXT);
+INSERT INTO dim_channel_bad  VALUES (1, 'paid_search'), (2, 'organic'), (3, NULL);
+
+CREATE TABLE dim_channel_good (channel_sk INTEGER PRIMARY KEY, channel TEXT NOT NULL);
+INSERT INTO dim_channel_good VALUES (-1, 'unknown'), (1, 'paid_search'),
+                                    (2, 'organic'), (3, 'unknown');
+
+CREATE TABLE fact_tiny (order_id INTEGER, channel_sk INTEGER, net_amount REAL);
+INSERT INTO fact_tiny VALUES (1, 1, 100), (2, 2, 100), (3, 3, 100), (4, -1, 100);
+
+SELECT 'the fact table itself' AS measured, COUNT(*) AS rows_counted,
+       SUM(net_amount) AS revenue FROM fact_tiny
+UNION ALL
+SELECT 'inner join to the NULL dimension', COUNT(*), SUM(f.net_amount)
+  FROM fact_tiny f JOIN dim_channel_bad d ON d.channel_sk = f.channel_sk
+UNION ALL
+SELECT 'and now filter by channel', COUNT(*), SUM(f.net_amount)
+  FROM fact_tiny f JOIN dim_channel_bad d ON d.channel_sk = f.channel_sk
+ WHERE d.channel <> 'nothing at all'
+UNION ALL
+SELECT 'inner join to the unknown-member dimension', COUNT(*), SUM(f.net_amount)
+  FROM fact_tiny f JOIN dim_channel_good d ON d.channel_sk = f.channel_sk;
+
+-- the same check, on the real thing
+SELECT 'fact_order_item' AS fact_table, COUNT(*) AS fact_rows,
+       SUM(CASE WHEN date_key = -1 OR user_sk = -1 OR merchant_sk = -1
+                  OR product_sk = -1 THEN 1 ELSE 0 END) AS rows_on_unknown,
+       ROUND(SUM(CASE WHEN date_key = -1 OR user_sk = -1 OR merchant_sk = -1
+                        OR product_sk = -1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS pct_unknown
+FROM fact_order_item
+UNION ALL
+SELECT 'fact_transaction', COUNT(*),
+       SUM(CASE WHEN date_key = -1 OR user_sk = -1 OR payment_method_key = -1 THEN 1 ELSE 0 END),
+       ROUND(SUM(CASE WHEN date_key = -1 OR user_sk = -1 OR payment_method_key = -1
+                      THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1)
+FROM fact_transaction
+UNION ALL
+SELECT 'fact_cart', COUNT(*),
+       SUM(CASE WHEN date_key = -1 OR user_sk = -1 OR merchant_sk = -1 THEN 1 ELSE 0 END),
+       ROUND(SUM(CASE WHEN date_key = -1 OR user_sk = -1 OR merchant_sk = -1
+                      THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1)
+FROM fact_cart;</pre>
+        </div>
+        <p>The third row is the cruel one: a perfectly ordinary filter, which has nothing to say about NULLs, quietly halves the total. A predicate on a NULL evaluates to NULL, and NULL is not true, so the row is gone. Replace the NULL with the string <code>'unknown'</code> and every one of those queries returns 400.</p>
+        <div class="sqlbox" data-caption="Why dim_time_of_day is its own dimension: 24 rows, grouped across all 90 days at once, no expression on a timestamp anywhere.">
+          <pre class="sql-src">SELECT t.hour_label, t.daypart, t.is_business_hour,
+       COUNT(*)           AS attempts,
+       SUM(f.is_approved) AS approvals,
+       SUM(f.is_declined) AS declines
+FROM fact_transaction f
+JOIN dim_time_of_day t ON t.time_key = f.time_key
+GROUP BY t.hour_label, t.daypart, t.is_business_hour
+ORDER BY attempts DESC
+LIMIT 6;</pre>
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Q3 · Audit one dimension you already own<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>No SQL. Pick the dimension table your organisation uses most - customer, product, store, account - and put the four rules to it in order.</p>
+        <ul>
+          <li><strong>Rule 1:</strong> is the key a surrogate, or is the business identifier doing double duty? If a report ever needs to restate history, that answer decides whether you can.</li>
+          <li><strong>Rule 2:</strong> how many joins does your most-asked question need? Every join beyond fact-to-dimension is an attribute somebody chose not to flatten.</li>
+          <li><strong>Rule 3:</strong> name the attributes on it that change. For each one, ask whether a person would notice if last quarter's report changed when it changed. Every yes is a type-2 candidate; every no should stay type 1.</li>
+          <li><strong>Rule 4:</strong> run a NULL count on every attribute column, and check whether an unknown member exists at all. Then check whether your fact loads use inner joins to this dimension. That combination is the 4% story in the callout above.</li>
+        </ul>
+        <p>Bring the audit to b7. The facts you design there will point at exactly these dimensions, and a fact table can only be as trustworthy as the dimensions it joins to.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Try it yourself - this week <span class="tag exercise">◐ 20-30 min total</span></h2>
+    </div>
+    <ul>
+      <li>Read <code>sql/10_dim_ddl.sql</code> top to bottom, comments included. It is 147 lines and it is the artifact this session ships; the four numbered rules at the top are the whole session in 30 lines of comment.</li>
+      <li>Run Q1's type-2 change, then re-run it with <code>valid_from = '2026-05-01'</code> instead. Notice that the dimension now claims two versions were both current in May, and that nothing in the schema stopped you. Overlapping windows are the classic type-2 bug, and the load is where they get prevented.</li>
+      <li>Write the type-1 versus type-2 decision for every attribute of one dimension you own. One line each: attribute, does history matter, who would notice. Disagreements in that list are worth more than the list.</li>
+      <li>Count the NULLs in your most-used dimension table, then check whether it has an unknown member. If the answer is "many" and "no", you have found a live version of the 4% story.</li>
+      <li>List three attributes your business talks about that do not exist as columns anywhere - a band, a bucket, a family, a daypart. Those are the modeled attributes your dimension is missing, and they are where it starts earning its keep.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map, including what is deliberately out of scope, in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball &amp; Ross, <em>The Data Warehouse Toolkit</em> - surrogate keys, SCD types 1 and 2, snowflaking, the date dimension</span><span class="note">Parts 1-2 + both demos · all four rules, each with the failure it prevents</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Kimball on conformed dimensions - one key, one set of values, shared across facts</span><span class="note">Part 1 · the six dimensions b7's three facts will all point at</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Codd / relational fundamentals - normalization as a write-side optimisation</span><span class="note">Rule 2 · why flat and wide reverses b2's discipline rather than contradicting it</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Inmon, <em>Building the Data Warehouse</em> - normalized core versus dimensional mart</span><span class="note">Rule 2 · snowflaking as the point where the two schools meet; argued in b5</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">dbt layering conventions - dimensions as marts-layer models with tested contracts</span><span class="note">Named; the not-null and accepted-values tests behind rule 4 are b8. Incremental and type-2 LOAD mechanics are <a href="https://phoebefu6.github.io/learn-data-warehouse-with-phoebe/">learn-data-warehouse-with-phoebe</a>, not this course</span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Why does every Bazaar dimension carry a meaningless integer surrogate key when the business key is right there?</p>
+      <button class="qopt" type="button">A · Integers join faster, and that is the whole reason</button>
+      <button class="qopt" type="button">B · So one business entity can have several versions: history changes by adding a row, and old facts keep pointing at the version that was true when they happened</button>
+      <button class="qopt" type="button">C · Because business keys are not guaranteed unique in the source system</button>
+      <p class="qwhy">The narrow-integer join is a real but secondary benefit. The reason is rule 3: with a surrogate key, <code>dim_merchant.merchant_id</code> is deliberately not unique, M05 can have two rows with two validity windows, and no fact ever needs updating when the business changes its mind.</p>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">2 · <code>dim_product</code> stores <code>merchant_name</code> even though <code>dim_merchant</code> has it. Session b2 called that a 3NF violation. What changed?</p>
+      <button class="qopt" type="button">A · Nothing changed; it is a known compromise accepted for speed</button>
+      <button class="qopt" type="button">B · Dimensions are too small for the update anomaly to matter</button>
+      <button class="qopt" type="button">C · The update anomaly needs two writers that can disagree. A dimension has exactly one writer - the load job - so the duplication is safe, and it removes a join from every query a human or an agent writes</button>
+      <p class="qwhy">Normalization protects writers; denormalization serves readers. The source schema has thousands of concurrent writers and must be normalized. The dimension has one writer on a schedule, so flattening costs nothing and buys a join back on every question forever. Table size has nothing to do with it.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Why does an unknown attribute become the string <code>'unknown'</code> rather than NULL?</p>
+      <button class="qopt" type="button">A · A NULL silently drops the row from inner joins and from ordinary predicates, with no error, so revenue disappears from totals without anyone noticing</button>
+      <button class="qopt" type="button">B · Because SQLite cannot index NULL values</button>
+      <button class="qopt" type="button">C · Because BI tools cannot render NULL in a chart legend</button>
+      <p class="qwhy">A predicate on NULL evaluates to NULL, which is not true, so the row is excluded by both <code>= 'x'</code> and <code>&lt;&gt; 'x'</code>. The string <code>'unknown'</code> is an ordinary value that groups, filters and totals normally - and the matching <code>-1</code> member keeps fact rows alive when a key lookup misses. That pair is why every Bazaar fact reports a 0.0% unknown-member rate rather than a silent hole.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Builder session 6 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Rule 1 · surrogate keys</b><span>Meaningless integer *_sk on every dimension, business key riding along as a readable column. History changes by adding a row.</span></div>
+      <div class="cheat-item"><b>Rule 2 · flat and wide</b><span>dim_product carries merchant_name. One writer means duplication is safe, and it deletes a join from every query forever.</span></div>
+      <div class="cheat-item"><b>Rule 3 · type 2 where it matters</b><span>dim_merchant (tier, commission_pct) and dim_product (list_price, status). valid_from / valid_to / is_current.</span></div>
+      <div class="cheat-item"><b>Rule 4 · never NULL</b><span>'unknown' for attributes, -1 for keys, LEFT JOIN plus COALESCE in the load. NULL drops rows with no error.</span></div>
+      <div class="cheat-item"><b>Type 1 on purpose</b><span>dim_user and dim_payment_method overwrite. Nobody has ever asked for a shopper's city history.</span></div>
+      <div class="cheat-item"><b>dim_date</b><span>Always generated, never sourced. 215 rows, wider than the data. date_key 20260610 is the sanctioned meaningful key.</span></div>
+      <div class="cheat-item"><b>dim_time_of_day</b><span>Separate from dim_date, 24 rows, so peak-hour questions group across all 90 days at once.</span></div>
+      <div class="cheat-item"><b>Modeled attributes</b><span>price_tier, tenure_bucket, daypart, method_family. No source column. One agreement instead of ten CASE statements.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Builder session 6 of 10 · ships <code>sql/10_dim_ddl.sql</code> · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b5-why-analysts-cant-query-oltp.html">← Previous: Why analysts cannot query OLTP</a> &nbsp;·&nbsp; <a href="b7-fact-design.html">Next: Fact design →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/sql-wasm.js?v=1"></script>
+<script src="../assets/bazaar-seed.js?v=1"></script>
+<script src="../assets/bazaar-star.js?v=1"></script>
+<script src="../assets/sql-live.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leader session 6 · Agent-ready data - learn data modeling with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=1">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-data-modeling-with-phoebe</a> / Leader session 6 of 6</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe · Leader track · Session 6 of 6</div>
+    <h1>Agent-ready <span class="accent">data</span></h1>
+    <p class="sub">Every demo of "ask your data a question" works. Most deployments disappoint, and the postmortem is almost never about the AI. It is about grain nobody wrote down, a metric three teams define differently, and two tables that look joinable and are not. This closing session tells you what to fund, in what order, and how to judge a vendor claim - because agent-readiness turns out to be modeling work with an AI label on it.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Leader track</span>
+      <span class="chip audience">C-level · heads of data · stakeholders</span>
+      <span class="chip audience">No code to write</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-20 · Why agents fail on good data</span>
+      <span class="a3" style="flex:4">20-38 · What to fund, and how to judge a claim</span>
+      <span class="a4" style="flex:1">38-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>The claim, and who owns the budget</h2>
+    </div>
+    <p class="lede">The claim of this session is narrow and testable: <strong>an AI analyst is only as accurate as the model underneath it, and closing that gap is modeling work rather than prompt work.</strong> Which means most of the spend on "AI for analytics" belongs in the data team, doing things that are useful even if the agent is never switched on.</p>
+    <p class="lede">The numbers on this page come from the course's own marketplace dataset - the same model the builder track designs - so the arithmetic is checkable rather than rhetorical. Builder session <a href="b9-agent-ready.html">b9</a> builds the artifacts and runs the measurement live; this session decides what to pay for and how to tell whether it worked.</p>
+    <div class="legend">
+      <span class="pill solid">Live - discussed in session</span>
+      <span class="pill light">Self-study - read after</span>
+      <span class="pill peach">◆ Run this in your own meeting</span>
+      <span class="pill inkpill">Sources covered</span>
+    </div>
+    <div class="callout win">
+      <strong>★ What you walk out with today</strong>
+      The four failure modes in business terms, a funding order with a reason for each rung, one question that cuts through any vendor claim, and a 30-day plan you can start on Monday.
+    </div>
+  </section>
+
+  <!-- ============ PART 1: WHY THEY FAIL ============ -->
+  <section class="section" id="failures">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers text-to-SQL benchmark practice, dbt model contracts</span>
+      <h2>Four failure modes, four real wrong numbers <span class="tag concept">8 min live</span></h2>
+    </div>
+    <p class="lede">None of these is a language problem. Each is something the model knew and never published - and each produces a query that runs cleanly and returns a number that is wrong.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 356" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four agent failure modes with the real wrong number each produces, and the funding ladder that removes them">
+        <style>
+          .arT { font: 700 12.5px Inter, sans-serif; fill: #FFFFFF; }
+          .arH { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+          .arC { font: 400 11.5px Inter, sans-serif; fill: #5C6B80; }
+          .arB { font: 700 12px Inter, sans-serif; fill: #991B1B; }
+          .arN { font: 600 11.5px Inter, sans-serif; fill: #3A2A08; }
+        </style>
+
+        <rect x="26" y="28" width="196" height="40" rx="8" fill="#991B1B"/>
+        <text class="arT" x="42" y="54">1 · Wrong grain</text>
+        <text class="arC" x="42" y="90">Counts order lines and</text>
+        <text class="arC" x="42" y="109">calls them orders.</text>
+        <text class="arB" x="42" y="134">481 instead of 327</text>
+        <text class="arC" x="42" y="153">47% too high</text>
+
+        <rect x="242" y="28" width="196" height="40" rx="8" fill="#991B1B"/>
+        <text class="arT" x="258" y="54">2 · Averaged average</text>
+        <text class="arC" x="258" y="90">Averages line values</text>
+        <text class="arC" x="258" y="109">to get order value.</text>
+        <text class="arB" x="258" y="134">80.68 instead of 116.93</text>
+        <text class="arC" x="258" y="153">31% too low</text>
+
+        <rect x="458" y="28" width="196" height="40" rx="8" fill="#991B1B"/>
+        <text class="arT" x="474" y="54">3 · Joins two facts</text>
+        <text class="arC" x="474" y="90">Sales joined to payments</text>
+        <text class="arC" x="474" y="109">on the order id.</text>
+        <text class="arB" x="474" y="134">121,003 vs 111,906</text>
+        <text class="arC" x="474" y="153">8% too high</text>
+
+        <rect x="674" y="28" width="180" height="40" rx="8" fill="#991B1B"/>
+        <text class="arT" x="690" y="54">4 · Rate, no base</text>
+        <text class="arC" x="690" y="90">Ranks a decline rate</text>
+        <text class="arC" x="690" y="109">with no denominator.</text>
+        <text class="arB" x="690" y="134">18.2% of 11 attempts</text>
+        <text class="arC" x="690" y="153">noise, ranked as signal</text>
+
+        <rect x="26" y="184" width="828" height="58" rx="9" fill="#FEF2F2" stroke="#991B1B"/>
+        <text class="arB" x="46" y="208">Every one of these queries RAN. No error, no warning, no blank cell.</text>
+        <text class="arC" x="46" y="230">A confident wrong answer is worse than a failure, because a failure stops someone and a number does not.</text>
+
+        <text class="arH" x="26" y="272">What removes them, in funding order</text>
+        <rect x="26" y="286" width="152" height="46" rx="8" fill="#22395C"/>
+        <text class="arT" x="42" y="306">1 · Grains</text>
+        <text class="arC" x="42" y="324" fill="#B9CBE4">published per table</text>
+        <rect x="196" y="286" width="152" height="46" rx="8" fill="#3B5B8C"/>
+        <text class="arT" x="212" y="306">2 · Metrics</text>
+        <text class="arC" x="212" y="324" fill="#B9CBE4">as data, not a wiki</text>
+        <rect x="366" y="286" width="152" height="46" rx="8" fill="#6C8CBC"/>
+        <text class="arT" x="382" y="306">3 · Views</text>
+        <text class="arC" x="382" y="324" fill="#EDF2F9">read-only, governed</text>
+        <rect x="536" y="286" width="152" height="46" rx="8" fill="#C08A2E"/>
+        <text class="arT" x="552" y="306">4 · Golden set</text>
+        <text class="arC" x="552" y="324" fill="#FBF3E2">a regression test</text>
+        <rect x="706" y="286" width="148" height="46" rx="8" fill="#EDF2F9" stroke="#B9CBE4"/>
+        <text class="arH" x="722" y="306">5 · The agent</text>
+        <text class="arC" x="722" y="324">last, and cheapest</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - four failures, and the ladder that removes them</figcaption>
+    </figure>
+
+    <table class="clean">
+      <thead><tr><th>Failure</th><th>What a leader sees</th><th>What actually fixes it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Wrong grain</strong></td><td>the agent's volume numbers do not match the finance pack</td><td>publish "one row is one ___" for every table the agent can reach</td></tr>
+        <tr><td><strong>Averaged average</strong></td><td>a ratio that disagrees with the same ratio computed from totals</td><td>a metric definition holding the exact expression, so it is looked up rather than invented</td></tr>
+        <tr><td><strong>Joining two facts</strong></td><td>revenue that reads high and cannot be reconciled to cash</td><td>a view layer that does not expose both tables together, so the query is unwritable</td></tr>
+        <tr><td><strong>Rate with no base</strong></td><td>confident rankings that reverse next week</td><td>metrics that ship numerator and denominator, and a stated minimum sample</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Why "constraints beat instructions" is the budget argument<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>You can tell an agent not to join those two tables. It will mostly comply. Or you can build the access layer so the dangerous join does not exist, and compliance becomes structural. The second costs data-team effort once; the first costs vigilance forever, and vigilance is not a line item you can staff.</p>
+        <ul>
+          <li><strong>An instruction is probabilistic</strong> and competes with everything else the model is reading. A missing table is deterministic.</li>
+          <li><strong>This is why the spend is mostly modeling.</strong> Prompt work is cheap, visible and does not accumulate. Model work is less visible and compounds - the same views, definitions and tests make your human analysts faster too.</li>
+          <li><strong>And it gives you a test for any proposal:</strong> does this remove the possibility of the error, or does it ask something to remember not to make it? Fund the first.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>The sentence for a steering committee</strong>
+          "Everything on this plan is useful whether or not we ever deploy an agent. If the AI programme is cancelled tomorrow, we still want published grains, defined metrics and a governed view layer."
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The measurement, and why it is honest<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The builder track measures this rather than asserting it. Twenty standard business questions, the same database, the same model, the same AI analyst - once with the semantic contract published and once without. Grading compares the <strong>result sets</strong>, to the cent, not the text of the query.</p>
+        <ul>
+          <li><strong>Without the contract: 0 of 20 correct.</strong> Not because the questions are hard - because grain, definitions and permitted joins were never published, so the agent guessed and guessed plausibly.</li>
+          <li><strong>With it: 20 of 20.</strong> The contract is 13 metric definitions, five governed read-only views and a short schema card. It is small, and it is the whole difference.</li>
+          <li><strong>Why result-set grading matters:</strong> comparing query text rewards SQL that looks reasonable, which is exactly the failure you are trying to detect. Two correct queries can look nothing alike.</li>
+        </ul>
+        <p>That is also the shape of the honest pilot: pick twenty questions your business actually asks, agree the right answer with a human first, then measure.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PART 2: FUND AND JUDGE ============ -->
+  <section class="section" id="fund">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · the decisions that are yours</span>
+      <h2>What to fund, in what order <span class="tag concept">7 min live</span></h2>
+    </div>
+    <p class="lede">The order matters more than the total. Each rung makes the next one cheaper, and every rung pays for itself in human productivity before an agent touches it.</p>
+
+    <table class="clean">
+      <thead><tr><th>#</th><th>Fund this</th><th>Why here in the order</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1</strong></td><td>published grains: one sentence per table, in the catalog</td><td>cheapest, fastest, and it removes the single most common error. Nothing later works without it</td></tr>
+        <tr><td><strong>2</strong></td><td>metric definitions as data: name, expression, grain, owner, caveat</td><td>ends the definition argument for humans and machines at once; the caveat field is the part that prevents damage</td></tr>
+        <tr><td><strong>3</strong></td><td>a governed read-only view layer</td><td>makes the dangerous joins unwritable and gives you an access boundary you needed anyway</td></tr>
+        <tr><td><strong>4</strong></td><td>a golden question set with agreed answers</td><td>your regression test. Without it you cannot tell improvement from luck, or detect the day a change breaks accuracy</td></tr>
+        <tr><td><strong>5</strong></td><td>the agent itself</td><td>last, and the smallest line. By now it is a configuration exercise rather than a research project</td></tr>
+      </tbody>
+    </table>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>How to judge a vendor claim in one question<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Ask for <strong>execution-match accuracy on your questions, against your model</strong>. Twenty questions your business actually asks, answers agreed by a human first, results compared to the cent. Then listen to how the answer arrives:</p>
+        <ul>
+          <li><strong>A benchmark score instead of your questions</strong> tells you the tool works on somebody else's schema. Your schema is the variable under test.</li>
+          <li><strong>"It learns your schema automatically"</strong> is a claim about reading column names. It cannot recover a grain nobody wrote down or a metric nobody defined - that information is not in the schema to be read.</li>
+          <li><strong>A refusal to be measured on failures</strong> is the tell. The number that matters is not how many it got right; it is whether it ever answered confidently and wrongly, because that is the mode that damages trust.</li>
+          <li><strong>A good vendor will ask for your metric definitions</strong> in the first meeting. That is a sign they know where accuracy comes from - and if you do not have them, you have just learned what to fund first.</li>
+        </ul>
+        <div class="callout tip">
+          <strong>Insist on one product behaviour</strong>
+          The generated query must be shown beside the number, always. It is the only part of an agent's answer a human can check, and a tool that hides it is asking for trust it has not earned.
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Who owns what, and the 30-day plan<span class="mini">3 min read</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Ownership:</strong> the data team owns grains, definitions and the view layer. The business owns the golden questions and the agreed answers - and that is not a formality, because a question nobody in the business will vouch for cannot be used to measure anything. The AI or platform team owns the tool.</p>
+        <p><strong>The 30 days:</strong></p>
+        <ul>
+          <li><strong>Week 1:</strong> collect twenty questions your business asks repeatedly. Agree the correct answer for each with a named human. Expect to discover two or three that nobody can agree on - those are findings, not delays.</li>
+          <li><strong>Week 2:</strong> write the grain sentence for every table those questions touch. Publish where consumers meet it.</li>
+          <li><strong>Week 3:</strong> define the metrics those questions use, as data, with the caveat field filled in honestly.</li>
+          <li><strong>Week 4:</strong> measure. Run whatever tool you already have against the twenty, grade by result, and report the number. That number, not a vendor's, is your baseline.</li>
+        </ul>
+        <p>None of that is an AI project. All of it is what makes an AI project work, and all of it survives if the AI project is cancelled.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ EXERCISE ============ -->
+  <section class="section" id="workshop">
+    <div class="section-kicker">
+      <span class="klabel">Discussion exercise · 15 min · everyone participates</span>
+      <h2>Write your first five golden questions <span class="tag demo">◆ run this in your own meeting</span></h2>
+    </div>
+    <p class="lede">This is the single highest-value hour a leadership team can spend on AI readiness, and it needs no technology at all.</p>
+
+    <div class="steps">
+      <div class="step"><p><strong>Each person names one question</strong> they ask of the data at least monthly. Real phrasing, not a cleaned-up version.</p></div>
+      <div class="step"><p><strong>For each, agree the correct answer for last month</strong> - the number, and the definition behind it. Take the disagreements seriously; they are the actual output of this exercise.</p></div>
+      <div class="step"><p><strong>Mark each question</strong> with whether the room could state the grain and the metric definition it depends on.</p></div>
+      <div class="step"><p><strong>Hand the marked list to the data team</strong> as the readiness backlog, in that order. You have just written a specification and a test suite in fifteen minutes.</p></div>
+    </div>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What a good answer sounds like, and what to listen for<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Good:</strong> "Which merchant lost the most revenue last fortnight? Revenue means settled net revenue after discounts, at order-line grain, excluding failed payments. Last fortnight the answer was one merchant down 85%, and here is the number."</p>
+        <p><strong>Listen for these failure modes:</strong></p>
+        <ul>
+          <li><strong>"It depends what you mean by revenue."</strong> Stop and write down the variants. You have found why the agent will be wrong, and also why two teams disagree in meetings today.</li>
+          <li><strong>"Just ask the tool and see what it says."</strong> Then you have no way to grade it. The agreed answer must exist before the tool runs, or the exercise measures nothing.</li>
+          <li><strong>Only vague questions get offered.</strong> "How is the business doing" cannot be graded. Push for questions with a number as the answer - that constraint is what makes the list a test.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ REAL WORLD ============ -->
+  <section class="section" id="realworld">
+    <div class="section-kicker">
+      <span class="klabel">Why this matters</span>
+      <h2>The pilot that was never going to work</h2>
+    </div>
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The pattern is consistent.</strong> A team buys a natural-language analytics tool, the demo on sample data is excellent, and week two produces order counts that disagree with finance. Everyone concludes the AI is not ready. What was not ready was the model: nobody had written down that one row of the sales table is a shipment, so the tool counted shipments and called them orders - exactly as a new analyst would have. The organisation that fixes the grain and the definitions gets a working agent from the same tool a quarter later, and gets faster human analysts on the way there. The one that concludes "AI does not work for us" gets neither.</p>
+    </div>
+  </section>
+
+  <!-- ============ QUESTIONS TO ASK ============ -->
+  <section class="section" id="questions">
+    <div class="section-kicker">
+      <span class="klabel">Take this to your next data review</span>
+      <h2>Questions to ask your data team <span class="tag concept">5 min live</span></h2>
+    </div>
+    <ul>
+      <li><strong>"If we handed our data to an AI analyst tomorrow, what would it get wrong, specifically?"</strong> A specific list means the team understands their own model. A confident "nothing" means nobody has tested it.</li>
+      <li><strong>"Where would it read what one row of our sales table means?"</strong> If the answer is a person, the agent cannot read it - and neither can a new hire.</li>
+      <li><strong>"Which of our metrics have a written definition with a caveat?"</strong> The caveat is the part that stops fluent misuse. Ask to see three.</li>
+      <li><strong>"Which two of our tables look joinable but are not?"</strong> Every warehouse has a pair. A team that can name theirs has thought about this; a team that cannot has not looked.</li>
+      <li><strong>"What is our execution-match accuracy on twenty of our own questions?"</strong> If the answer is "we have not measured", that is week 4 of the plan, and it is the cheapest de-risking available.</li>
+      <li><strong>"Does the tool show the query beside the number?"</strong> Non-negotiable. It is the only checkable part of the answer.</li>
+      <li><strong>"What of this plan would we still want if we never deployed an agent?"</strong> The honest answer is nearly all of it, and that is the point.</li>
+    </ul>
+  </section>
+
+  <!-- ============ HOMEWORK ============ -->
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Your first 30 days <span class="tag exercise">◐ 40 min of conversations</span></h2>
+    </div>
+    <ul>
+      <li>Collect the twenty questions. Agree the answers with named humans, and keep the list of ones nobody could agree on - it is your definition backlog.</li>
+      <li>Ask for grain sentences on the five tables those questions touch. One sentence each, published where a consumer meets it.</li>
+      <li>Pick your three most-used metrics and require a caveat for each. If a metric has no caveat, ask whether anyone has looked hard enough.</li>
+      <li>Before any tool procurement, send the vendor five of your questions and ask for execution-match accuracy against your model, plus the failure list.</li>
+      <li>Book the measurement for week 4 now, and put the number in the same pack you report other baselines in. A readiness number that nobody sees does not change behaviour.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Source material</span>
+      <h2>Sources covered</h2>
+    </div>
+    <p class="lede">Full source map in <code>materials/official-course-map.md</code>. This page covers:</p>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Published text-to-SQL benchmark practice - execution-match grading</span><span class="note">Part 1 self-study · why result sets, never query text</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">dbt model contracts and the semantic-layer pattern</span><span class="note">Part 2 · metrics as data, the funding order</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Dehghani, <em>Data Mesh</em> - contracts as the product interface</span><span class="note">Part 2 · ownership split; session a5 owns the contract itself</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Kimball &amp; Ross - grain and conformed dimensions</span><span class="note">Part 1 · the failures are grain failures; builder sessions b6-b7 build the model</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Building the artifacts and running the measurement</span><span class="note">Out of scope here by design - that is builder session <a href="b9-agent-ready.html">b9</a></span></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions before you go 🎯 <span class="tag exercise">◐ 90 seconds</span></h2>
+    </div>
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · An AI analyst pilot returns order counts that disagree with the finance pack. What is the most likely cause?</p>
+      <button class="qopt" type="button">A · The model needs a larger context window or a better prompt</button>
+      <button class="qopt" type="button">B · The grain of the table was never published, so the agent counted rows that are not orders - exactly as a new analyst would</button>
+      <button class="qopt" type="button">C · The tool needs fine-tuning on your data</button>
+      <p class="qwhy">This is the most common failure in practice, and it is a modeling failure. A schema exposes column names, not the sentence "one row is one shipment" - so if nobody wrote that down, no amount of prompt or model work recovers it.</p>
+    </div>
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">2 · Why is "fund the agent last" the right order?</p>
+      <button class="qopt" type="button">A · Because the technology will get cheaper if you wait</button>
+      <button class="qopt" type="button">B · Because procurement takes time anyway</button>
+      <button class="qopt" type="button">C · Because the four rungs below it - grains, metric definitions, a governed view layer, a golden question set - are what create the accuracy, and each is useful even if no agent is ever deployed</button>
+      <p class="qwhy">The rungs make the agent a configuration exercise rather than a research project, and they pay for themselves in human analyst productivity first. That is also the sentence that gets the plan funded: cancel the AI programme and you still want all of this.</p>
+    </div>
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · A vendor offers a benchmark accuracy score. What should you ask for instead?</p>
+      <button class="qopt" type="button">A · Execution-match accuracy on twenty of your own questions, against your own model, with the failure list</button>
+      <button class="qopt" type="button">B · A longer free trial</button>
+      <button class="qopt" type="button">C · A list of comparable customers</button>
+      <p class="qwhy">A benchmark says the tool works on somebody else's schema; yours is the variable under test. And insist on the failures, not just the wins - a tool that answers confidently and wrongly does more damage than one that declines, because a number does not stop anybody.</p>
+    </div>
+    <p class="quiz-score"></p>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader track cheat sheet <span>· all six sessions</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>a1 · The schema decides</b><span>Every argument about a number traces to a modeling choice. Choices outlive tools.</span></div>
+      <div class="cheat-item"><b>a2 · The cost</b><span>Rework · reconciliation · lost trust (compounds) · a cap on automation. Pay now or pay as a programme.</span></div>
+      <div class="cheat-item"><b>a3 · Grain</b><span>"One row is one ___." Six words that let you audit any table in a meeting.</span></div>
+      <div class="cheat-item"><b>a4 · Tooling</b><span>Standardise conventions before buying tools. Buy what enforces; skip what needs manual upkeep.</span></div>
+      <div class="cheat-item"><b>a5 · Naming and ownership</b><span>One concept one word. A named owner per table. A contract with known limitations.</span></div>
+      <div class="cheat-item"><b>a6 · Agent-ready</b><span>Four failures, all modeling failures. Fund grains, metrics, views, golden set, then the agent.</span></div>
+      <div class="cheat-item"><b>The measurement</b><span>0 of 20 without the contract, 20 of 20 with it. Same data, same questions, same tool.</span></div>
+      <div class="cheat-item"><b>The one demand</b><span>Show the query beside the number. It is the only checkable part of an answer.</span></div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>Leader session 6 of 6 · learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a5-naming-and-ownership.html">← Previous: Naming standards and ownership</a> &nbsp;·&nbsp; <a href="../index.html">← All sessions</a></span>
+    <span style="flex-basis:100%">That is the leader track complete. If you want to see the model actually built - eight source tables, six dimensions, three facts, four marts and the semantic layer that took the agent from 0 of 20 to 20 of 20 - the builder track starts at <a href="b1-source-reality.html">b1, Bazaar's source reality</a>, and every page runs in your browser.</span>
+  </footer>
+
+</main>
+
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

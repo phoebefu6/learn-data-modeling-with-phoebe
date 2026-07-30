@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>learn data modeling with phoebe - design the schema everything else queries</title>
+<link rel="stylesheet" href="assets/style.css?v=1">
+<style>
+  .stats-row { display: flex; gap: 2.4rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .stat b { display: block; font-size: 2.1rem; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: .72rem; opacity: .85; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; }
+
+  .course-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .course-card {
+    border: 1px solid var(--hairline);
+    border-top: 4px solid var(--diff, var(--indigo));
+    border-radius: var(--radius);
+    padding: 1.2rem 1.3rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    text-decoration: none;
+    color: var(--ink);
+    background: #fff;
+    transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+    position: relative;
+  }
+  .course-card:hover { border-color: var(--indigo-soft); border-top-color: var(--diff, var(--indigo)); box-shadow: 0 8px 28px rgba(59,91,140,.16); transform: translateY(-3px); }
+  .course-card .cicon { font-size: 1.7rem; line-height: 1; }
+  .course-card .cnum { font-size: .72rem; font-weight: 700; color: var(--indigo); text-transform: uppercase; letter-spacing: .1em; }
+  .course-card h3 { font-size: 1.05rem; font-weight: 800; line-height: 1.3; }
+  .course-card p { font-size: .85rem; color: var(--muted); flex: 1; }
+  .course-card .meta { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+  .diff-legend { display: flex; gap: 1rem; margin-top: 1.6rem; font-size: .74rem; color: var(--muted); font-weight: 600; flex-wrap: wrap; }
+  .diff-legend i { display: inline-block; width: .85rem; height: .35rem; border-radius: 999px; margin-right: .35rem; vertical-align: middle; }
+
+  .prereq-line { margin-top: 1.4rem; font-size: .85rem; color: var(--muted); border-left: 3px solid var(--amber); padding: .5rem .9rem; background: var(--indigo-50); border-radius: 0 var(--radius) var(--radius) 0; }
+  .prereq-line a { color: var(--indigo); font-weight: 700; }
+  .sources-line { margin-top: .8rem; font-size: .8rem; color: var(--muted); }
+
+  .ships { margin-top: 1.6rem; border: 1px solid var(--hairline); border-radius: var(--radius); overflow: hidden; }
+  .ships h3 { font-size: .95rem; font-weight: 800; padding: .7rem 1rem; background: var(--indigo-deep); color: #fff; }
+  .ships-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .8rem; padding: 1rem; background: var(--paper); }
+  .ships-col b { display: block; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--indigo); margin-bottom: .3rem; }
+  .ships-col code { display: block; font-size: .78rem; color: var(--ink); line-height: 1.9; }
+
+  .paths { margin-top: 2.6rem; }
+  .paths h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: .3rem; }
+  .paths .plede { color: var(--muted); font-size: .92rem; margin-bottom: .8rem; }
+  .path { display: flex; gap: .55rem; align-items: center; padding: .75rem 0; border-bottom: .5px solid var(--hairline); flex-wrap: wrap; }
+  .path:last-child { border-bottom: none; }
+  .path b { min-width: 15.5rem; font-size: .9rem; }
+  .path .pstep { background: var(--indigo-50); color: var(--indigo); border-radius: 999px; padding: .16rem .68rem; font-weight: 700; font-size: .8rem; text-decoration: none; transition: all .12s ease; }
+  .path .pstep:hover { background: var(--indigo); color: #fff; }
+  .path .parr { color: var(--faint); font-weight: 700; }
+
+  .mm-section { margin-top: 1.6rem; }
+  .mm-section h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: .2rem; }
+  .mm-section .mm-lede { color: var(--muted); font-size: .92rem; margin-bottom: .4rem; }
+  .mm-wrap { border: 1px solid var(--hairline); border-radius: var(--radius); background: linear-gradient(180deg,#fff,#EDF2F9); padding: .6rem; overflow-x: auto; }
+  .mm-svg { width: 100%; height: auto; display: block; max-width: 60rem; margin: 0 auto; min-width: 34rem; }
+  .mm-link { cursor: pointer; text-decoration: none; }
+  .mm-node rect { transition: opacity .15s ease, filter .15s ease; }
+  .mm-node text { pointer-events: none; }
+  .mm-link:hover .mm-node rect { filter: brightness(1.06); }
+  .mm-edge { transition: opacity .15s ease; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Data Modeling with Phoebe</div>
+    <h1>Design the schema everything else queries</h1>
+    <p class="sub">A leader track on why the schema decides every argument your team is having about numbers - grain, ownership, naming, and what a bad model actually costs - with no code to write. And a builder track that designs a real ecommerce marketplace from scratch: entities, normalization, keys, DDL, six dimensions, three fact tables, four marts, and a semantic layer an AI analyst can query accurately. Every builder page runs real SQLite in your browser, and every session ships code you keep: the DDL, the transform, the marts, the validator, the golden question set.</p>
+    <div class="stats-row">
+      <div class="stat"><b data-count="16">16</b><span>sessions</span></div>
+      <div class="stat"><b data-count="2">2</b><span>tracks</span></div>
+      <div class="stat"><b data-count="8">8</b><span>sql files you keep</span></div>
+      <div class="stat"><b data-count="20">20</b><span>golden questions graded</span></div>
+      <div class="stat"><b data-count="27">27</b><span>validation checks passing</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>The leader track 🤝 <span style="font-size:.85rem;font-weight:600;color:var(--muted)">· for C-level, heads of data &amp; curious minds · 6 x 45 min · no code to write</span></h2>
+      <p class="plede">Thinking mode: why every disagreement about a number is really a disagreement about grain, what a bad model costs in rework and lost trust, how to make one metric mean one thing, what to buy versus standardise, who owns a table, and why an AI analyst is only as good as the model beneath it. Each session ends with the questions to ask your data team.</p>
+    </div>
+    <div class="course-grid">
+      <a class="course-card" href="courses/a1-why-the-schema-decides.html" style="--diff:#34D399">
+        <span class="cicon">🧱</span>
+        <span class="cnum">Leader 1 · easy</span>
+        <h3>Why the schema decides everything</h3>
+        <p>Every dashboard argument traces back to a modeling choice somebody made in a hurry. Where those choices live, and why they outlive the tools.</p>
+        <span class="meta"><span class="pill amber">▶ Leaders start here</span></span>
+      </a>
+      <a class="course-card" href="courses/a2-cost-of-a-bad-model.html" style="--diff:#34D399">
+        <span class="cicon">💸</span>
+        <span class="cnum">Leader 2 · easy</span>
+        <h3>The cost of a bad model</h3>
+        <p>Duplicate customers, the metric nobody trusts, the quarterly rework tax - what a schema shortcut actually bills you, and when to pay to fix it.</p>
+        <span class="meta"><span class="pill light">Cost-of-rework exercise</span></span>
+      </a>
+      <a class="course-card" href="courses/a3-grain-and-meaning.html" style="--diff:#FBBF24">
+        <span class="cicon">🎯</span>
+        <span class="cnum">Leader 3 · medium</span>
+        <h3>Grain, and one number one meaning</h3>
+        <p>The single most useful sentence in data: "one row is one ___". How to run a meeting where two teams stop having different revenue numbers.</p>
+        <span class="meta"><span class="pill light">Grain workshop</span></span>
+      </a>
+      <a class="course-card" href="courses/a4-tooling-landscape.html" style="--diff:#FBBF24">
+        <span class="cicon">🧰</span>
+        <span class="cnum">Leader 4 · medium</span>
+        <h3>The tooling landscape</h3>
+        <p>ERD tools, dbt, catalogs, semantic layers - read as decisions rather than logos, with what to buy, what to standardise, and what to skip.</p>
+        <span class="meta"><span class="pill light">Buy vs standardise</span></span>
+      </a>
+      <a class="course-card" href="courses/a5-naming-and-ownership.html" style="--diff:#FBBF24">
+        <span class="cicon">🏷️</span>
+        <span class="cnum">Leader 5 · medium</span>
+        <h3>Naming standards and ownership</h3>
+        <p>Conventions that survive team turnover, who may change a table, and how a data contract turns a model into something other teams can depend on.</p>
+        <span class="meta"><span class="pill light">Contract exercise</span></span>
+      </a>
+      <a class="course-card" href="courses/a6-agent-ready-data.html" style="--diff:#FBBF24">
+        <span class="cicon">🤖</span>
+        <span class="cnum">Leader 6 · medium</span>
+        <h3>Agent-ready data</h3>
+        <p>Text-to-SQL and AI analysts are only as accurate as the model underneath. What to fund so "ask your data a question" actually works.</p>
+        <span class="meta"><span class="pill light">Readiness checklist</span></span>
+      </a>
+    </div>
+
+    <div class="paths">
+      <h2>The builder track 🛠️ <span style="font-size:.85rem;font-weight:600;color:var(--muted)">· for practitioners · 10 sessions x 45 min (b10: 60) · live SQLite in your browser</span></h2>
+      <p class="plede">One running project: <strong>Bazaar</strong>, a multi-merchant ecommerce marketplace. You design its transactional schema from a flat export (b1-b4), find out why analysts cannot query it (b5), build six dimensions and three fact tables they can query (b6-b7), answer four real business questions with the result (b8), publish it so an AI agent gets the right answer (b9), and extend the whole thing to returns and refunds in the capstone (b10). Every page runs real SQLite compiled to WebAssembly - editable, offline after one 660 KB load - and every session ships files into <code>sql/</code>, <code>python/</code> and <code>semantic/</code>.</p>
+    </div>
+    <div class="course-grid">
+      <a class="course-card" href="courses/b1-source-reality.html" style="--diff:#34D399">
+        <span class="cicon">🗂️</span>
+        <span class="cnum">Builder 1 · easy</span>
+        <h3>Bazaar's source reality</h3>
+        <p>From one flat export to eight entities. The conceptual / logical / physical ladder, and the first thing wrong with the spreadsheet everyone works from.</p>
+        <span class="meta"><span class="pill amber">▶ Builders start here</span></span>
+      </a>
+      <a class="course-card" href="courses/b2-anomaly-lab.html" style="--diff:#34D399">
+        <span class="cicon">🧪</span>
+        <span class="cnum">Builder 2 · easy</span>
+        <h3>The anomaly lab</h3>
+        <p>Four levers, one wide table, real UPDATE/INSERT/DELETE probes. Turn the anomalies off one by one and derive 3NF instead of memorising it.</p>
+        <span class="meta"><span class="pill peach">★ signature lab</span></span>
+      </a>
+      <a class="course-card" href="courses/b3-er-and-keys.html" style="--diff:#FBBF24">
+        <span class="cicon">🔗</span>
+        <span class="cnum">Builder 3 · medium</span>
+        <h3>ER, cardinality and keys</h3>
+        <p>Resolve the many-to-many, pick natural versus surrogate keys, and decide what a composite key is really saying about your grain.</p>
+        <span class="meta"><span class="pill light">ER diagram</span></span>
+      </a>
+      <a class="course-card" href="courses/b4-physical-oltp.html" style="--diff:#FBBF24">
+        <span class="cicon">⚙️</span>
+        <span class="cnum">Builder 4 · medium</span>
+        <h3>Physical OLTP</h3>
+        <p>Types, NOT NULL, CHECK, foreign keys and the first indexes - then ship the DDL and generate 90 days of deterministic marketplace data.</p>
+        <span class="meta"><span class="pill inkpill">ships sql/01 + generator</span></span>
+      </a>
+      <a class="course-card" href="courses/b5-why-analysts-cant-query-oltp.html" style="--diff:#FBBF24">
+        <span class="cicon">🧭</span>
+        <span class="cnum">Builder 5 · medium</span>
+        <h3>Why analysts cannot query OLTP</h3>
+        <p>Write the business question against the source schema, feel the pain, then meet grain, conformance and the two-model split that fixes it.</p>
+        <span class="meta"><span class="pill light">grain worksheet</span></span>
+      </a>
+      <a class="course-card" href="courses/b6-dimension-design.html" style="--diff:#FB923C">
+        <span class="cicon">📐</span>
+        <span class="cnum">Builder 6 · hands-on</span>
+        <h3>Dimension design</h3>
+        <p>Six dimensions, surrogate keys, flat-and-wide over snowflaked, no NULLs ever, and slowly-changing type 2 where history actually matters.</p>
+        <span class="meta"><span class="pill inkpill">ships sql/10</span></span>
+      </a>
+      <a class="course-card" href="courses/b7-fact-design.html" style="--diff:#FB923C">
+        <span class="cicon">📊</span>
+        <span class="cnum">Builder 7 · hands-on</span>
+        <h3>Fact design</h3>
+        <p>Three facts, three grains: what was sold, what was paid, what was wanted. Additivity, degenerate dimensions, and why you never join two facts.</p>
+        <span class="meta"><span class="pill inkpill">ships sql/11 + 12</span></span>
+      </a>
+      <a class="course-card" href="courses/b8-answering-the-questions.html" style="--diff:#FB923C">
+        <span class="cicon">🔍</span>
+        <span class="cnum">Builder 8 · hands-on</span>
+        <h3>Answering the four questions</h3>
+        <p>Which merchant dropped, why sales fell, why one day collapsed, when the peak hours are - built as marts, and one hypothesis dies on the evidence.</p>
+        <span class="meta"><span class="pill inkpill">ships sql/20 + 30</span></span>
+      </a>
+      <a class="course-card" href="courses/b9-agent-ready.html" style="--diff:#F87171">
+        <span class="cicon">🤖</span>
+        <span class="cnum">Builder 9 · hardest</span>
+        <h3>Agent-ready modeling</h3>
+        <p>Schema card, metric table, data contract, golden question set - then measure it: the same agent scores 0/20 without them and 20/20 with them.</p>
+        <span class="meta"><span class="pill peach">★ signature lab</span></span>
+      </a>
+      <a class="course-card" href="courses/b10-capstone.html" style="--diff:#F87171">
+        <span class="cicon">🏁</span>
+        <span class="cnum">Builder 10 · hardest · 60 min</span>
+        <h3>Capstone: returns and refunds</h3>
+        <p>A brand-new subject area, all the way down the ladder - entities, keys, DDL, dimension, fact, mart, agent view - and 27 validation checks green.</p>
+        <span class="meta"><span class="pill light">whole ladder, alone</span></span>
+      </a>
+    </div>
+
+    <div class="diff-legend">
+      <span><i style="background:#34D399"></i>easy</span>
+      <span><i style="background:#FBBF24"></i>medium</span>
+      <span><i style="background:#FB923C"></i>hands-on</span>
+      <span><i style="background:#F87171"></i>hardest</span>
+    </div>
+
+    <div class="ships">
+      <h3>What you leave with - runnable, not slideware</h3>
+      <div class="ships-body">
+        <div class="ships-col">
+          <b>sql/</b>
+          <code>01_oltp_ddl.sql</code>
+          <code>02_seed.sql</code>
+          <code>10_dim_ddl.sql</code>
+          <code>11_fact_ddl.sql</code>
+          <code>12_oltp_to_star.sql</code>
+          <code>20_marts.sql</code>
+          <code>30_business_questions.sql</code>
+          <code>40_agent_views.sql</code>
+        </div>
+        <div class="ships-col">
+          <b>python/</b>
+          <code>gen_bazaar_data.py</code>
+          <code>build_star.py</code>
+          <code>validate_model.py</code>
+          <code>answer_questions.py</code>
+          <code>agent_text_to_sql.py</code>
+          <code>agent_query_to_text.py</code>
+          <code>eval_golden_questions.py</code>
+        </div>
+        <div class="ships-col">
+          <b>semantic/</b>
+          <code>schema_card.md</code>
+          <code>contract.yaml</code>
+          <code>golden_questions.jsonl</code>
+          <b style="margin-top:.6rem">materials/</b>
+          <code>official-course-map.md</code>
+        </div>
+      </div>
+    </div>
+
+    <p class="prereq-line">This is the <strong>prerequisite the deng bucket was missing</strong>: the schema that <a href="https://phoebefu6.github.io/learn-sql-with-phoebe/">learn-sql-with-phoebe</a> hands you to query is a schema somebody designed - this is where that work happens. Take it before learn-sql if you are starting fresh, or after it if you already write SQL and want to know why the tables look like that. Next along the ladder: <a href="https://phoebefu6.github.io/learn-data-warehouse-with-phoebe/">learn-data-warehouse-with-phoebe</a> operates the star you design here, and <a href="https://phoebefu6.github.io/learn-data-engineering-with-phoebe/">learn-data-engineering-with-phoebe</a> builds the pipelines that fill it.</p>
+    <p class="sources-line">Built from Kimball &amp; Ross (<em>The Data Warehouse Toolkit</em>), Inmon, relational-theory fundamentals, the dbt layering and model-contract conventions, and published text-to-SQL benchmark practice - full source map and honest out-of-scope list in <code>materials/official-course-map.md</code>.</p>
+
+    <div class="paths">
+      <h2>Choose your path 🗺️</h2>
+      <p class="plede">Two doors, one marketplace. Leaders never write code; builders never sit through theory they have not just run themselves.</p>
+      <div class="path"><b>🤝 The leader path (judge &amp; fund)</b>
+        <a class="pstep" href="courses/a1-why-the-schema-decides.html">a1</a><span class="parr">→</span>
+        <a class="pstep" href="courses/a2-cost-of-a-bad-model.html">a2</a><span class="parr">→</span>
+        <a class="pstep" href="courses/a3-grain-and-meaning.html">a3</a><span class="parr">→</span>
+        <a class="pstep" href="courses/a4-tooling-landscape.html">a4</a><span class="parr">→</span>
+        <a class="pstep" href="courses/a5-naming-and-ownership.html">a5</a><span class="parr">→</span>
+        <a class="pstep" href="courses/a6-agent-ready-data.html">a6</a>
+      </div>
+      <div class="path"><b>🛠️ The builder path (design Bazaar's)</b>
+        <a class="pstep" href="courses/b1-source-reality.html">b1</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b2-anomaly-lab.html">b2</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b3-er-and-keys.html">b3</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b4-physical-oltp.html">b4</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b5-why-analysts-cant-query-oltp.html">b5</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b6-dimension-design.html">b6</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b7-fact-design.html">b7</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b8-answering-the-questions.html">b8</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b9-agent-ready.html">b9</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b10-capstone.html">b10</a>
+      </div>
+      <div class="path"><b>🚀 The full journey (lead AND build)</b>
+        <a class="pstep" href="courses/a1-why-the-schema-decides.html">a1-a6</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b1-source-reality.html">b1-b10</a>
+      </div>
+      <div class="path"><b>⚡ The two-hour tour (if you only have one evening)</b>
+        <a class="pstep" href="courses/b2-anomaly-lab.html">b2 anomaly lab</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b7-fact-design.html">b7 fact design</a><span class="parr">→</span>
+        <a class="pstep" href="courses/b9-agent-ready.html">b9 agent lab</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section mm-section">
+    <h2>The knowledge map 🧠</h2>
+    <p class="mm-lede">Both tracks at a glance - hover a session to spotlight its concepts, click any node to jump in.</p>
+    <div class="mm-wrap"><div id="mindmap"></div></div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>learn-data-modeling-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a> · built from Kimball, Inmon, relational fundamentals and dbt model contracts · runs on SQLite compiled to WebAssembly</span>
+  </footer>
+</main>
+
+<script>
+window.MINDMAP_DATA = {
+  title: "Data\nModeling",
+  centerColor: "#22395C",
+  sessions: [
+    { label: "Why the schema\ndecides", href: "courses/a1-why-the-schema-decides.html", color: "#34D399",
+      concepts: [
+        { label: "Choices outlive tools", href: "courses/a1-why-the-schema-decides.html" },
+        { label: "Where models live", href: "courses/a1-why-the-schema-decides.html" } ] },
+    { label: "Cost of a\nbad model", href: "courses/a2-cost-of-a-bad-model.html", color: "#34D399",
+      concepts: [
+        { label: "Rework tax", href: "courses/a2-cost-of-a-bad-model.html" },
+        { label: "Lost trust", href: "courses/a2-cost-of-a-bad-model.html" } ] },
+    { label: "Grain & one\nmeaning", href: "courses/a3-grain-and-meaning.html", color: "#FBBF24",
+      concepts: [
+        { label: "One row is one", href: "courses/a3-grain-and-meaning.html" },
+        { label: "Metric definition", href: "courses/a3-grain-and-meaning.html" } ] },
+    { label: "Tooling\nlandscape", href: "courses/a4-tooling-landscape.html", color: "#FBBF24",
+      concepts: [
+        { label: "ERD, dbt, catalogs", href: "courses/a4-tooling-landscape.html" },
+        { label: "Buy vs standardise", href: "courses/a4-tooling-landscape.html" } ] },
+    { label: "Naming &\nownership", href: "courses/a5-naming-and-ownership.html", color: "#FBBF24",
+      concepts: [
+        { label: "Conventions", href: "courses/a5-naming-and-ownership.html" },
+        { label: "Data contracts", href: "courses/a5-naming-and-ownership.html" } ] },
+    { label: "Agent-ready\ndata", href: "courses/a6-agent-ready-data.html", color: "#FBBF24",
+      concepts: [
+        { label: "Why agents fail", href: "courses/a6-agent-ready-data.html" },
+        { label: "What to fund", href: "courses/a6-agent-ready-data.html" } ] },
+    { label: "Source\nreality", href: "courses/b1-source-reality.html", color: "#34D399",
+      concepts: [
+        { label: "Conceptual model", href: "courses/b1-source-reality.html" },
+        { label: "Eight entities", href: "courses/b1-source-reality.html" } ] },
+    { label: "The anomaly\nlab", href: "courses/b2-anomaly-lab.html", color: "#34D399",
+      concepts: [
+        { label: "3 anomalies", href: "courses/b2-anomaly-lab.html" },
+        { label: "1NF 2NF 3NF", href: "courses/b2-anomaly-lab.html" } ] },
+    { label: "ER &\nkeys", href: "courses/b3-er-and-keys.html", color: "#FBBF24",
+      concepts: [
+        { label: "Cardinality", href: "courses/b3-er-and-keys.html" },
+        { label: "Natural vs surrogate", href: "courses/b3-er-and-keys.html" } ] },
+    { label: "Physical\nOLTP", href: "courses/b4-physical-oltp.html", color: "#FBBF24",
+      concepts: [
+        { label: "Types & constraints", href: "courses/b4-physical-oltp.html" },
+        { label: "Ship the DDL", href: "courses/b4-physical-oltp.html" } ] },
+    { label: "Why OLTP\nfails analysts", href: "courses/b5-why-analysts-cant-query-oltp.html", color: "#FBBF24",
+      concepts: [
+        { label: "Grain thinking", href: "courses/b5-why-analysts-cant-query-oltp.html" },
+        { label: "Conformed dims", href: "courses/b5-why-analysts-cant-query-oltp.html" } ] },
+    { label: "Dimension\ndesign", href: "courses/b6-dimension-design.html", color: "#FB923C",
+      concepts: [
+        { label: "Surrogate keys", href: "courses/b6-dimension-design.html" },
+        { label: "SCD type 2", href: "courses/b6-dimension-design.html" } ] },
+    { label: "Fact\ndesign", href: "courses/b7-fact-design.html", color: "#FB923C",
+      concepts: [
+        { label: "Three grains", href: "courses/b7-fact-design.html" },
+        { label: "Additivity", href: "courses/b7-fact-design.html" } ] },
+    { label: "Answering the\nquestions", href: "courses/b8-answering-the-questions.html", color: "#FB923C",
+      concepts: [
+        { label: "Marts", href: "courses/b8-answering-the-questions.html" },
+        { label: "Decomposition", href: "courses/b8-answering-the-questions.html" } ] },
+    { label: "Agent-ready\nmodeling", href: "courses/b9-agent-ready.html", color: "#F87171",
+      concepts: [
+        { label: "Schema card", href: "courses/b9-agent-ready.html" },
+        { label: "0/20 to 20/20", href: "courses/b9-agent-ready.html" } ] },
+    { label: "Capstone:\nreturns", href: "courses/b10-capstone.html", color: "#F87171",
+      concepts: [
+        { label: "New subject area", href: "courses/b10-capstone.html" },
+        { label: "27 checks green", href: "courses/b10-capstone.html" } ] }
+  ]
+};
+</script>
+<script src="assets/mindmap.js?v=1"></script>
+<script src="assets/app.js?v=1"></script>
+</body>
+</html>
