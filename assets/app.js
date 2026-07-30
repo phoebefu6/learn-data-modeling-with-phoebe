@@ -137,14 +137,25 @@
     var m = mx || crumb.textContent.match(/Builder session (\d+) of 10/);
     if (m) {
       var current = parseInt(m[1], 10);
+      // This course's own session filenames. The strip is built from them, so a
+      // renamed page must be renamed here too.
       var pages = mx
-        ? ["a1-what-data-engineering-is.html", "a2-source-systems.html",
-           "a3-batch-vs-streaming.html", "a4-build-vs-buy.html",
-           "a5-storage-engineering.html", "a6-de-org-roadmap.html"]
-        : ["b1-lifecycle-in-one-pipeline.html", "b2-connect-and-extract.html", "b3-ingestion-patterns.html",
-           "b4-file-and-table-formats.html", "b5-batch-transformation.html",
-           "b6-streaming-and-cdc.html", "b7-storage-engineering.html",
-           "b8-distributed-processing.html", "b9-reliability-seams.html", "b10-capstone.html"];
+        ? ["a1-why-the-schema-decides.html",
+           "a2-cost-of-a-bad-model.html",
+           "a3-grain-and-meaning.html",
+           "a4-tooling-landscape.html",
+           "a5-naming-and-ownership.html",
+           "a6-agent-ready-data.html"]
+        : ["b1-source-reality.html",
+           "b2-anomaly-lab.html",
+           "b3-er-and-keys.html",
+           "b4-physical-oltp.html",
+           "b5-why-analysts-cant-query-oltp.html",
+           "b6-dimension-design.html",
+           "b7-fact-design.html",
+           "b8-answering-the-questions.html",
+           "b9-agent-ready.html",
+           "b10-capstone.html"];
       var journey = document.createElement("div");
       journey.className = "journey";
       var jl = document.createElement("span");
