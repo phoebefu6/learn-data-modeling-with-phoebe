@@ -206,6 +206,47 @@ SELECT 'never reached' AS note;</pre>
       <summary><span class="mode self">Self-study</span>What a CHECK cannot do<span class="mini">3 min read</span><span class="caret">▶</span></summary>
       <div class="body">
         <p>A CHECK constraint sees one row of one table. That makes it perfect for <code>quantity &gt; 0</code> and useless for anything cross-row or cross-table:</p>
+<figure class="zoomable">
+  <svg viewBox="0 0 880 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A decision tree for choosing how to enforce a data rule: rules a single row can prove, such as quantity greater than zero, get a CHECK constraint, while rules that span rows or tables, such as a return never exceeding the quantity sold, need an external test, trigger or application check instead.">
+    <style>
+      .ckQ { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+      .ckOw { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+      .ckOa { font: 700 13px Inter, sans-serif; fill: #3A2A08; }
+      .ckSw { font: 400 11px Inter, sans-serif; fill: rgba(255,255,255,.82); }
+      .ckSa { font: 400 11px Inter, sans-serif; fill: #3A2A08; }
+      .ckE { font: 700 11px Inter, sans-serif; fill: #5C6B80; }
+      .ckN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <defs>
+      <marker id="ckArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5C6B80"/>
+      </marker>
+    </defs>
+    <rect x="0" y="0" width="880" height="270" fill="#F5F7FA"/>
+
+    <rect x="40" y="40" width="240" height="56" rx="10" fill="#EDF2F9" stroke="#22395C" stroke-width="1.5"/>
+    <text class="ckQ" x="160" y="72" text-anchor="middle">Rule needs only</text>
+    <text class="ckQ" x="160" y="86" text-anchor="middle">one row?</text>
+
+    <rect x="640" y="40" width="200" height="56" rx="10" fill="#3B5B8C"/>
+    <text class="ckOw" x="740" y="64" text-anchor="middle">Use a CHECK</text>
+    <text class="ckOw" x="740" y="80" text-anchor="middle">constraint</text>
+
+    <rect x="640" y="170" width="200" height="56" rx="10" fill="#C08A2E"/>
+    <text class="ckOa" x="740" y="194" text-anchor="middle">External test</text>
+    <text class="ckOa" x="740" y="210" text-anchor="middle">needed</text>
+
+    <path d="M280,68 H640" fill="none" stroke="#5C6B80" stroke-width="1.5" marker-end="url(#ckArrow)"/>
+    <text class="ckE" x="460" y="62" text-anchor="middle">yes</text>
+
+    <path d="M160,96 V198 H640" fill="none" stroke="#5C6B80" stroke-width="1.5" marker-end="url(#ckArrow)"/>
+    <text class="ckE" x="170" y="150" text-anchor="start">no</text>
+
+    <text class="ckN" x="40" y="248">e.g. quantity > 0 is one row. Return <= quantity sold spans two rows - a CHECK cannot see both.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - a CHECK sees one row; everything cross-row needs a test</figcaption>
+</figure>
+
         <ul>
           <li><strong>"A return cannot exceed the quantity sold"</strong> needs the order line as well as the return. A CHECK cannot express it, so the rule has to live in application logic, a trigger, or a validation job - and wherever you put it, write down that you put it there. The capstone in b10 makes you make this exact call.</li>
           <li><strong>"An order's total equals the sum of its lines"</strong> is cross-row. This is precisely why <code>orders</code> stores no total: the safest way to enforce an invariant is to remove the ability to violate it.</li>
@@ -273,6 +314,32 @@ ORDER BY order_id, line_no;</pre>
     <div class="callout example">
       <span class="ex-pill">Real world</span>
       <p><strong>Every constraint here was once an incident somewhere.</strong> The composite key exists because a retry once wrote the same line twice and revenue was 4% high for a quarter. The <code>quantity &gt; 0</code> check exists because a returns process wrote negative quantities into sales and nobody could work out why one merchant appeared to be paying customers. Constraints are institutional memory that survives the people who learned it.</p>
+<figure class="zoomable">
+  <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A before and after showing why order_items needs a composite primary key: without it a retry can write the same order line twice and overstate revenue by 4 percent for a quarter, and with the composite key order_id and line_no the duplicate retry is rejected and revenue matches the source exactly.">
+    <style>
+      .rkH { font: 700 13px Inter, sans-serif; }
+      .rkB { font: 400 12px Inter, sans-serif; fill: #1B2637; }
+      .rkN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <rect x="0" y="0" width="880" height="300" fill="#F5F7FA"/>
+
+    <rect x="40" y="50" width="390" height="180" rx="12" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+    <text class="rkH" x="58" y="84" fill="#991B1B">✗ No composite key</text>
+    <text class="rkB" x="58" y="114">a retry writes the same line twice</text>
+    <text class="rkB" x="58" y="134">nothing stops the duplicate row</text>
+    <text class="rkB" x="58" y="154">revenue reads 4% high for a quarter</text>
+
+    <rect x="450" y="50" width="390" height="180" rx="12" fill="#EDF2F9" stroke="#3B5B8C" stroke-width="1.5"/>
+    <text class="rkH" x="468" y="84" fill="#22395C">✓ Composite key enforced</text>
+    <text class="rkB" x="468" y="114">(order_id, line_no) is the key</text>
+    <text class="rkB" x="468" y="134">the duplicate retry is rejected</text>
+    <text class="rkB" x="468" y="154">revenue matches the source exactly</text>
+
+    <text class="rkN" x="40" y="276">A retry once duplicated a line and overstated revenue 4% for a quarter - the composite key stops it.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - a retry without a composite key once cost a quarter of revenue</figcaption>
+</figure>
+
     </div>
   </section>
 

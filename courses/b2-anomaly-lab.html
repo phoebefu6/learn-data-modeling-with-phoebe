@@ -120,6 +120,41 @@
           <li><strong>3NF - no transitive dependency.</strong> A non-key column must not depend on another non-key column. Product category depends on product name, not on the order line - so it belongs in a products table.</li>
         </ul>
         <p>The shorthand every practitioner ends up with: <strong>every fact depends on the key, the whole key, and nothing but the key.</strong> The lab below is the same idea with the definitions removed and the failures left in.</p>
+<figure class="zoomable">
+  <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A stacked diagram showing what 1NF, 2NF and 3NF each add on top of a flat table: 1NF removes repeating values, 2NF removes partial dependency on part of a composite key, and 3NF removes transitive dependency, together producing a normalized schema with none of the three anomalies left to find.">
+    <style>
+      .nfT { font: 700 13px Inter, sans-serif; fill: #fff; }
+      .nfS { font: 400 11.5px Inter, sans-serif; fill: rgba(255,255,255,.84); }
+      .nfC { font: 700 11px Inter, sans-serif; fill: #22395C; }
+      .nfE { font: 700 11.5px Inter, sans-serif; fill: #1B2637; }
+      .nfN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <rect x="0" y="0" width="880" height="300" fill="#F5F7FA"/>
+
+    <rect x="60" y="60" width="170" height="30" rx="8" fill="#B9CBE4"/>
+    <text class="nfC" x="145" y="80" text-anchor="middle">one value per cell</text>
+    <rect x="250" y="60" width="180" height="30" rx="8" fill="#B9CBE4"/>
+    <text class="nfC" x="340" y="80" text-anchor="middle">no partial dependency</text>
+    <rect x="450" y="60" width="170" height="30" rx="8" fill="#B9CBE4"/>
+    <text class="nfC" x="535" y="80" text-anchor="middle">no transitive link</text>
+
+    <rect x="40" y="104" width="660" height="56" rx="10" fill="#3B5B8C"/>
+    <text class="nfT" x="60" y="128">NORMALIZED SCHEMA (3NF)</text>
+    <text class="nfS" x="60" y="147">no update, insert, delete anomaly</text>
+
+    <rect x="40" y="196" width="660" height="56" rx="10" fill="#5C6B80"/>
+    <text class="nfT" x="60" y="220">FLAT TABLE</text>
+    <text class="nfS" x="60" y="239">same fact repeated across rows</text>
+
+    <path d="M716,104 h14 v148 h-14" fill="none" stroke="#3B5B8C" stroke-width="1.6"/>
+    <text class="nfE" x="740" y="174">= no anomalies</text>
+    <text class="nfE" x="740" y="190">left to find</text>
+
+    <text class="nfN" x="40" y="282">Each layer closes one gap: repeating values, partial dependency, then transitive dependency.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - three normal forms, three anomalies removed, one at a time</figcaption>
+</figure>
+
         <div class="callout tip">
           <strong>Beyond 3NF</strong>
           BCNF, 4NF and 5NF exist and are real, and you will almost never design for them on purpose. The overwhelming majority of production OLTP schemas are 3NF plus judgement. If you are in a domain where BCNF matters, you already know it.
@@ -131,6 +166,32 @@
       <summary><span class="mode self">Self-study</span>When storing a fact twice is correct<span class="mini">3 min read</span><span class="caret">▶</span></summary>
       <div class="body">
         <p>Bazaar's <code>order_items</code> table stores <code>unit_price</code> even though <code>products</code> already has <code>list_price</code>, and it stores <code>merchant_id</code> even though <code>products</code> already knows which merchant owns each product. Both look like textbook 3NF violations. Neither is a mistake.</p>
+<figure class="zoomable">
+  <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A before and after comparing two ways to read Bazaar's order_items columns unit_price and merchant_id: wrongly treating them as redundant copies to normalize away, versus correctly recognizing them as point-in-time facts that are allowed to differ from the product's current price and owner.">
+    <style>
+      .pcH { font: 700 13px Inter, sans-serif; }
+      .pcB { font: 400 12px Inter, sans-serif; fill: #1B2637; }
+      .pcN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <rect x="0" y="0" width="880" height="300" fill="#F5F7FA"/>
+
+    <rect x="40" y="50" width="390" height="180" rx="12" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+    <text class="pcH" x="58" y="84" fill="#991B1B">✗ Looks like redundancy</text>
+    <text class="pcB" x="58" y="114">unit_price mirrors list_price</text>
+    <text class="pcB" x="58" y="134">merchant_id mirrors products' owner</text>
+    <text class="pcB" x="58" y="154">so you delete the duplicate column</text>
+
+    <rect x="450" y="50" width="390" height="180" rx="12" fill="#EDF2F9" stroke="#3B5B8C" stroke-width="1.5"/>
+    <text class="pcH" x="468" y="84" fill="#22395C">✓ Point-in-time capture</text>
+    <text class="pcB" x="468" y="114">unit_price = price charged that day</text>
+    <text class="pcB" x="468" y="134">merchant_id = seller at sale time</text>
+    <text class="pcB" x="468" y="154">both can differ later - keep both</text>
+
+    <text class="pcN" x="40" y="276">The test: can the two copies ever legitimately differ? If yes, they are different facts, not redundancy.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - not every repeated word is a duplicate fact</figcaption>
+</figure>
+
         <ul>
           <li><strong>Point-in-time capture, not redundancy.</strong> <code>unit_price</code> is the price actually charged on that line, on that day. The product's list price will change; what you charged in April must not. These are two different facts that share a word - exactly the case session b1 flagged.</li>
           <li><strong>The same logic covers merchant_id:</strong> a product can be transferred between merchants, and the sale still belongs to whoever sold it at the time.</li>

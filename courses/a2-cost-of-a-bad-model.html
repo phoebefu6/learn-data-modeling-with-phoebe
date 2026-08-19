@@ -159,6 +159,43 @@
       <summary><span class="mode self">Self-study</span>A worked cost sketch, with the arithmetic visible<span class="mini">4 min read</span><span class="caret">▶</span></summary>
       <div class="body">
         <p>Bazaar's dataset is deliberately small, which makes the arithmetic legible. Substitute your own volumes and the shape holds.</p>
+<figure class="zoomable">
+  <svg viewBox="0 0 880 268" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A bar chart comparing two Bazaar June reporting errors: a dashboard order count of 481 against the true count of 327, a 47 percent overstatement, and a wrong average order value of 80.68 Singapore dollars against the true 116.93, a 31 percent understatement.">
+    <style>
+      .wcT { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+      .wcG { font: 700 11px Inter, sans-serif; fill: #5C6B80; letter-spacing: .05em; }
+      .wcL { font: 600 11px Inter, sans-serif; fill: #1B2637; }
+      .wcVw { font: 700 12px Inter, sans-serif; fill: #3A2A08; }
+      .wcVi { font: 700 12px Inter, sans-serif; fill: #FFFFFF; }
+      .wcN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <rect x="0" y="0" width="880" height="268" fill="#F5F7FA"/>
+    <text class="wcT" x="40" y="26">One table, two errors reading opposite ways</text>
+
+    <text class="wcG" x="40" y="48">ORDERS COUNTED IN JUNE</text>
+    <text class="wcL" x="240" y="76" text-anchor="end">Dashboard count (wrong)</text>
+    <rect x="260" y="58" width="480" height="24" rx="5" fill="#C08A2E"/>
+    <text class="wcVw" x="272" y="75">481 rows</text>
+
+    <text class="wcL" x="240" y="110" text-anchor="end">True order count</text>
+    <rect x="260" y="92" width="326" height="24" rx="5" fill="#3B5B8C"/>
+    <text class="wcVi" x="272" y="109">327 rows</text>
+
+    <text class="wcG" x="40" y="142">AVERAGE ORDER VALUE, SGD</text>
+    <text class="wcL" x="240" y="170" text-anchor="end">Wrong AOV (avg of lines)</text>
+    <rect x="260" y="152" width="331" height="24" rx="5" fill="#C08A2E"/>
+    <text class="wcVw" x="272" y="169">$80.68</text>
+
+    <text class="wcL" x="240" y="204" text-anchor="end">True AOV (rev / orders)</text>
+    <rect x="260" y="186" width="480" height="24" rx="5" fill="#3B5B8C"/>
+    <text class="wcVi" x="272" y="203">$116.93</text>
+
+    <text class="wcN" x="40" y="232">Order count reads 47% high; AOV reads 31% low, in the same June report.</text>
+    <text class="wcN" x="40" y="250">Opposite directions and both look plausible alone - which is why they survive unnoticed.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - one error reads high, the other reads low, and both look plausible</figcaption>
+</figure>
+
         <ul>
           <li><strong>The error:</strong> a dashboard counts rows in the order-line table and calls them orders. Bazaar has 985 orders and 1,434 order lines, so June reports 481 orders instead of 327 - a 47% overstatement. Nothing errors. The number simply reads high, consistently, forever.</li>
           <li><strong>Who acts on it:</strong> whoever sets acquisition targets from order volume. Every target derived from that number is set against a base that is half again too big, so performance looks like underdelivery when it is not.</li>
@@ -179,7 +216,62 @@
     </div>
     <p class="lede">Not every known modeling problem deserves a project this quarter. Three options, and three signals that decide between them.</p>
 
-    <table class="clean">
+    
+<figure class="zoomable">
+  <svg viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A decision tree for a known data modeling problem: if any of three signals is present it should be fixed this quarter, if none are present it can be documented and lived with, and if a fix is right but cannot be scheduled this quarter the shape should be ringfenced from new consumers.">
+    <style>
+      .dcQ { font: 700 12px Inter, sans-serif; fill: #1B2637; }
+      .dcOw { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+      .dcOa { font: 700 13px Inter, sans-serif; fill: #3A2A08; }
+      .dcSw { font: 400 11px Inter, sans-serif; fill: rgba(255,255,255,.82); }
+      .dcSa { font: 400 11px Inter, sans-serif; fill: #3A2A08; }
+      .dcE { font: 700 11px Inter, sans-serif; fill: #5C6B80; }
+      .dcN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <defs>
+      <marker id="dcArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5C6B80"/>
+      </marker>
+    </defs>
+    <rect x="0" y="0" width="880" height="340" fill="#F5F7FA"/>
+
+    <rect x="40" y="40" width="240" height="56" rx="10" fill="#EDF2F9" stroke="#22395C" stroke-width="1.5"/>
+    <text class="dcQ" x="160" y="72" text-anchor="middle">Any of the 3 signals</text>
+    <text class="dcQ" x="160" y="86" text-anchor="middle">present?</text>
+
+    <rect x="340" y="140" width="240" height="56" rx="10" fill="#EDF2F9" stroke="#22395C" stroke-width="1.5"/>
+    <text class="dcQ" x="460" y="172" text-anchor="middle">Can you fix it this</text>
+    <text class="dcQ" x="460" y="186" text-anchor="middle">quarter?</text>
+
+    <rect x="640" y="40" width="200" height="56" rx="10" fill="#6C8CBC"/>
+    <text class="dcOw" x="740" y="64" text-anchor="middle">Live with it, dated</text>
+    <text class="dcSw" x="740" y="82" text-anchor="middle">name an owner</text>
+
+    <rect x="640" y="140" width="200" height="56" rx="10" fill="#C08A2E"/>
+    <text class="dcOa" x="740" y="164" text-anchor="middle">Fix it this quarter</text>
+    <text class="dcSa" x="740" y="182" text-anchor="middle">before it compounds</text>
+
+    <rect x="640" y="236" width="200" height="56" rx="10" fill="#22395C"/>
+    <text class="dcOw" x="740" y="260" text-anchor="middle">Ringfence it</text>
+    <text class="dcSw" x="740" y="278" text-anchor="middle">freeze; no new consumers</text>
+
+    <path d="M280,68 H640" fill="none" stroke="#5C6B80" stroke-width="1.5" marker-end="url(#dcArrow)"/>
+    <text class="dcE" x="460" y="62" text-anchor="middle">no</text>
+
+    <path d="M160,96 V168 H340" fill="none" stroke="#5C6B80" stroke-width="1.5" marker-end="url(#dcArrow)"/>
+    <text class="dcE" x="170" y="136" text-anchor="start">yes</text>
+
+    <path d="M580,168 H640" fill="none" stroke="#5C6B80" stroke-width="1.5" marker-end="url(#dcArrow)"/>
+    <text class="dcE" x="610" y="162" text-anchor="middle">yes</text>
+
+    <path d="M460,196 V264 H640" fill="none" stroke="#5C6B80" stroke-width="1.5" marker-end="url(#dcArrow)"/>
+    <text class="dcE" x="472" y="230" text-anchor="start">no</text>
+
+    <text class="dcN" x="40" y="316">Three signals decide the call: external commitment, compounding cost, or a team about to build on it.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - three signals separate fix now from live with it or ringfence</figcaption>
+</figure>
+<table class="clean">
       <thead><tr><th>Option</th><th>What it means in practice</th><th>When it is the right call</th></tr></thead>
       <tbody>
         <tr><td><strong>Fix it</strong></td><td>remodel the subject area, migrate the downstream assets, retire the old shape</td><td>any of the three signals below is present</td></tr>

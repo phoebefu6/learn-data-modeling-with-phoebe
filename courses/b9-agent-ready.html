@@ -158,7 +158,35 @@
     <p class="lede">Pick a question. The lab shows you the SQL an agent writes for it, runs that SQL against the real Bazaar star in your browser, and tells you whether the number is right. Then flip the contract lever off and watch the same question produce a confident wrong answer. Finish with <strong>Score all 20 questions</strong> for the whole scorecard.</p>
 
     <div class="steps">
-      <div class="step"><p><strong>Start with the contract ON.</strong> Read what the agent can see: five views with stated grains, thirteen metric definitions, the join rules. Ask a few questions and check the numbers.</p></div>
+      <div class="step"><p><strong>Start with the contract ON.</strong> Read what the agent can see: five views with stated grains, thirteen metric definitions, the join rules. Ask a few questions and check the numbers.</p>
+<figure class="zoomable">
+  <svg viewBox="0 0 880 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A bar chart showing the size of Bazaar's semantic contract for agents: five governed read-only views, thirteen metric definitions, and twenty golden questions with recorded correct answers.">
+    <style>
+      .csT { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+      .csL { font: 600 11px Inter, sans-serif; fill: #1B2637; }
+      .csV { font: 700 12px Inter, sans-serif; fill: #FFFFFF; }
+      .csN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <rect x="0" y="0" width="880" height="200" fill="#F5F7FA"/>
+    <text class="csT" x="40" y="26">The size of the whole contract</text>
+
+    <text class="csL" x="240" y="65" text-anchor="end">Governed read-only views</text>
+    <rect x="260" y="48" width="120" height="26" rx="5" fill="#3B5B8C"/>
+    <text class="csV" x="272" y="65">5 views</text>
+
+    <text class="csL" x="240" y="105" text-anchor="end">Metric definitions</text>
+    <rect x="260" y="88" width="312" height="26" rx="5" fill="#3B5B8C"/>
+    <text class="csV" x="272" y="105">13 definitions</text>
+
+    <text class="csL" x="240" y="145" text-anchor="end">Golden questions</text>
+    <rect x="260" y="128" width="480" height="26" rx="5" fill="#3B5B8C"/>
+    <text class="csV" x="272" y="145">20 questions</text>
+
+    <text class="csN" x="40" y="176">Five views, thirteen metric definitions, twenty golden questions - the whole semantic contract.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - the whole contract is five views, thirteen metrics, twenty questions</figcaption>
+</figure>
+</div>
       <div class="step"><p><strong>Flip the lever off.</strong> Same question, same database - now the agent has table names and nothing else. Read the SQL it writes and the wrong number it produces.</p></div>
       <div class="step"><p><strong>Try q02, q04 and q20 specifically.</strong> Those are the grain error, the averaged average and the fact-to-fact double count - the three failures that cost the most in production.</p></div>
       <div class="step"><p><strong>Score all 20.</strong> 0/20 without, 20/20 with. That delta is what "agent-ready" means, and it is entirely your modeling work.</p></div>
@@ -180,7 +208,45 @@
     </div>
     <p class="lede">"Agent-ready" is not a setting. It is four files, each of which is useful to humans on its own - which is the tell that this is real modeling work rather than AI theatre.</p>
 
-    <table class="clean">
+    
+<figure class="zoomable">
+  <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A two layer stack showing what four semantic artifacts add on top of a plain schema: a plain schema with table names only leaves an agent guessing, while adding agent-only views, a schema card, a contract and golden questions produces an agent-ready model that answered twenty of twenty business questions correctly.">
+    <style>
+      .akT { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+      .akB { font: 700 13px Inter, sans-serif; fill: #FFFFFF; }
+      .akS { font: 400 11.5px Inter, sans-serif; fill: rgba(255,255,255,.84); }
+      .akC { font: 700 11px Inter, sans-serif; fill: #22395C; }
+      .akE { font: 700 11.5px Inter, sans-serif; fill: #1B2637; }
+      .akN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <rect x="0" y="0" width="880" height="300" fill="#F5F7FA"/>
+
+    <rect x="60" y="60" width="170" height="30" rx="8" fill="#B9CBE4"/>
+    <text class="akC" x="145" y="80" text-anchor="middle">agent views</text>
+    <rect x="250" y="60" width="170" height="30" rx="8" fill="#B9CBE4"/>
+    <text class="akC" x="335" y="80" text-anchor="middle">schema card</text>
+    <rect x="440" y="60" width="170" height="30" rx="8" fill="#B9CBE4"/>
+    <text class="akC" x="525" y="80" text-anchor="middle">the contract</text>
+    <rect x="630" y="60" width="170" height="30" rx="8" fill="#B9CBE4"/>
+    <text class="akC" x="715" y="80" text-anchor="middle">golden questions</text>
+
+    <rect x="40" y="104" width="660" height="56" rx="10" fill="#3B5B8C"/>
+    <text class="akB" x="60" y="128">AGENT-READY MODEL</text>
+    <text class="akS" x="60" y="147">20 of 20 questions answered right</text>
+
+    <rect x="40" y="196" width="660" height="56" rx="10" fill="#5C6B80"/>
+    <text class="akB" x="60" y="220">PLAIN SCHEMA</text>
+    <text class="akS" x="60" y="239">table names only, agent guesses</text>
+
+    <path d="M716,104 h14 v148 h-14" fill="none" stroke="#3B5B8C" stroke-width="1.6"/>
+    <text class="akE" x="740" y="174">= an agent</text>
+    <text class="akE" x="740" y="190">you can trust</text>
+
+    <text class="akN" x="40" y="276">Four small files, each useful to humans alone - that is the tell this is modeling work, not AI theatre.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - four small files turn a guessing agent into a checked one</figcaption>
+</figure>
+<table class="clean">
       <thead><tr><th>Artifact</th><th>What it is</th><th>What it prevents</th></tr></thead>
       <tbody>
         <tr><td><code>sql/40_agent_views.sql</code></td><td>five flat, self-describing views + a metric table, read-only</td><td>the fact-to-fact join, base-table access, cryptic column names</td></tr>

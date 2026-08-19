@@ -158,6 +158,31 @@
       <summary><span class="mode self">Self-study</span>The measurement, and why it is honest<span class="mini">3 min read</span><span class="caret">▶</span></summary>
       <div class="body">
         <p>The builder track measures this rather than asserting it. Twenty standard business questions, the same database, the same model, the same AI analyst - once with the semantic contract published and once without. Grading compares the <strong>result sets</strong>, to the cent, not the text of the query.</p>
+<figure class="zoomable">
+  <svg viewBox="0 0 880 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A bar chart showing a text to SQL agent scored zero of twenty business questions correct without the semantic contract published, and twenty of twenty correct with the same database and model once the contract was published.">
+    <style>
+      .aqT { font: 700 13px Inter, sans-serif; fill: #1B2637; }
+      .aqL { font: 600 11px Inter, sans-serif; fill: #1B2637; }
+      .aqVout { font: 700 12px Inter, sans-serif; fill: #991B1B; }
+      .aqVin { font: 700 12px Inter, sans-serif; fill: #FFFFFF; }
+      .aqN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <rect x="0" y="0" width="880" height="170" fill="#F5F7FA"/>
+    <text class="aqT" x="40" y="26">Zero of twenty, then twenty of twenty</text>
+
+    <text class="aqL" x="240" y="67" text-anchor="end">Without the contract</text>
+    <rect x="260" y="48" width="6" height="28" fill="#991B1B"/>
+    <text class="aqVout" x="278" y="67">0 / 20 correct</text>
+
+    <text class="aqL" x="240" y="111" text-anchor="end">With the contract</text>
+    <rect x="260" y="92" width="480" height="28" rx="5" fill="#3B5B8C"/>
+    <text class="aqVin" x="272" y="111">20 / 20 correct</text>
+
+    <text class="aqN" x="40" y="142">Same database, same model, twenty business questions - only the contract changed.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - the contract is the entire difference between 0 and 20 of 20</figcaption>
+</figure>
+
         <ul>
           <li><strong>Without the contract: 0 of 20 correct.</strong> Not because the questions are hard - because grain, definitions and permitted joins were never published, so the agent guessed and guessed plausibly.</li>
           <li><strong>With it: 20 of 20.</strong> The contract is 13 metric definitions, five governed read-only views and a short schema card. It is small, and it is the whole difference.</li>
@@ -208,6 +233,50 @@
       <summary><span class="mode self">Self-study</span>Who owns what, and the 30-day plan<span class="mini">3 min read</span><span class="caret">▶</span></summary>
       <div class="body">
         <p><strong>Ownership:</strong> the data team owns grains, definitions and the view layer. The business owns the golden questions and the agreed answers - and that is not a formality, because a question nobody in the business will vouch for cannot be used to measure anything. The AI or platform team owns the tool.</p>
+<figure class="zoomable">
+  <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A timeline of a four week plan to make a data model agent-ready: week one collects twenty business questions and agrees their answers, week two writes a grain sentence for every table, week three defines the metrics as data, and week four measures accuracy against the twenty questions to set the baseline.">
+    <style>
+      .wkD { font: 700 11px Inter, sans-serif; fill: #5C6B80; }
+      .wkB { font: 700 9.5px Inter, sans-serif; fill: #FFFFFF; letter-spacing: .04em; }
+      .wkL { font: 600 12px Inter, sans-serif; fill: #1B2637; }
+      .wkN { font: 400 12px Inter, sans-serif; fill: #5C6B80; }
+    </style>
+    <rect x="0" y="0" width="880" height="250" fill="#F5F7FA"/>
+    <line x1="70" y1="120" x2="810" y2="120" stroke="#DCE3EC" stroke-width="2"/>
+
+    <circle cx="70" cy="120" r="7" fill="#3B5B8C"/>
+    <text class="wkD" x="70" y="102" text-anchor="middle">WEEK 1</text>
+    <rect x="26" y="132" width="88" height="17" rx="8" fill="#3B5B8C"/>
+    <text class="wkB" x="70" y="144" text-anchor="middle">COLLECT</text>
+    <text class="wkL" x="70" y="168" text-anchor="middle">20 questions</text>
+    <text class="wkL" x="70" y="184" text-anchor="middle">agree answers</text>
+
+    <circle cx="317" cy="120" r="7" fill="#3B5B8C"/>
+    <text class="wkD" x="317" y="102" text-anchor="middle">WEEK 2</text>
+    <rect x="273" y="132" width="88" height="17" rx="8" fill="#3B5B8C"/>
+    <text class="wkB" x="317" y="144" text-anchor="middle">GRAIN</text>
+    <text class="wkL" x="317" y="168" text-anchor="middle">Write grain</text>
+    <text class="wkL" x="317" y="184" text-anchor="middle">sentences</text>
+
+    <circle cx="563" cy="120" r="7" fill="#3B5B8C"/>
+    <text class="wkD" x="563" y="102" text-anchor="middle">WEEK 3</text>
+    <rect x="519" y="132" width="88" height="17" rx="8" fill="#3B5B8C"/>
+    <text class="wkB" x="563" y="144" text-anchor="middle">METRICS</text>
+    <text class="wkL" x="563" y="168" text-anchor="middle">Define the</text>
+    <text class="wkL" x="563" y="184" text-anchor="middle">metrics</text>
+
+    <circle cx="810" cy="120" r="7" fill="#3B5B8C"/>
+    <text class="wkD" x="810" y="102" text-anchor="middle">WEEK 4</text>
+    <rect x="766" y="132" width="88" height="17" rx="8" fill="#3B5B8C"/>
+    <text class="wkB" x="810" y="144" text-anchor="middle">MEASURE</text>
+    <text class="wkL" x="810" y="168" text-anchor="middle">Run & grade</text>
+    <text class="wkL" x="810" y="184" text-anchor="middle">the baseline</text>
+
+    <text class="wkN" x="40" y="222">The 30-day plan turns readiness into four cheap deliverables before any agent is switched on.</text>
+  </svg>
+  <figcaption>🔍 Click to zoom - four weeks, four deliverables, before any agent is switched on</figcaption>
+</figure>
+
         <p><strong>The 30 days:</strong></p>
         <ul>
           <li><strong>Week 1:</strong> collect twenty questions your business asks repeatedly. Agree the correct answer for each with a named human. Expect to discover two or three that nobody can agree on - those are findings, not delays.</li>
