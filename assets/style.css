@@ -591,7 +591,7 @@ details.card summary:hover { background: #F0F4F9; }
 .quiz-q .qopt.correct { background: var(--indigo); border-color: var(--indigo); color: #fff; font-weight: 600; }
 .quiz-q .qopt.correct::after { content: "  ✓"; }
 .quiz-q .qopt.wrong { background: #FEF2F2; border-color: #FCA5A5; color: #991B1B; animation: qshake .3s ease; }
-.quiz-q .qopt.wrong::after { content: "  ✗ try again"; font-size: .78rem; }
+.quiz-q .qopt.wrong::after { content: "  not this one, try again"; font-size: .78rem; }
 .quiz-q .qopt:disabled { cursor: default; }
 .quiz-q .qwhy {
   display: none;
@@ -830,7 +830,7 @@ table.sql-table tr:last-child td { border-bottom: none; }
 .lab-context-list { margin: 0; padding-left: 1.1rem; font-size: .83rem; line-height: 1.65; }
 .lab-context-list li.has::marker { content: "✓ "; color: var(--indigo); }
 .lab-context-list li.lacks { color: #991B1B; }
-.lab-context-list li.lacks::marker { content: "✗ "; }
+.lab-context-list li.lacks::marker { content: "Missing: "; }
 
 .lab-q { margin: 0 0 .8rem; font-size: 1.02rem; font-weight: 700; color: var(--indigo-deep); line-height: 1.5; }
 .lab-block { margin-bottom: .9rem; border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; }
